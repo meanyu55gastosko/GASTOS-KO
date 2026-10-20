@@ -199,7 +199,7 @@ workflows:
         script: |
           flutter clean
           flutter pub get
-          flutter build appbundle --release --obfuscate --split-debug-info=./symbols --no-tree-shake-icons --build-number=4
+          flutter build appbundle --release --obfuscate --split-debug-info=./symbols --no-tree-shake-icons --build-number=5
 
     artifacts:
       - build/app/outputs/bundle/release/*.aab
