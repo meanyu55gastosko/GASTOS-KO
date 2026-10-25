@@ -267,9 +267,15 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
 
   Future<void> _loadSavedPinAndLocale() async {
     final prefs = await SharedPreferences.getInstance();
+
+    String deviceLanguage =
+        PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    String defaultLocale =
+        (deviceLanguage == 'tl' || deviceLanguage == 'fil') ? 'tl' : 'en';
+
     setState(() {
       _savedPin = prefs.getString('user_pincode') ?? "";
-      _currentLocale = prefs.getString('app_lang_locale') ?? "tl";
+      _currentLocale = prefs.getString('app_lang_locale') ?? defaultLocale;
     });
   }
 
@@ -280,7 +286,6 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
       });
       return;
     }
-
     if (_isUpdatingPin) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_pincode', pin);
@@ -1024,7 +1029,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           break;
         }
       }
-      List<List> csvRows = [
+      List<List<dynamic>> csvRows = [
         [
           _getTxt('csv_hdr_wallet'),
           _getTxt('csv_hdr_budget'),
@@ -1123,15 +1128,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _bgSessionTimer?.cancel();
-    _subscription?.cancel();
-    _searchController.dispose();
-    super.dispose();
-  }
-
   Future _checkPremiumAndTrialState() async {
     final p = await SharedPreferences.getInstance();
     String? installDateStr = p.getString('app_install_date');
@@ -1149,24 +1145,42 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         }
       }
     }
+    String deviceLanguage =
+        PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    String defaultLocale =
+        (deviceLanguage == 'tl' || deviceLanguage == 'fil') ? 'tl' : 'en';
     setState(() {
       _isPremiumUser = isPremium;
-      _currentLocale = p.getString('app_lang_locale') ?? "tl";
+
+      // Kuhanin ang naka-save na locale, o gamitin ang default phone language
+      String tempLocale = p.getString('app_lang_locale') ?? defaultLocale;
+
+      // SIGURADUHING 'en' O 'tl' LANG ANG VALUE PARA HINDI MAG-CRASH ANG DROPDOWN
+      if (tempLocale != 'en' && tempLocale != 'tl') {
+        _currentLocale = defaultLocale;
+      } else {
+        _currentLocale = tempLocale;
+      }
+
       _trialDaysLeft = calculatedLeft;
       _isTrialExpired = expired;
       _purchasedPlanTitle = p.getString('purchased_plan_title') ?? "Pro Plan";
+
       int? savedBgColorValue = p.getInt('app_background_color_value');
       _appBgColor = savedBgColorValue != null
           ? Color(savedBgColorValue)
           : const Color(0xFF121212);
+
       int? savedFontColorValue = p.getInt('app_font_color_value');
       _appFontColor = savedFontColorValue != null
           ? Color(savedFontColorValue)
           : Colors.white;
+
       int? savedBoxColorValue = p.getInt('app_box_color_value');
       _boxBgColor = savedBoxColorValue != null
           ? Color(savedBoxColorValue)
           : const Color(0xFF1E1E1E);
+
       if (expired) {
         activeWalletId = "default";
       }
@@ -1178,8 +1192,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
 
   Future loadData() async {
     final p = await SharedPreferences.getInstance();
+    String deviceLanguage =
+        PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    String defaultLocale =
+        (deviceLanguage == 'tl' || deviceLanguage == 'fil') ? 'tl' : 'en';
     setState(() {
-      _currentLocale = p.getString('app_lang_locale') ?? "tl";
+      _currentLocale = p.getString('app_lang_locale') ?? defaultLocale;
       String? wData = p.getString('app_wallets');
       if (wData != null) {
         List l = jsonDecode(wData);
@@ -2522,15 +2540,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       }
       return true;
     }).toList();
+    double totalGastos = all.fold(0, (sum, item) => sum + item.amount);
     Map<String, List> grouped = {};
-    double totalGastos = 0;
     int colorIndex = 0;
     Map<String, Color> activeSessionColors = {};
     for (var e in dateFilteredExpenses) {
       String key = e.title.toLowerCase().trim();
       grouped.putIfAbsent(key, () => []);
       grouped[key]!.add(e);
-      totalGastos += e.amount;
       if (!activeSessionColors.containsKey(key)) {
         activeSessionColors[key] =
             dynamicColors[colorIndex % dynamicColors.length];
@@ -2679,16 +2696,18 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                           fontSize: 16)),
                                   const SizedBox(height: 2),
                                   Text(
-                                      _isPremiumUser
-                                          ? "Pro Active ($_purchasedPlanTitle)"
-                                          : (trialExpiredWithNoPremium
-                                              ? 'Trial Expired'
-                                              : "Free Trial ($_trialDaysLeft days left)"),
-                                      style: TextStyle(
-                                          color: trialExpiredWithNoPremium
-                                              ? Colors.redAccent
-                                              : Colors.white38,
-                                          fontSize: 10)),
+                                    _isPremiumUser
+                                        ? "Pro Active ($_purchasedPlanTitle)"
+                                        : (trialExpiredWithNoPremium
+                                            ? 'Trial Expired'
+                                            : "Free Trial ($_trialDaysLeft days left)"),
+                                    style: TextStyle(
+                                      color: trialExpiredWithNoPremium
+                                          ? Colors.redAccent
+                                          : Colors.white38,
+                                      fontSize: 10,
+                                    ),
+                                  ),
                                 ],
                               ),
                             )
@@ -2855,7 +2874,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                 child: ListView(
                                   physics: const BouncingScrollPhysics(),
                                   children: [
-                                    // 1 hanggang 10 (Hindi ginalaw ang mga nauna mo)
                                     _buildPresetRowItem(
                                         "Classic Dark 🕶️",
                                         const Color(0xFF121212),
@@ -2916,8 +2934,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         const Color(0xFFB9F6CA),
                                         const Color(0xFF1C282C),
                                         setDialogState),
-
-                                    // 11 hanggang 20 (Mga bagong dagdag na kulay at kombinasyon)
                                     _buildPresetRowItem(
                                         "Barbie Dream 💅",
                                         const Color(0xFF2B0A1A),
@@ -3265,7 +3281,58 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         : const Color(0xFFFFD700),
                                     size: 20),
                                 tooltip: _getTxt('edit_entry_tooltip'),
-                                onPressed: () => _showEditExpenseDialog(item),
+                                onPressed: trialExpiredWithNoPremium
+                                    ? null
+                                    : () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) =>
+                                              AlertDialog(
+                                            backgroundColor:
+                                                const Color(0xFF1E1E1E),
+                                            title: Text(
+                                              _currentLocale == 'tl'
+                                                  ? 'I-edit ang Entry?'
+                                                  : 'Edit Entry?',
+                                              style: const TextStyle(
+                                                  color: Color(0xFFFFD700),
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            content: Text(
+                                              _currentLocale == 'tl'
+                                                  ? 'Gusto mo bang baguhin ang mga detalye ng "${item.title}"?'
+                                                  : 'Do you want to modify the details for "${item.title}"?',
+                                              style: const TextStyle(
+                                                  color: Colors.white70),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: Text(
+                                                    _getTxt('btn_cancel'),
+                                                    style: const TextStyle(
+                                                        color: Colors.white30)),
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                  _showEditExpenseDialog(item);
+                                                },
+                                                child: Text(
+                                                  _currentLocale == 'tl'
+                                                      ? 'ITULOY'
+                                                      : 'PROCEED',
+                                                  style: const TextStyle(
+                                                      color: Color(0xFFFFD700),
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
                               ),
                               IconButton(
                                 icon: Icon(Icons.delete_outline,
@@ -3277,10 +3344,57 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                 onPressed: trialExpiredWithNoPremium
                                     ? null
                                     : () {
-                                        setState(() {
-                                          all.remove(item);
-                                          saveData();
-                                        });
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) =>
+                                              AlertDialog(
+                                            backgroundColor:
+                                                const Color(0xFF1E1E1E),
+                                            title: Text(
+                                              _currentLocale == 'tl'
+                                                  ? 'Burahin ang Entry?'
+                                                  : 'Delete Entry?',
+                                              style: const TextStyle(
+                                                  color: Colors.redAccent,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            content: Text(
+                                              _currentLocale == 'tl'
+                                                  ? 'Sigurado ka bang gusto mong burahin ang "${item.title}" na nagkakahalagang ${peso(item.amount)}?'
+                                                  : 'Are you sure you want to delete "item.title" worth {peso(item.amount)}?',
+                                              style: const TextStyle(
+                                                  color: Colors.white70),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: Text(
+                                                    _getTxt('btn_cancel'),
+                                                    style: const TextStyle(
+                                                        color: Colors.white30)),
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  setState(() {
+                                                    all.remove(item);
+                                                    saveData();
+                                                  });
+                                                  Navigator.pop(context);
+                                                },
+                                                child: Text(
+                                                  _currentLocale == 'tl'
+                                                      ? 'BURAHIN'
+                                                      : 'DELETE',
+                                                  style: const TextStyle(
+                                                      color: Colors.redAccent,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
                                       },
                               )
                             ],
