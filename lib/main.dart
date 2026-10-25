@@ -796,6 +796,124 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   Color _appBgColor = const Color(0xFF121212);
   Color _appFontColor = Colors.white;
   Color _boxBgColor = const Color(0xFF1E1E1E);
+  final List<Map<String, String>> globalCurrencies = [
+    {
+      "code": "PHP",
+      "symbol": "₱",
+      "name": "Philippine Peso",
+      "country": "Philippines 🇵🇭"
+    },
+    {
+      "code": "IDR",
+      "symbol": "Rp",
+      "name": "Indonesian Rupiah",
+      "country": "Indonesia 🇮🇩"
+    },
+    {
+      "code": "USD",
+      "symbol": "\$",
+      "name": "US Dollar",
+      "country": "United States 🇺🇸"
+    },
+    {"code": "EUR", "symbol": "€", "name": "Euro", "country": "Eurozone 🇪🇺"},
+    {
+      "code": "JPY",
+      "symbol": "¥",
+      "name": "Japanese Yen",
+      "country": "Japan 🇯🇵"
+    },
+    {
+      "code": "GBP",
+      "symbol": "£",
+      "name": "British Pound",
+      "country": "United Kingdom 🇬🇧"
+    },
+    {
+      "code": "AUD",
+      "symbol": "A\$",
+      "name": "Australian Dollar",
+      "country": "Australia 🇦🇺"
+    },
+    {
+      "code": "CAD",
+      "symbol": "C\$",
+      "name": "Canadian Dollar",
+      "country": "Canada 🇨🇦"
+    },
+    {
+      "code": "SGD",
+      "symbol": "S\$",
+      "name": "Singapore Dollar",
+      "country": "Singapore 🇸🇬"
+    },
+    {
+      "code": "MYR",
+      "symbol": "RM",
+      "name": "Malaysian Ringgit",
+      "country": "Malaysia 🇲🇾"
+    },
+    {
+      "code": "THB",
+      "symbol": "฿",
+      "name": "Thai Baht",
+      "country": "Thailand 🇹🇭"
+    },
+    {
+      "code": "VND",
+      "symbol": "₫",
+      "name": "Vietnamese Dong",
+      "country": "Vietnam 🇻🇳"
+    },
+    {
+      "code": "KRW",
+      "symbol": "₩",
+      "name": "South Korean Won",
+      "country": "South Korea 🇰🇷"
+    },
+    {
+      "code": "CNY",
+      "symbol": "¥",
+      "name": "Chinese Yuan",
+      "country": "China 🇨🇳"
+    },
+    {
+      "code": "INR",
+      "symbol": "₹",
+      "name": "Indian Rupee",
+      "country": "India 🇮🇳"
+    },
+    {
+      "code": "AED",
+      "symbol": "د.إ",
+      "name": "UAE Dirham",
+      "country": "United Arab Emirates 🇦🇪"
+    },
+    {
+      "code": "SAR",
+      "symbol": "ر.س",
+      "name": "Saudi Riyal",
+      "country": "Saudi Arabia 🇸🇦"
+    },
+    {
+      "code": "TWD",
+      "symbol": "NT\$",
+      "name": "New Taiwan Dollar",
+      "country": "Taiwan 🇹🇼"
+    },
+    {
+      "code": "HKD",
+      "symbol": "HK\$",
+      "name": "Hong Kong Dollar",
+      "country": "Hong Kong 🇭🇰"
+    },
+    {
+      "code": "NZD",
+      "symbol": "NZ\$",
+      "name": "New Zealand Dollar",
+      "country": "New Zealand 🇳🇿"
+    },
+  ];
+
   final Map<String, Map<String, String>> _localizedText = {
     'en': {
       'total_budget': 'TOTAL BUDGET',
@@ -1119,6 +1237,136 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         );
       }
     });
+  }
+
+  void _openCurrencySearchPicker(Function(Map<String, String>) onSelected) {
+    String searchKeyword = "";
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            // Sinasala ang mga bansa, code, o pangalan ng pera base sa tinype ni user
+            final filteredList = globalCurrencies.where((c) {
+              final query = searchKeyword.toLowerCase();
+              return c["country"]!.toLowerCase().contains(query) ||
+                  c["code"]!.toLowerCase().contains(query) ||
+                  c["name"]!.toLowerCase().contains(query);
+            }).toList();
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom +
+                    16, // Iniiwasang matakpan ng keyboard
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  Text(
+                    _currentLocale == 'tl'
+                        ? 'PUMILI NG CURRENCY'
+                        : (_currentLocale == 'id'
+                            ? 'PILIH MATA UANG'
+                            : 'SELECT CURRENCY'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFFD700)),
+                  ),
+                  const SizedBox(height: 12),
+                  // 🔥 ANG SEARCH BAR
+                  TextField(
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: _currentLocale == 'tl'
+                          ? 'Maghanap ng bansa o currency...'
+                          : 'Search country or currency...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      prefixIcon: const Icon(Icons.search,
+                          color: Color(0xFFFFD700), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFF252525),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0, horizontal: 16),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFFFFD700), width: 1)),
+                    ),
+                    onChanged: (val) {
+                      setSheetState(() {
+                        searchKeyword = val.trim();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.4),
+                    child: filteredList.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Center(
+                                child: Text("No country found.",
+                                    style: TextStyle(color: Colors.white38))),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: filteredList.length,
+                            itemBuilder: (context, idx) {
+                              final item = filteredList[idx];
+                              return ListTile(
+                                dense: true,
+                                leading: Text(item["symbol"]!,
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFFFD700))),
+                                title: Text(
+                                    "${item["country"]} (${item["code"]})",
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold)),
+                                subtitle: Text(item["name"]!,
+                                    style: const TextStyle(
+                                        color: Colors.white38, fontSize: 12)),
+                                onTap: () {
+                                  onSelected(item);
+                                  Navigator.pop(context);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _initializeBilling() {
@@ -1564,101 +1812,122 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   void _showEditWalletBudgetDialog(
       AppWallet wallet, StateSetter setModalState) {
     final nameCtrl = TextEditingController(text: wallet.name);
-    String selectedWalletCurrency = wallet
-        .currency; // Kunin ang kasalukuyang currency ng wallet bilang default
+
+    // 🔥 TAMA: Maghahanap muna ng katugmang ISO code base sa kasalukuyang simbolo ng wallet
+    // para ito ang maging unique selection controller sa loob ng dialogue box.
+    final initialCurrencyDetails = globalCurrencies.firstWhere(
+      (c) => c["symbol"] == wallet.currency,
+      orElse: () =>
+          {"country": "United States 🇺🇸", "code": "USD", "symbol": "\$"},
+    );
+
+    String selectedWalletCurrencyCode = initialCurrencyDetails["code"]!;
 
     showDialog(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          title: Text(
-            _currentLocale == 'tl'
-                ? 'I-edit Pangalan: ${wallet.name}'
-                : (_currentLocale == 'id'
-                    ? 'Ubah Nama: ${wallet.name}'
-                    : 'Edit Name: ${wallet.name}'),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                keyboardType: TextInputType.text,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                    labelText: _currentLocale == 'tl'
-                        ? 'Bagong Pangalan ng Wallet'
-                        : (_currentLocale == 'id'
-                            ? 'Nama Dompet Baru'
-                            : 'New Wallet Name')),
-              ),
-              const SizedBox(height: 12),
-              // DROPDOWN PARA SA PAGPAPALIT NG CURRENCY
-              DropdownButtonFormField<String>(
-                value: selectedWalletCurrency,
-                dropdownColor: const Color(0xFF1E1E1E),
-                decoration: InputDecoration(
-                  labelText: _currentLocale == 'tl'
-                      ? 'Baguhin ang Pera (Currency)'
-                      : (_currentLocale == 'id'
-                          ? 'Ubah Mata Uang'
-                          : 'Change Currency'),
-                  enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1))),
+        builder: (context, setDialogState) {
+          // Hinahanap ang buong detalye gamit ang unique 'code' sa halip na 'symbol'
+          final currentCurrencyDetails = globalCurrencies.firstWhere(
+            (c) => c["code"] == selectedWalletCurrencyCode,
+            orElse: () => {
+              "country": "United States 🇺🇸",
+              "code": "USD",
+              "symbol": "\$"
+            },
+          );
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            title: Text(
+              _currentLocale == 'tl'
+                  ? 'I-edit Pangalan: ${wallet.name}'
+                  : (_currentLocale == 'id'
+                      ? 'Ubah Nama: ${wallet.name}'
+                      : 'Edit Name: ${wallet.name}'),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  keyboardType: TextInputType.text,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                      labelText: _currentLocale == 'tl'
+                          ? 'Bagong Pangalan ng Wallet'
+                          : (_currentLocale == 'id'
+                              ? 'Nama Dompet Baru'
+                              : 'New Wallet Name')),
                 ),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                onChanged: (String? newSymbol) {
-                  if (newSymbol != null) {
-                    setDialogState(() {
-                      selectedWalletCurrency = newSymbol;
+                const SizedBox(height: 12),
+                // SEARCH PICKER BUTTON ROW
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.public, color: Color(0xFFFFD700)),
+                  title: Text(
+                    _currentLocale == 'tl'
+                        ? 'Baguhin ang Pera (Currency)'
+                        : (_currentLocale == 'id'
+                            ? 'Ubah Mata Uang'
+                            : 'Change Currency'),
+                    style: const TextStyle(fontSize: 12, color: Colors.white54),
+                  ),
+                  subtitle: Text(
+                    "${currentCurrencyDetails["country"]} (${currentCurrencyDetails["code"]}) [${currentCurrencyDetails["symbol"]}]",
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
+                  trailing:
+                      const Icon(Icons.arrow_drop_down, color: Colors.white54),
+                  onTap: () {
+                    _openCurrencySearchPicker((chosen) {
+                      setDialogState(() {
+                        // Code na ang ini-store sa form controller para maging magkaiba ang China (CNY) at Japan (JPY)
+                        selectedWalletCurrencyCode = chosen["code"]!;
+                      });
                     });
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(_getTxt('btn_cancel'),
+                    style: const TextStyle(color: Colors.white30)),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (nameCtrl.text.trim().isNotEmpty) {
+                    // Kunin ang katumbas na simbolo bago i-save sa wallet data model
+                    String finalSymbol = currentCurrencyDetails["symbol"]!;
+
+                    setState(() {
+                      wallet.name = nameCtrl.text.trim();
+                      wallet.currency =
+                          finalSymbol; // 🚀 LIGTAS: Simbolo pa rin ang naisave sa database para sa application calculations
+
+                      // Kung ang ine-edit ay ang kasalukuyang aktibong wallet, i-sync din ang global currency filter
+                      if (wallet.id == activeWalletId) {
+                        _currentCurrency = finalSymbol;
+                      }
+                      saveData();
+                    });
+                    setModalState(
+                        () {}); // I-refresh ang Wallet Manager layout list
+                    Navigator.pop(context);
                   }
                 },
-                items: const [
-                  DropdownMenuItem(
-                      value: '₱', child: Text('₱ Philippine Peso (PHP)')),
-                  DropdownMenuItem(
-                      value: '\$', child: Text('\$ US Dollar (USD)')),
-                  DropdownMenuItem(
-                      value: 'Rp', child: Text('Rp Indonesian Rupiah (IDR)')),
-                  DropdownMenuItem(value: '€', child: Text('€ Euro (EUR)')),
-                  DropdownMenuItem(value: '¥', child: Text('¥ Yen / Yuan')),
-                ],
-              ),
+                child: Text(_getTxt('btn_save'),
+                    style: const TextStyle(
+                        color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+              )
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(_getTxt('btn_cancel'),
-                  style: const TextStyle(color: Colors.white30)),
-            ),
-            TextButton(
-              onPressed: () {
-                if (nameCtrl.text.trim().isNotEmpty) {
-                  setState(() {
-                    wallet.name = nameCtrl.text.trim();
-                    wallet.currency =
-                        selectedWalletCurrency; // I-update ang currency ng wallet
-
-                    // Kung ang ine-edit ay ang kasalukuyang aktibong wallet, i-sync din ang global currency filter
-                    if (wallet.id == activeWalletId) {
-                      _currentCurrency = selectedWalletCurrency;
-                    }
-                    saveData();
-                  });
-                  setModalState(() {}); // I-refresh ang Wallet Manager layout
-                  Navigator.pop(context);
-                }
-              },
-              child: Text(_getTxt('btn_save'),
-                  style: const TextStyle(
-                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
-            )
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -2009,110 +2278,128 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   void _showAddWalletDialog() {
     final nameCtrl = TextEditingController();
     final budgetCtrl = TextEditingController();
-    String selectedWalletCurrency =
-        "₱"; // Local state para sa bagong wallet form
+
+    // Gagamit tayo ng unique 'code' (PHP) sa local state ng form para maiwasan ang collision ng ¥
+    String selectedWalletCurrencyCode = "PHP";
 
     showDialog(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          title: Text(_getTxt('create_wallet_title')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration:
-                    InputDecoration(labelText: _getTxt('wallet_name_lbl')),
+        builder: (context, setDialogState) {
+          // Hinahanap ang buong detalye gamit ang unique 'code' sa halip na 'symbol'
+          final currentCurrencyDetails = globalCurrencies.firstWhere(
+            (c) => c["code"] == selectedWalletCurrencyCode,
+            orElse: () =>
+                {"country": "Philippines 🇵🇭", "code": "PHP", "symbol": "₱"},
+          );
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            title: Text(_getTxt('create_wallet_title')),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration:
+                        InputDecoration(labelText: _getTxt('wallet_name_lbl')),
+                  ),
+                  const SizedBox(height: 12),
+                  // SEARCH PICKER BUTTON ROW
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.public, color: Color(0xFFFFD700)),
+                    title: Text(
+                      _currentLocale == 'tl'
+                          ? 'Pumili ng Pera (Currency)'
+                          : (_currentLocale == 'id'
+                              ? 'Pilih Mata Uang'
+                              : 'Select Currency'),
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.white54),
+                    ),
+                    subtitle: Text(
+                      "${currentCurrencyDetails["country"]} (${currentCurrencyDetails["code"]}) [${currentCurrencyDetails["symbol"]}]",
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
+                    trailing: const Icon(Icons.arrow_drop_down,
+                        color: Colors.white54),
+                    onTap: () {
+                      _openCurrencySearchPicker((chosen) {
+                        setDialogState(() {
+                          // 🔥 TAMA: Code na ang ini-store sa form controller para maging unique ang China (CNY) at Japan (JPY)
+                          selectedWalletCurrencyCode = chosen["code"]!;
+                        });
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: budgetCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      CommaFormatter()
+                    ],
+                    decoration: InputDecoration(
+                        prefixText: '${currentCurrencyDetails["symbol"]} ',
+                        labelText: _getTxt('wallet_budget_lbl')),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              // NEW DROPDOWN: Pagpili ng Currency para sa ginagawang wallet
-              DropdownButtonFormField<String>(
-                value: selectedWalletCurrency,
-                dropdownColor: const Color(0xFF1E1E1E),
-                decoration: InputDecoration(
-                  labelText: _currentLocale == 'tl'
-                      ? 'Pumili ng Pera (Currency)'
-                      : 'Select Currency',
-                  enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1))),
-                ),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                onChanged: (String? newSymbol) {
-                  if (newSymbol != null) {
-                    setDialogState(() {
-                      selectedWalletCurrency = newSymbol;
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(_getTxt('btn_cancel'),
+                      style: const TextStyle(color: Colors.white30))),
+              TextButton(
+                onPressed: () {
+                  if (nameCtrl.text.isNotEmpty && budgetCtrl.text.isNotEmpty) {
+                    String wName = nameCtrl.text.trim();
+                    double wBudget =
+                        double.tryParse(budgetCtrl.text.replaceAll(',', '')) ??
+                            0;
+                    String wId =
+                        DateTime.now().millisecondsSinceEpoch.toString();
+
+                    // Kunin ang katumbas na simbolo bago i-save sa wallet data model
+                    String finalSymbol = currentCurrencyDetails["symbol"]!;
+
+                    setState(() {
+                      final newWallet = AppWallet(
+                        id: wId,
+                        name: wName,
+                        budget: wBudget,
+                        currency:
+                            finalSymbol, // 🚀 LIGTAS: Simbolo pa rin ang naisave sa database para sa main dashboard
+                      );
+                      wallets.add(newWallet);
+                      activeWalletId = wId;
+                      budget = wBudget;
+                      _currentCurrency =
+                          finalSymbol; // Binabago ang global active symbol
+                      all.clear();
+                      saveData();
+                    });
+                    Navigator.pop(context);
+                    Future.delayed(const Duration(milliseconds: 150), () {
+                      _showCongratulationsDialog(wName, wBudget);
                     });
                   }
                 },
-                items: const [
-                  DropdownMenuItem(
-                      value: '₱', child: Text('₱ Philippine Peso (PHP)')),
-                  DropdownMenuItem(
-                      value: '\$', child: Text('\$ US Dollar (USD)')),
-                  DropdownMenuItem(
-                      value: 'Rp', child: Text('Rp Indonesian Rupiah (IDR)')),
-                  DropdownMenuItem(value: '€', child: Text('€ Euro (EUR)')),
-                  DropdownMenuItem(value: '¥', child: Text('¥ Yen / Yuan')),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: budgetCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  CommaFormatter()
-                ],
-                decoration: InputDecoration(
-                    prefixText: '$selectedWalletCurrency ',
-                    labelText: _getTxt('wallet_budget_lbl')),
-              ),
+                child: Text(_getTxt('btn_save'),
+                    style: const TextStyle(
+                        color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+              )
             ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(_getTxt('btn_cancel'),
-                    style: const TextStyle(color: Colors.white30))),
-            TextButton(
-              onPressed: () {
-                if (nameCtrl.text.isNotEmpty && budgetCtrl.text.isNotEmpty) {
-                  String wName = nameCtrl.text.trim();
-                  double wBudget =
-                      double.tryParse(budgetCtrl.text.replaceAll(',', '')) ?? 0;
-                  String wId = DateTime.now().millisecondsSinceEpoch.toString();
-                  setState(() {
-                    final newWallet = AppWallet(
-                      id: wId,
-                      name: wName,
-                      budget: wBudget,
-                      currency:
-                          selectedWalletCurrency, // Ini-save ang napiling currency
-                    );
-                    wallets.add(newWallet);
-                    activeWalletId = wId;
-                    budget = wBudget;
-                    _currentCurrency =
-                        selectedWalletCurrency; // Binabago ang global active symbol
-                    all.clear();
-                    saveData();
-                  });
-                  Navigator.pop(context);
-                  Future.delayed(const Duration(milliseconds: 150), () {
-                    _showCongratulationsDialog(wName, wBudget);
-                  });
-                }
-              },
-              child: Text(_getTxt('btn_save'),
-                  style: const TextStyle(
-                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
-            )
-          ],
-        ),
+          );
+        },
       ),
     );
   }
