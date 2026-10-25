@@ -1343,10 +1343,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     String deviceLanguage =
         PlatformDispatcher.instance.locale.languageCode.toLowerCase();
     String defaultLocale = 'en';
+
+    // Matalinong pag-deduce ng panimulang currency base sa wika ng device ng user
+    String initialCurrency = "\$"; // Default fallback para sa 'en' o iba pa
     if (deviceLanguage == 'tl' || deviceLanguage == 'fil') {
       defaultLocale = 'tl';
+      initialCurrency =
+          "₱"; // Gagamit ng Peso kapag Tagalog/Filipino ang device
     } else if (deviceLanguage == 'id') {
       defaultLocale = 'id';
+      initialCurrency = "Rp"; // Gagamit ng Rupiah kapag Indonesian ang device
     }
 
     setState(() {
@@ -1364,9 +1370,13 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         List l = jsonDecode(wData);
         wallets = l.map((e) => AppWallet.fromJson(e)).toList();
       } else {
+        // Gagamitin ang 'initialCurrency' na kinuha mula sa settings ng device para sa fresh install
         wallets = [
           AppWallet(
-              id: "default", name: "Main Wallet", budget: 0.0, currency: "₱")
+              id: "default",
+              name: "Main Wallet",
+              budget: 0.0,
+              currency: initialCurrency)
         ];
       }
 
@@ -1389,12 +1399,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   id: "default",
                   name: "Main Wallet",
                   budget: 0.0,
-                  currency: "₱"));
+                  currency:
+                      initialCurrency)); // Gagamitin din ang deduces currency dito bilang fallback sa loop
 
       activeWalletId = activeWallet.id;
       budget = activeWallet.budget;
 
-      // 📍 DITO MO ITO MAHAHANAP:
       // Ito ang namamahala sa pag-sync ng currency mula sa active wallet
       _currentCurrency = activeWallet.currency;
 
@@ -1763,8 +1773,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 if (activeWalletId == wallet.id) {
                   if (wallets.isNotEmpty) {
                     activeWalletId = wallets.first.id;
+                    // IA-ALIGN ANG GLOBAL CURRENCY SA NALIPATANG UUNANG WALLET entry
+                    _currentCurrency = wallets.first.currency;
                   } else {
-                    // NILAGYAN NG resetCurrency ANG FALLBACK WALLET CONSTRUCTOR
                     wallets = [
                       AppWallet(
                           id: "default",
@@ -1773,6 +1784,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                           currency: resetCurrency)
                     ];
                     activeWalletId = "default";
+                    // IA-ALIGN ANG GLOBAL CURRENCY SA RESET VALUE NG FALLBACK WALLET
+                    _currentCurrency = resetCurrency;
                   }
                 }
               });
