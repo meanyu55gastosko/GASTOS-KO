@@ -677,10 +677,28 @@ class AppWallet {
   String id;
   String name;
   double budget;
-  AppWallet({required this.id, required this.name, required this.budget});
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'budget': budget};
+  String currency; // Idinagdag para sa custom currency ng wallet
+
+  AppWallet({
+    required this.id,
+    required this.name,
+    required this.budget,
+    this.currency = "₱", // Default ay Peso para sa mga lumang wallet data
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'budget': budget,
+        'currency': currency,
+      };
+
   factory AppWallet.fromJson(Map<String, dynamic> j) => AppWallet(
-      id: j['id'], name: j['name'], budget: (j['budget'] as num).toDouble());
+        id: j['id'],
+        name: j['name'],
+        budget: (j['budget'] as num).toDouble(),
+        currency: j['currency'] ?? "₱",
+      );
 }
 
 class GroupedExpense {
@@ -1332,7 +1350,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     }
 
     setState(() {
-      // 1. UNAHING I-LOAD O I-DEDUCE ANG CURRENT LOCALE
+      // 1. I-LOAD O I-DEDUCE ANG CURRENT LOCALE
       String tempLocale = p.getString('app_lang_locale') ?? defaultLocale;
       if (tempLocale != 'en' && tempLocale != 'tl' && tempLocale != 'id') {
         _currentLocale = defaultLocale;
@@ -1340,28 +1358,22 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         _currentLocale = tempLocale;
       }
 
-      // 2. MAG-SET NG DEFAULT CURRENCY BASE SA LOCALE KUNG WALANG NAKA-SAVE
-      String defaultCurrency = "₱";
-      if (_currentLocale == 'id') {
-        defaultCurrency = "Rp";
-      } else if (_currentLocale == 'en') {
-        defaultCurrency = "\$";
-      }
-
-      // 3. I-LOAD ANG CURRENCY SYMBOL (O GAMITIN ANG DEFAULT BASE SA LOCALE)
-      _currentCurrency = p.getString('app_currency_symbol') ?? defaultCurrency;
-
-      // KASUNOD ANG MGA NATITIRANG WALLET AT EXPENSE LIFECYCLE DATA
+      // 2. I-LOAD ANG MGA WALLETS MULA SA MEMORY
       String? wData = p.getString('app_wallets');
       if (wData != null) {
         List l = jsonDecode(wData);
         wallets = l.map((e) => AppWallet.fromJson(e)).toList();
       } else {
-        wallets = [AppWallet(id: "default", name: "Main Wallet", budget: 0.0)];
+        wallets = [
+          AppWallet(
+              id: "default", name: "Main Wallet", budget: 0.0, currency: "₱")
+        ];
       }
+
       activeWalletId = _isTrialExpired
           ? "default"
           : (p.getString('active_wallet_id') ?? "default");
+
       AppWallet? selectedWallet;
       for (var w in wallets) {
         if (w.id == activeWalletId) {
@@ -1369,12 +1381,24 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           break;
         }
       }
+
       AppWallet activeWallet = selectedWallet ??
           (wallets.isNotEmpty
               ? wallets.first
-              : AppWallet(id: "default", name: "Main Wallet", budget: 0.0));
+              : AppWallet(
+                  id: "default",
+                  name: "Main Wallet",
+                  budget: 0.0,
+                  currency: "₱"));
+
       activeWalletId = activeWallet.id;
       budget = activeWallet.budget;
+
+      // 📍 DITO MO ITO MAHAHANAP:
+      // Ito ang namamahala sa pag-sync ng currency mula sa active wallet
+      _currentCurrency = activeWallet.currency;
+
+      // KASUNOD ANG EXPENSE LIFECYCLE DATA LOADING
       String? d = p.getString('expenses$activeWalletId');
       if (d != null) {
         List l = jsonDecode(d);
@@ -1530,50 +1554,101 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   void _showEditWalletBudgetDialog(
       AppWallet wallet, StateSetter setModalState) {
     final nameCtrl = TextEditingController(text: wallet.name);
+    String selectedWalletCurrency = wallet
+        .currency; // Kunin ang kasalukuyang currency ng wallet bilang default
+
     showDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: Text(
-          _currentLocale == 'tl'
-              ? 'I-edit Pangalan: ${wallet.name}'
-              : (_currentLocale == 'id'
-                  ? 'Ubah Nama: ${wallet.name}'
-                  : 'Edit Name: ${wallet.name}'),
-        ),
-        content: TextField(
-          controller: nameCtrl,
-          keyboardType: TextInputType.text,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-              labelText: _currentLocale == 'tl'
-                  ? 'Bagong Pangalan ng Wallet'
-                  : (_currentLocale == 'id'
-                      ? 'Nama Dompet Baru'
-                      : 'New Wallet Name')),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(_getTxt('btn_cancel'),
-                style: const TextStyle(color: Colors.white30)),
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: Text(
+            _currentLocale == 'tl'
+                ? 'I-edit Pangalan: ${wallet.name}'
+                : (_currentLocale == 'id'
+                    ? 'Ubah Nama: ${wallet.name}'
+                    : 'Edit Name: ${wallet.name}'),
           ),
-          TextButton(
-            onPressed: () {
-              if (nameCtrl.text.trim().isNotEmpty) {
-                setState(() {
-                  wallet.name = nameCtrl.text.trim();
-                  saveData();
-                });
-                setModalState(() {});
-                Navigator.pop(context);
-              }
-            },
-            child: Text(_getTxt('btn_save'),
-                style: const TextStyle(
-                    color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
-          )
-        ],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                    labelText: _currentLocale == 'tl'
+                        ? 'Bagong Pangalan ng Wallet'
+                        : (_currentLocale == 'id'
+                            ? 'Nama Dompet Baru'
+                            : 'New Wallet Name')),
+              ),
+              const SizedBox(height: 12),
+              // DROPDOWN PARA SA PAGPAPALIT NG CURRENCY
+              DropdownButtonFormField<String>(
+                value: selectedWalletCurrency,
+                dropdownColor: const Color(0xFF1E1E1E),
+                decoration: InputDecoration(
+                  labelText: _currentLocale == 'tl'
+                      ? 'Baguhin ang Pera (Currency)'
+                      : (_currentLocale == 'id'
+                          ? 'Ubah Mata Uang'
+                          : 'Change Currency'),
+                  enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1))),
+                ),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                onChanged: (String? newSymbol) {
+                  if (newSymbol != null) {
+                    setDialogState(() {
+                      selectedWalletCurrency = newSymbol;
+                    });
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(
+                      value: '₱', child: Text('₱ Philippine Peso (PHP)')),
+                  DropdownMenuItem(
+                      value: '\$', child: Text('\$ US Dollar (USD)')),
+                  DropdownMenuItem(
+                      value: 'Rp', child: Text('Rp Indonesian Rupiah (IDR)')),
+                  DropdownMenuItem(value: '€', child: Text('€ Euro (EUR)')),
+                  DropdownMenuItem(value: '¥', child: Text('¥ Yen / Yuan')),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(_getTxt('btn_cancel'),
+                  style: const TextStyle(color: Colors.white30)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (nameCtrl.text.trim().isNotEmpty) {
+                  setState(() {
+                    wallet.name = nameCtrl.text.trim();
+                    wallet.currency =
+                        selectedWalletCurrency; // I-update ang currency ng wallet
+
+                    // Kung ang ine-edit ay ang kasalukuyang aktibong wallet, i-sync din ang global currency filter
+                    if (wallet.id == activeWalletId) {
+                      _currentCurrency = selectedWalletCurrency;
+                    }
+                    saveData();
+                  });
+                  setModalState(() {}); // I-refresh ang Wallet Manager layout
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(_getTxt('btn_save'),
+                  style: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -1674,14 +1749,28 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             onPressed: () async {
               final p = await SharedPreferences.getInstance();
               await p.remove('expenses${wallet.id}');
+
+              // KUKUHA NG ANGKOP NA CURRENCY PARA SA FALLBACK WALLET BASE SA KASALUKUYANG WIKA
+              String resetCurrency = "₱";
+              if (_currentLocale == 'id') {
+                resetCurrency = "Rp";
+              } else if (_currentLocale == 'en') {
+                resetCurrency = "\$";
+              }
+
               setState(() {
                 wallets.removeWhere((w) => w.id == wallet.id);
                 if (activeWalletId == wallet.id) {
                   if (wallets.isNotEmpty) {
                     activeWalletId = wallets.first.id;
                   } else {
+                    // NILAGYAN NG resetCurrency ANG FALLBACK WALLET CONSTRUCTOR
                     wallets = [
-                      AppWallet(id: "default", name: "Main Wallet", budget: 0.0)
+                      AppWallet(
+                          id: "default",
+                          name: "Main Wallet",
+                          budget: 0.0,
+                          currency: resetCurrency)
                     ];
                     activeWalletId = "default";
                   }
@@ -1787,8 +1876,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                     : FontWeight.normal),
                                           ),
                                           const SizedBox(height: 2),
+                                          //  TAMA (Bagong Code):
                                           Text(
-                                            'Budget: ${peso(w.budget)}',
+                                            'Budget: ${w.currency}${fmt(w.budget)}',
                                             style: const TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.white54),
@@ -1862,6 +1952,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                     activeWalletId = w.id;
                                   });
                                   Navigator.pop(context);
+
+                                  // I-update ang global active currency symbol bago lumipat ng wallet
+                                  setState(() {
+                                    _currentCurrency = w.currency;
+                                  });
+
                                   _switchWallet(w.id);
                                 },
                               ),
@@ -1900,66 +1996,110 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   void _showAddWalletDialog() {
     final nameCtrl = TextEditingController();
     final budgetCtrl = TextEditingController();
+    String selectedWalletCurrency =
+        "₱"; // Local state para sa bagong wallet form
+
     showDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: Text(_getTxt('create_wallet_title')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration:
-                  InputDecoration(labelText: _getTxt('wallet_name_lbl')),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: budgetCtrl,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                CommaFormatter()
-              ],
-              decoration: InputDecoration(
-                  prefixText: '$_currentCurrency ',
-                  labelText: _getTxt('wallet_budget_lbl')),
-            ),
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: Text(_getTxt('create_wallet_title')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                textCapitalization: TextCapitalization.words,
+                decoration:
+                    InputDecoration(labelText: _getTxt('wallet_name_lbl')),
+              ),
+              const SizedBox(height: 12),
+              // NEW DROPDOWN: Pagpili ng Currency para sa ginagawang wallet
+              DropdownButtonFormField<String>(
+                value: selectedWalletCurrency,
+                dropdownColor: const Color(0xFF1E1E1E),
+                decoration: InputDecoration(
+                  labelText: _currentLocale == 'tl'
+                      ? 'Pumili ng Pera (Currency)'
+                      : 'Select Currency',
+                  enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1))),
+                ),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                onChanged: (String? newSymbol) {
+                  if (newSymbol != null) {
+                    setDialogState(() {
+                      selectedWalletCurrency = newSymbol;
+                    });
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(
+                      value: '₱', child: Text('₱ Philippine Peso (PHP)')),
+                  DropdownMenuItem(
+                      value: '\$', child: Text('\$ US Dollar (USD)')),
+                  DropdownMenuItem(
+                      value: 'Rp', child: Text('Rp Indonesian Rupiah (IDR)')),
+                  DropdownMenuItem(value: '€', child: Text('€ Euro (EUR)')),
+                  DropdownMenuItem(value: '¥', child: Text('¥ Yen / Yuan')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: budgetCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  CommaFormatter()
+                ],
+                decoration: InputDecoration(
+                    prefixText: '$selectedWalletCurrency ',
+                    labelText: _getTxt('wallet_budget_lbl')),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(_getTxt('btn_cancel'),
+                    style: const TextStyle(color: Colors.white30))),
+            TextButton(
+              onPressed: () {
+                if (nameCtrl.text.isNotEmpty && budgetCtrl.text.isNotEmpty) {
+                  String wName = nameCtrl.text.trim();
+                  double wBudget =
+                      double.tryParse(budgetCtrl.text.replaceAll(',', '')) ?? 0;
+                  String wId = DateTime.now().millisecondsSinceEpoch.toString();
+                  setState(() {
+                    final newWallet = AppWallet(
+                      id: wId,
+                      name: wName,
+                      budget: wBudget,
+                      currency:
+                          selectedWalletCurrency, // Ini-save ang napiling currency
+                    );
+                    wallets.add(newWallet);
+                    activeWalletId = wId;
+                    budget = wBudget;
+                    _currentCurrency =
+                        selectedWalletCurrency; // Binabago ang global active symbol
+                    all.clear();
+                    saveData();
+                  });
+                  Navigator.pop(context);
+                  Future.delayed(const Duration(milliseconds: 150), () {
+                    _showCongratulationsDialog(wName, wBudget);
+                  });
+                }
+              },
+              child: Text(_getTxt('btn_save'),
+                  style: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+            )
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(_getTxt('btn_cancel'),
-                  style: const TextStyle(color: Colors.white30))),
-          TextButton(
-            onPressed: () {
-              if (nameCtrl.text.isNotEmpty && budgetCtrl.text.isNotEmpty) {
-                String wName = nameCtrl.text.trim();
-                double wBudget =
-                    double.tryParse(budgetCtrl.text.replaceAll(',', '')) ?? 0;
-                String wId = DateTime.now().millisecondsSinceEpoch.toString();
-                setState(() {
-                  final newWallet =
-                      AppWallet(id: wId, name: wName, budget: wBudget);
-                  wallets.add(newWallet);
-                  activeWalletId = wId;
-                  budget = wBudget;
-                  all.clear();
-                  saveData();
-                });
-                Navigator.pop(context);
-                Future.delayed(const Duration(milliseconds: 150), () {
-                  _showCongratulationsDialog(wName, wBudget);
-                });
-              }
-            },
-            child: Text(_getTxt('btn_save'),
-                style: const TextStyle(
-                    color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
-          )
-        ],
       ),
     );
   }
@@ -2894,16 +3034,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             if (newLocale != null) {
                               setState(() {
                                 _currentLocale = newLocale;
-
-                                // Awtomatikong babaguhin ang currency symbol kapag binago ang wika
-                                if (_currentLocale == 'id') {
-                                  _currentCurrency = "Rp";
-                                } else if (_currentLocale == 'en') {
-                                  _currentCurrency = "\$";
-                                } else if (_currentLocale == 'tl') {
-                                  _currentCurrency = "₱";
-                                }
-
                                 saveData();
                               });
                             }
@@ -2950,8 +3080,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       ListTile(
                         leading: const Icon(Icons.privacy_tip,
                             color: Color(0xFF00E676)),
-                        title: const Text('Privacy Policy',
-                            style: TextStyle(fontSize: 14)),
+                        title: Text(
+                          _currentLocale == 'tl'
+                              ? 'Patakaran sa Pagkapribado'
+                              : _currentLocale == 'id'
+                                  ? 'Kebijakan Privasi'
+                                  : 'Privacy Policy', // Default kapag 'en'
+                          style: const TextStyle(fontSize: 14),
+                        ),
                         onTap: () {
                           Navigator.pop(context);
                           _launchComplianceUrl(
@@ -2961,8 +3097,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       ListTile(
                         leading: const Icon(Icons.description,
                             color: Color(0xFF29B6F6)),
-                        title: const Text('Terms of Use (EULA)',
-                            style: TextStyle(fontSize: 14)),
+                        title: Text(
+                          _currentLocale == 'tl'
+                              ? 'Mga Tuntunin sa Paggamit'
+                              : _currentLocale == 'id'
+                                  ? 'Syarat Penggunaan'
+                                  : 'Terms of Use (EULA)', // Default kapag 'en'
+                          style: const TextStyle(fontSize: 14),
+                        ),
                         onTap: () {
                           Navigator.pop(context);
                           _launchComplianceUrl(
