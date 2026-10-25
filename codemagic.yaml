@@ -11,9 +11,8 @@ workflows:
       - name: Restore App + Set Name + Icon
         script: |
           echo "=== RESTORE YOUR BUDGET CODE ==="
-          # Siguraduhing ligtas ang lib at assets mula sa git bago mag-create
+          # Panatilihin ang kasalukuyang binagong code sa main branch na may PlatformDispatcher
           git checkout main -- lib/ assets/ pubspec.yaml 2>/dev/null || git checkout HEAD -- lib/ assets/ || true
-          git checkout c5f9933 -- lib/ || true
           
           # I-back up muna ang pubspec.yaml para hindi masira ng 'flutter create'
           cp pubspec.yaml pubspec.yaml.bak
@@ -22,18 +21,15 @@ workflows:
           rm -rf android
           flutter create --platforms=android --org com.gastosko.app --project-name budget_vs_gastosv1 .
           
-          # Ibalik ang orihinal na pubspec.yaml at mga code natin
+          # Ibalik ang orihinal na pubspec.yaml at ang ating pinakahuling code
           mv pubspec.yaml.bak pubspec.yaml
           git checkout main -- lib/ assets/ 2>/dev/null || git checkout HEAD -- lib/ assets/ || true
-          git checkout c5f9933 -- lib/ || true
           
           echo "=== SET APP NAME TO Gastos Ko ==="
-          # Tamang sed command para sa macOS environment
           sed -i '' 's/android:label="[^"]*"/android:label="Gastos Ko"/' android/app/src/main/AndroidManifest.xml
           grep label android/app/src/main/AndroidManifest.xml
           
           echo "=== GENERATE ICON ==="
-          # Ginawa nating 'flutter_launcher_icons:' ang root key para sa modernong bersyon
           cat > flutter_launcher_icons.yaml <<'EOF'
           flutter_launcher_icons:
             android: true
@@ -42,7 +38,6 @@ workflows:
             min_sdk_android: 21
           EOF
           
-          # Idagdag ang launcher icons dev dependency sa tamang paraan
           flutter pub add flutter_launcher_icons --dev || true
           flutter pub get
           dart run flutter_launcher_icons || true
@@ -56,7 +51,6 @@ workflows:
         script: |
           flutter clean
           flutter pub get
-          # Kasama ang pag-obfuscate para sa security ng release app mo
           flutter build apk --release --obfuscate --split-debug-info=./symbols --no-tree-shake-icons
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
