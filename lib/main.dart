@@ -187,7 +187,7 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
   String _errorText = "";
   bool _isRecovering = false;
   bool _isUpdatingPin = false;
-  String _currentLocale = "tl";
+  String _currentLocale = "en";
 
   int _failedAttempts = 0;
   final int _maxAttempts = 3;
@@ -254,32 +254,67 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
       'btn_unlock': 'I-UNLOCK',
       'forgot_pin': 'Nakalimutan ang PIN Code?',
       'back_lock': 'Bumalik sa Lock Screen',
-    }
+    },
+    'id': {
+      'set_pin': 'ATUR PINCODE ANDA',
+      'enter_pin': 'MASUKKAN PINCODE ANDA',
+      'trial_expired_title': '🔒 MASA UJI COBA BERAKHIR',
+      'trial_expired_info':
+          'Masa uji coba 30 hari Anda telah berakhir. Masukkan PIN untuk melihat data riwayat terbatas.',
+      'pin_len_err': 'Kode PIN harus 4 digit.',
+      'pin_success': 'PIN Anda berhasil diperbarui!',
+      'security_title': '🔒 PERTANYAAN KEAMANAN',
+      'security_question': 'Siapa nama Hewan Peliharaan pertama Anda?',
+      'security_hint': 'Jawaban Anda di sini...',
+      'setup_success': 'PIN and Pemulihan Keamanan berhasil diatur!',
+      'btn_save': 'SIMPAN',
+      'recover_title': 'PULIHKAN KODE PIN',
+      'max_attempts': '🔒 Kesempatan habis! Ini adalah lapisan pemulihan.',
+      'wrong_pin': 'Kode PIN Salah! (Tersisa {left}/{max} kesempatan)',
+      'recovery_instruction':
+          'Jawab pertanyaan di bawah ini:\nSiapa nama Hewan Peliharaan pertama Anda?',
+      'reg_info':
+          'Anda akan menggunakan PIN ini setiap kali membuka aplikasi demi keamanan Anda.',
+      'lock_info': 'Masukkan 4 digit kode Anda untuk membuka kunci.',
+      'type_ans': 'Ketik jawaban Anda...',
+      'correct_ans': 'Jawaban benar! Silakan atur PIN baru.',
+      'wrong_ans': 'Jawaban salah! Pikirkan baik-baik.',
+      'btn_verify': 'VERIFIKASI JAWABAN',
+      'btn_confirm': 'KONFIRMASI & SIMPAN',
+      'btn_unlock': 'BUKA KUNCI',
+      'forgot_pin': 'Lupa Kode PIN?',
+      'back_lock': 'Kembali ke Layar Kunci',
+    },
   };
-
   String _getTxt(String key) => _pinLocalization[_currentLocale]?[key] ?? key;
-
   @override
   void initState() {
     super.initState();
     _loadSavedPinAndLocale();
   }
 
-  Future<void> _loadSavedPinAndLocale() async {
+  Future _loadSavedPinAndLocale() async {
     final prefs = await SharedPreferences.getInstance();
-
     String deviceLanguage =
         PlatformDispatcher.instance.locale.languageCode.toLowerCase();
-    String defaultLocale =
-        (deviceLanguage == 'tl' || deviceLanguage == 'fil') ? 'tl' : 'en';
-
+    String defaultLocale = 'en';
+    if (deviceLanguage == 'tl' || deviceLanguage == 'fil') {
+      defaultLocale = 'tl';
+    } else if (deviceLanguage == 'id') {
+      defaultLocale = 'id';
+    }
     setState(() {
       _savedPin = prefs.getString('user_pincode') ?? "";
-      _currentLocale = prefs.getString('app_lang_locale') ?? defaultLocale;
+      String savedLocale = prefs.getString('app_lang_locale') ?? defaultLocale;
+      if (savedLocale != 'en' && savedLocale != 'tl' && savedLocale != 'id') {
+        _currentLocale = defaultLocale;
+      } else {
+        _currentLocale = savedLocale;
+      }
     });
   }
 
-  Future<void> _handlePinSubmit(String pin) async {
+  Future _handlePinSubmit(String pin) async {
     if (pin.length < 4) {
       setState(() {
         _errorText = _getTxt('pin_len_err');
@@ -484,15 +519,23 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(
                         counterText: "",
-                        enabledBorder: const UnderlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.white30, width: 2)),
-                        focusedBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                                color: widget.isTrialExpiredMode
-                                    ? Colors.redAccent
-                                    : const Color(0xFFFFD700),
-                                width: 2)),
+                        hintText: "••••",
+                        hintStyle: const TextStyle(
+                            color: Colors.white24, letterSpacing: 8),
+                        labelText: _currentLocale == 'tl'
+                            ? ''
+                            : (_currentLocale == 'id' ? '' : ''),
+                        labelStyle: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white54,
+                            letterSpacing: 0),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFFFFD700)),
+                        ),
                       ),
                       onChanged: (val) {
                         if (val.length == 4) {
@@ -704,8 +747,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   List _products = [];
   bool _isPremiumUser = false;
   bool _isTrialExpired = false;
+  bool _isCompactMode = false;
   int _trialDaysLeft = 30;
   String _purchasedPlanTitle = "";
+  String _currentCurrency = "₱";
   List wallets = [];
   String activeWalletId = "default";
   double budget = 0;
@@ -715,7 +760,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   int? selectedIndex;
   final NumberFormat commaFormat = NumberFormat('#,##0');
   String fmt(num n) => commaFormat.format(n.toInt());
-  String peso(num n) => '₱${fmt(n)}';
+  String peso(num n) => '$_currentCurrency${fmt(n)}';
   final List dynamicColors = [
     const Color(0xFF00E676),
     const Color(0xFF00BFA5),
@@ -727,7 +772,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   Map<String, Color> colorMap = {};
   Timer? _bgSessionTimer;
   final Duration _sessionTimeoutDuration = const Duration(minutes: 5);
-  String _currentLocale = "tl";
+  String _currentLocale = "en";
   String _activeDateFilter = "all";
   DateTimeRange? _selectedDateRange;
   Color _appBgColor = const Color(0xFF121212);
@@ -908,7 +953,97 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'del_entry_tooltip': 'Burahin ang entry',
       'settings_menu_lbl': 'Mga Setting',
       'preset_themes_lbl': 'Mga Preset Color Theme',
-    }
+    },
+    'id': {
+      'total_budget': 'ANGGARAN',
+      'total_expenses': 'PENGELUARAN',
+      'remaining_budget': 'SISA ANGGARAN',
+      'chart_title': 'Grafik Pengeluaran Visual',
+      'history_title': 'Riwayat Catatan Pengeluaran',
+      'no_items': 'Belum ada pengeluaran. Ketuk + di bawah!',
+      'search_hint': 'Cari kategori (misal: Makanan)...',
+      'search_disabled_hint':
+          'Pencarian dinonaktifkan (Masa Uji Coba Berakhir)',
+      'no_match': 'Kategori yang cocok tidak ditemukan.',
+      'add_expense': 'Tambah Pengeluaran',
+      'edit_expense': 'Ubah Catatan',
+      'category_label': 'Kategori (misal: Makanan)',
+      'amount_label': 'Jumlah / Biaya',
+      'date_label': 'Tanggal Transaksi',
+      'filter_all': 'Semua',
+      'filter_today': 'Hari Ini',
+      'btn_cancel': 'Batal',
+      'btn_save': 'Simpan',
+      'btn_update': 'Perbarui',
+      'btn_add': 'Tambah',
+      'wallet_manager': 'PENGELOLA DOMPET',
+      'btn_add_wallet': 'TAMBAH DOMPET BARU',
+      'reset_data': 'Atur Ulang Data Aplikasi',
+      'reset_subtitle': 'Akan menghapus semua item',
+      'upgrade_title': 'Upgrade ke versi PRO',
+      'upgrade_subtitle': 'Untuk membuka semua fitur',
+      'no_exp_err': 'Tidak ada pengeluaran untuk diekspor!',
+      'file_sheet_web_warn':
+          'Lembar berbagi file hanya berfungsi jika diinstal pada ponsel fisik!',
+      'csv_hdr_wallet': 'Nama Dompet',
+      'csv_hdr_budget': 'Anggaran Saat Ini (₱)',
+      'csv_hdr_id': 'ID Pengeluaran',
+      'csv_hdr_cat': 'Kategori / Judul',
+      'csv_hdr_amt': 'Jumlah (₱)',
+      'csv_hdr_date': 'Tanggal dan Waktu',
+      'csv_share_txt': 'Ini adalah file ekspor saya dari Aplikasi Gastos Ko!',
+      'csv_err': 'Kesalahan saat mengekspor data: ',
+      'billing_err': 'Kesalahan transaksi. Silakan coba lagi.',
+      'billing_success': 'Terima kasih! Aktivasi PRO Anda berhasil! 🎉',
+      'google_store_err': 'Produk dari Google Store belum siap.',
+      'congrats_title': 'SELAMAT!',
+      'congrats_desc':
+          'Dompet baru Anda "{name}" telah dibuat dengan anggaran {budget}.',
+      'email_app_err':
+          'Aplikasi email tidak ditemukan atau tidak dapat dibuka.',
+      'email_open_err': 'Kesalahan saat membuka aplikasi email: ',
+      'edit_wallet_title': 'Ubah Nama: {name}',
+      'new_budget_lbl': 'Nama Dompet Baru',
+      'add_fund_title': 'Tambah Dana: {name}',
+      'current_budget_lbl': 'Anggaran Saat Ini: ',
+      'add_fund_lbl': 'Berapa banyak yang ingin ditambahkan?',
+      'add_fund_success': 'Berhasil menambahkan {amount} ke anggaran Anda!',
+      'btn_add_fund': 'TAMBAH',
+      'main_wallet_del_err': '⚠️ Tidak dapat menghapus Dompet Utama!',
+      'del_wallet_title': 'Hapus Dompet?',
+      'del_wallet_desc':
+          'Apakah Anda yakin? Dompet "{name}" dan SEMUA riwayat pengeluarannya akan hilang permanen dari database!',
+      'btn_delete': 'HAPUS',
+      'no_wallet_found': 'Dompet tidak ditemukan.',
+      'add_fund_tooltip': 'Tambah Dana',
+      'edit_wallet_tooltip': 'Ubah Nama',
+      'del_wallet_tooltip': 'Hapus Dompet',
+      'create_wallet_title': 'Buat Dompet Baru',
+      'wallet_name_lbl': 'Nama Dompet (misal: Gaji)',
+      'wallet_budget_lbl': 'Berapa jumlah anggarannya?',
+      'near_limit_title': 'HAMPIR HABIS!',
+      'near_limit_desc':
+          'Peringatan! Anda telah menghabiskan lebih dari 90% anggaran Anda!\n\nJumlah yang Ditambahkan: {amount}\n\nAnggaran Maksimum Anda hanya {budget}.',
+      'btn_near_limit': 'SAYA BISA MENGATASINYA',
+      'exhausted_title': 'ANGGARAN HABIS!',
+      'exhausted_desc':
+          'Anggaran Anda benar-benar habis. Tambah dana atau tidak?',
+      'btn_no': 'TIDAK',
+      'pre_add_budget_title': 'Silakan tambahkan anggaran terlebih dahulu!',
+      'btn_set_budget': 'ATUR ANGGARAN',
+      'pro_plan_title': 'PILIH PAKET PRO',
+      'pro_plan_desc':
+          'Pilih paket yang tepat. Mendukung GCash, Kartu, dll. via Pembayaran Aman Google Play Console.',
+      'lang_lbl': 'Bahasa Aplikasi',
+      'reset_confirm_title': 'Atur ulang semua data?',
+      'reset_confirm_desc':
+          'Apakah Anda yakin? Ini akan menghapus semua data Anda yang tersimpan termasuk kode PIN Anda.',
+      'btn_reset': 'ATUR ULANG',
+      'edit_entry_tooltip': 'Ubah catatan',
+      'del_entry_tooltip': 'Hapus catatan',
+      'settings_menu_lbl': 'Pengaturan',
+      'preset_themes_lbl': 'Preset Tema Warna',
+    },
   };
   String _getTxt(String key) {
     return _localizedText[_currentLocale]?[key] ?? key;
@@ -1029,7 +1164,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           break;
         }
       }
-      List<List<dynamic>> csvRows = [
+      List<List> csvRows = [
         [
           _getTxt('csv_hdr_wallet'),
           _getTxt('csv_hdr_budget'),
@@ -1147,40 +1282,35 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     }
     String deviceLanguage =
         PlatformDispatcher.instance.locale.languageCode.toLowerCase();
-    String defaultLocale =
-        (deviceLanguage == 'tl' || deviceLanguage == 'fil') ? 'tl' : 'en';
+    String defaultLocale = 'en';
+    if (deviceLanguage == 'tl' || deviceLanguage == 'fil') {
+      defaultLocale = 'tl';
+    } else if (deviceLanguage == 'id') {
+      defaultLocale = 'id';
+    }
     setState(() {
       _isPremiumUser = isPremium;
-
-      // Kuhanin ang naka-save na locale, o gamitin ang default phone language
       String tempLocale = p.getString('app_lang_locale') ?? defaultLocale;
-
-      // SIGURADUHING 'en' O 'tl' LANG ANG VALUE PARA HINDI MAG-CRASH ANG DROPDOWN
-      if (tempLocale != 'en' && tempLocale != 'tl') {
+      if (tempLocale != 'en' && tempLocale != 'tl' && tempLocale != 'id') {
         _currentLocale = defaultLocale;
       } else {
         _currentLocale = tempLocale;
       }
-
       _trialDaysLeft = calculatedLeft;
       _isTrialExpired = expired;
       _purchasedPlanTitle = p.getString('purchased_plan_title') ?? "Pro Plan";
-
       int? savedBgColorValue = p.getInt('app_background_color_value');
       _appBgColor = savedBgColorValue != null
           ? Color(savedBgColorValue)
           : const Color(0xFF121212);
-
       int? savedFontColorValue = p.getInt('app_font_color_value');
       _appFontColor = savedFontColorValue != null
           ? Color(savedFontColorValue)
           : Colors.white;
-
       int? savedBoxColorValue = p.getInt('app_box_color_value');
       _boxBgColor = savedBoxColorValue != null
           ? Color(savedBoxColorValue)
           : const Color(0xFF1E1E1E);
-
       if (expired) {
         activeWalletId = "default";
       }
@@ -1194,10 +1324,34 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     final p = await SharedPreferences.getInstance();
     String deviceLanguage =
         PlatformDispatcher.instance.locale.languageCode.toLowerCase();
-    String defaultLocale =
-        (deviceLanguage == 'tl' || deviceLanguage == 'fil') ? 'tl' : 'en';
+    String defaultLocale = 'en';
+    if (deviceLanguage == 'tl' || deviceLanguage == 'fil') {
+      defaultLocale = 'tl';
+    } else if (deviceLanguage == 'id') {
+      defaultLocale = 'id';
+    }
+
     setState(() {
-      _currentLocale = p.getString('app_lang_locale') ?? defaultLocale;
+      // 1. UNAHING I-LOAD O I-DEDUCE ANG CURRENT LOCALE
+      String tempLocale = p.getString('app_lang_locale') ?? defaultLocale;
+      if (tempLocale != 'en' && tempLocale != 'tl' && tempLocale != 'id') {
+        _currentLocale = defaultLocale;
+      } else {
+        _currentLocale = tempLocale;
+      }
+
+      // 2. MAG-SET NG DEFAULT CURRENCY BASE SA LOCALE KUNG WALANG NAKA-SAVE
+      String defaultCurrency = "₱";
+      if (_currentLocale == 'id') {
+        defaultCurrency = "Rp";
+      } else if (_currentLocale == 'en') {
+        defaultCurrency = "\$";
+      }
+
+      // 3. I-LOAD ANG CURRENCY SYMBOL (O GAMITIN ANG DEFAULT BASE SA LOCALE)
+      _currentCurrency = p.getString('app_currency_symbol') ?? defaultCurrency;
+
+      // KASUNOD ANG MGA NATITIRANG WALLET AT EXPENSE LIFECYCLE DATA
       String? wData = p.getString('app_wallets');
       if (wData != null) {
         List l = jsonDecode(wData);
@@ -1236,6 +1390,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   Future saveData() async {
     final p = await SharedPreferences.getInstance();
     await p.setString('app_lang_locale', _currentLocale);
+    await p.setString(
+        'app_currency_symbol', _currentCurrency); // I-save ang currency
     await p.setString(
         'app_wallets', jsonEncode(wallets.map((w) => w.toJson()).toList()));
     await p.setString('active_wallet_id', activeWalletId);
@@ -1381,7 +1537,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         title: Text(
           _currentLocale == 'tl'
               ? 'I-edit Pangalan: ${wallet.name}'
-              : 'Edit Name: ${wallet.name}',
+              : (_currentLocale == 'id'
+                  ? 'Ubah Nama: ${wallet.name}'
+                  : 'Edit Name: ${wallet.name}'),
         ),
         content: TextField(
           controller: nameCtrl,
@@ -1390,7 +1548,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           decoration: InputDecoration(
               labelText: _currentLocale == 'tl'
                   ? 'Bagong Pangalan ng Wallet'
-                  : 'New Wallet Name'),
+                  : (_currentLocale == 'id'
+                      ? 'Nama Dompet Baru'
+                      : 'New Wallet Name')),
         ),
         actions: [
           TextButton(
@@ -1442,7 +1602,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 CommaFormatter()
               ],
               decoration: InputDecoration(
-                  prefixText: '₱ ', labelText: _getTxt('add_fund_lbl')),
+                  prefixText: '$_currentCurrency ',
+                  labelText: _getTxt('add_fund_lbl')),
               onTap: () {
                 amountCtrl.clear();
               },
@@ -1658,7 +1819,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                               color: Colors.white38, size: 18),
                                           tooltip: _currentLocale == 'tl'
                                               ? 'I-edit ang Pangalan'
-                                              : 'Edit Name',
+                                              : (_currentLocale == 'id'
+                                                  ? 'Ubah Nama'
+                                                  : 'Edit Name'),
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
                                           visualDensity: VisualDensity.compact,
@@ -1760,7 +1923,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 CommaFormatter()
               ],
               decoration: InputDecoration(
-                  prefixText: '₱ ', labelText: _getTxt('wallet_budget_lbl')),
+                  prefixText: '$_currentCurrency ',
+                  labelText: _getTxt('wallet_budget_lbl')),
             ),
           ],
         ),
@@ -1980,7 +2144,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   CommaFormatter()
                 ],
                 decoration: InputDecoration(
-                    prefixText: '₱ ', labelText: _getTxt('amount_label')),
+                    prefixText: '$_currentCurrency ',
+                    labelText: _getTxt('amount_label')),
               ),
               const SizedBox(height: 16),
               ListTile(
@@ -2110,7 +2275,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   CommaFormatter()
                 ],
                 decoration: InputDecoration(
-                    prefixText: '₱ ', labelText: _getTxt('amount_label')),
+                    prefixText: '$_currentCurrency ',
+                    labelText: _getTxt('amount_label')),
               ),
               const SizedBox(height: 16),
               ListTile(
@@ -2410,8 +2576,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
 
   Widget _buildSummaryCardDateFilters() {
     String customBtnLabel = _selectedDateRange == null
-        ? (_currentLocale == 'tl' ? "Pumili ng Range" : "Pick Range")
-        : "${DateFormat('MM/dd').format(_selectedDateRange!.start)} - ${DateFormat('MM/dd').format(_selectedDateRange!.end)}";
+        ? (_currentLocale == 'tl'
+            ? "Pumili ng Range"
+            : (_currentLocale == 'id' ? "Pilih Rentang" : "Pick Range"))
+        : "\({DateFormat('MM/dd').format(_selectedDateRange!.start)} -\){DateFormat('MM/dd').format(_selectedDateRange!.end)}";
     final bool canInteract = !(_isTrialExpired && !_isPremiumUser);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -2719,11 +2887,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             color: Color(0xFFFFD700)),
                         title: Text(_getTxt('lang_lbl'),
                             style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                            _currentLocale == 'en' ? 'English' : 'Tagalog',
-                            style: const TextStyle(
-                                fontSize: 11, color: Colors.white38)),
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         trailing: DropdownButton(
                           value: _currentLocale,
                           dropdownColor: const Color(0xFF1E1E1E),
@@ -2732,6 +2896,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             if (newLocale != null) {
                               setState(() {
                                 _currentLocale = newLocale;
+
+                                // Awtomatikong babaguhin ang currency symbol kapag binago ang wika
+                                if (_currentLocale == 'id') {
+                                  _currentCurrency = "Rp";
+                                } else if (_currentLocale == 'en') {
+                                  _currentCurrency = "\$";
+                                } else if (_currentLocale == 'tl') {
+                                  _currentCurrency = "₱";
+                                }
+
                                 saveData();
                               });
                             }
@@ -2739,11 +2913,15 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                           items: const [
                             DropdownMenuItem(
                                 value: 'en',
-                                child: Text('English',
+                                child: Text('🇺🇸 English(USA)',
                                     style: TextStyle(fontSize: 13))),
                             DropdownMenuItem(
                                 value: 'tl',
-                                child: Text('Tagalog',
+                                child: Text('🇵🇭 Tagalog(PHL)',
+                                    style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem(
+                                value: 'id',
+                                child: Text('🇮🇩 Bahasa(IDN)',
                                     style: TextStyle(fontSize: 13))),
                           ],
                         ),
@@ -2774,30 +2952,46 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       ListTile(
                         leading: const Icon(Icons.privacy_tip,
                             color: Color(0xFF00E676)),
-                        title: const Text('Privacy Policy',
-                            style: TextStyle(fontSize: 14)),
+                        title: Text(
+                          _currentLocale == 'tl'
+                              ? 'Patakaran sa Pagkapribado'
+                              : _currentLocale == 'id'
+                                  ? 'Kebijakan Privasi'
+                                  : 'Privacy Policy', // Default kapag 'en'
+                          style: const TextStyle(fontSize: 14),
+                        ),
                         onTap: () {
                           Navigator.pop(context);
-                          _launchComplianceUrl(
-                              'https://docs.google.com/document/d/e/2PACX-1vTjonFfWFs9UiUqNne5Ro0c2ab2UhR1mnwe0E1BBl68qrK5gdaqWc9STAAvTAapBSve_7AuS8-rNNpx/pub');
+                          _launchComplianceUrl('google.com');
                         },
                       ),
                       ListTile(
                         leading: const Icon(Icons.description,
                             color: Color(0xFF29B6F6)),
-                        title: const Text('Terms of Use (EULA)',
-                            style: TextStyle(fontSize: 14)),
+                        title: Text(
+                          _currentLocale == 'tl'
+                              ? 'Mga Tuntunin sa Paggamit'
+                              : _currentLocale == 'id'
+                                  ? 'Syarat Penggunaan'
+                                  : 'Terms of Use (EULA)', // Default kapag 'en'
+                          style: const TextStyle(fontSize: 14),
+                        ),
                         onTap: () {
                           Navigator.pop(context);
-                          _launchComplianceUrl(
-                              'https://docs.google.com/document/d/e/2PACX-1vS4ekakFeVHrKq98abpasJFDV9tdEQGFWf9USDoSOADmlY859l75tURqA5qPrcbFwEKfMPb-Bg-hLpL/pub');
+                          _launchComplianceUrl('google.com');
                         },
                       ),
                       ExpansionTile(
                         leading: const Icon(Icons.mail_outline,
                             color: Color(0xFFFFD700)),
-                        title: const Text('Contact Us',
-                            style: TextStyle(fontSize: 14)),
+                        title: Text(
+                          _currentLocale == 'tl'
+                              ? 'Makipag-ugnayan sa Amin'
+                              : _currentLocale == 'id'
+                                  ? 'Hubungi Kami'
+                                  : 'Contact Us', // Default kapag 'en'
+                          style: const TextStyle(fontSize: 14),
+                        ),
                         iconColor: const Color(0xFFFFD700),
                         collapsedIconColor: Colors.white54,
                         children: [
@@ -2805,8 +2999,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             contentPadding: const EdgeInsets.only(left: 32),
                             leading: const Icon(Icons.bug_report,
                                 color: Colors.redAccent, size: 20),
-                            title: const Text('Report a Bug or Problem',
-                                style: TextStyle(fontSize: 13)),
+                            title: Text(
+                              _currentLocale == 'tl'
+                                  ? 'Mag-ulat ng Bug o Problema'
+                                  : _currentLocale == 'id'
+                                      ? 'Laporkan Bug o Masalah'
+                                      : 'Report a Bug or Problem', // Default kapag 'en'
+                              style: const TextStyle(
+                                  fontSize:
+                                      13), // Naka-set sa 13 base sa orihinal mong code
+                            ),
                             onTap: () {
                               Navigator.pop(context);
                               _sendSupportEmail('GASTOS KO - Bug Report');
@@ -2816,8 +3018,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             contentPadding: const EdgeInsets.only(left: 32),
                             leading: const Icon(Icons.lightbulb_outline,
                                 color: Colors.amber, size: 20),
-                            title: const Text('Send Suggestion',
-                                style: TextStyle(fontSize: 13)),
+                            title: Text(
+                              _currentLocale == 'tl'
+                                  ? 'Magpadala ng Mungkahi'
+                                  : _currentLocale == 'id'
+                                      ? 'Kirim Saran'
+                                      : 'Send Suggestion', // Default kapag 'en'
+                              style: const TextStyle(
+                                  fontSize:
+                                      13), // Naka-set sa 13 base sa orihinal mong code
+                            ),
                             onTap: () {
                               Navigator.pop(context);
                               _sendSupportEmail('GASTOS KO - App Suggestion');
@@ -2832,225 +3042,450 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               const Divider(color: Colors.white10),
               ListTile(
                 leading: const Icon(Icons.settings, color: Color(0xFFFFD700)),
-                title: Text(_currentLocale == 'en' ? 'Settings' : 'Mga Setting',
+                title: Text(
+                    _currentLocale == 'en'
+                        ? 'Settings'
+                        : (_currentLocale == 'id'
+                            ? 'Pengaturan'
+                            : 'Mga Setting'),
                     style: const TextStyle(
                         fontSize: 14, fontWeight: FontWeight.bold)),
                 subtitle: Text(
                     _currentLocale == 'en'
                         ? 'App configurations & reset'
-                        : 'Mga config ng app & reset',
+                        : (_currentLocale == 'id'
+                            ? 'Konfigurasi aplikasi & reset'
+                            : 'Mga config ng app & reset'),
                     style:
                         const TextStyle(fontSize: 10, color: Colors.white38)),
                 onTap: () {
                   Navigator.pop(context);
+                  final TextEditingController newPinCtrl =
+                      TextEditingController();
+                  String settingsError = "";
+
                   showDialog(
                     context: context,
                     builder: (context) => StatefulBuilder(
                       builder: (context, setDialogState) => AlertDialog(
                         backgroundColor: const Color(0xFF1E1E1E),
                         title: Text(
-                            _currentLocale == 'en' ? 'Settings' : 'Mga Setting',
+                            _currentLocale == 'en'
+                                ? 'Settings'
+                                : (_currentLocale == 'id'
+                                    ? 'Pengaturan'
+                                    : 'Mga Setting'),
                             style: const TextStyle(
                                 color: Color(0xFFFFD700),
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold)),
                         contentPadding: const EdgeInsets.symmetric(
                             vertical: 12, horizontal: 16),
-                        content: Container(
+                        content: SizedBox(
                           width: MediaQuery.of(context).size.width * 0.85,
-                          height: MediaQuery.of(context).size.height * 0.45,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _getTxt('preset_themes_lbl'),
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white38),
-                              ),
-                              const SizedBox(height: 10),
-                              Expanded(
-                                child: ListView(
-                                  physics: const BouncingScrollPhysics(),
-                                  children: [
-                                    _buildPresetRowItem(
-                                        "Classic Dark 🕶️",
-                                        const Color(0xFF121212),
-                                        Colors.white,
-                                        const Color(0xFF1E1E1E),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Golden Pro 💼",
-                                        Colors.black,
-                                        const Color(0xFFFFD700),
-                                        const Color(0xFF1A1916),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Midnight Neon 👾",
-                                        const Color(0xFF0A001F),
-                                        const Color(0xFF00FFCC),
-                                        const Color(0xFF1A0B36),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Rose Gold 👑",
-                                        const Color(0xFF1A1216),
-                                        const Color(0xFFFFB7CE),
-                                        const Color(0xFF2E1F27),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Deep Ocean ⚓",
-                                        const Color(0xFF0B132B),
-                                        const Color(0xFF48CAE4),
-                                        const Color(0xFF1C2541),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Matte Commando 🎖️",
-                                        const Color(0xFF1B221B),
-                                        const Color(0xFFD4AF37),
-                                        const Color(0xFF2A342A),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Sakura Pink 🌸",
-                                        const Color(0xFF1F1619),
-                                        const Color(0xFFFFC0CB),
-                                        const Color(0xFF332025),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Lavender Dreams 🔮",
-                                        const Color(0xFF120E2E),
-                                        const Color(0xFFE0B0FF),
-                                        const Color(0xFF241B4B),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Crimson Stealth 🚗",
-                                        const Color(0xFF140D0D),
-                                        const Color(0xFFFF4D4D),
-                                        const Color(0xFF241717),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Mint Fresh 🍃",
-                                        const Color(0xFF0F171A),
-                                        const Color(0xFFB9F6CA),
-                                        const Color(0xFF1C282C),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Barbie Dream 💅",
-                                        const Color(0xFF2B0A1A),
-                                        const Color(0xFFFF69B4),
-                                        const Color(0xFF4A1530),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Cyberpunk ⚡",
-                                        const Color(0xFF1A0033),
-                                        const Color(0xFFFFF000),
-                                        const Color(0xFF330066),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Emerald Luxury 💎",
-                                        const Color(0xFF06140E),
-                                        const Color(0xFF50C878),
-                                        const Color(0xFF0D281C),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Ice Princess ❄️",
-                                        const Color(0xFF0F1C2E),
-                                        const Color(0xFFE0F7FA),
-                                        const Color(0xFF1F3A60),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Chocolate Mocha ☕",
-                                        const Color(0xFF1A110B),
-                                        const Color(0xFFD7CCC8),
-                                        const Color(0xFF2D1E15),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Cotton Candy 🍧",
-                                        const Color(0xFF141724),
-                                        const Color(0xFFFBB6CE),
-                                        const Color(0xFF23293F),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Sunset Vibe 🌅",
-                                        const Color(0xFF1F0D0D),
-                                        const Color(0xFFFF9E79),
-                                        const Color(0xFF3D1919),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Orchid Glam 💄",
-                                        const Color(0xFF180A22),
-                                        const Color(0xFFDA70D6),
-                                        const Color(0xFF2E1542),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Stealth Carbon 🛹",
-                                        const Color(0xFF0F0F0F),
-                                        const Color(0xFF90A4AE),
-                                        const Color(0xFF212121),
-                                        setDialogState),
-                                    _buildPresetRowItem(
-                                        "Vintage Autumn 🍂",
-                                        const Color(0xFF1B140E),
-                                        const Color(0xFFFFB300),
-                                        const Color(0xFF2E2216),
-                                        setDialogState),
-                                  ],
-                                ),
-                              ),
-                              const Divider(color: Colors.white10, height: 20),
-                              ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: const Icon(Icons.delete_forever,
-                                    color: Colors.redAccent),
-                                title: Text(_getTxt('reset_data'),
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.redAccent,
-                                        fontWeight: FontWeight.bold)),
-                                subtitle: Text(_getTxt('reset_subtitle'),
-                                    style: const TextStyle(
-                                        fontSize: 10, color: Colors.white38)),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) =>
-                                        AlertDialog(
-                                      backgroundColor: const Color(0xFF1E1E1E),
-                                      title:
-                                          Text(_getTxt('reset_confirm_title')),
-                                      content:
-                                          Text(_getTxt('reset_confirm_desc')),
-                                      actions: [
-                                        TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            child: Text(_getTxt('btn_cancel'),
-                                                style: const TextStyle(
-                                                    color: Colors.white30))),
-                                        TextButton(
-                                            onPressed: () {
-                                              clearAllApplicationData();
-                                              Navigator.pop(context);
-                                            },
-                                            child: Text(_getTxt('btn_reset'),
-                                                style: const TextStyle(
-                                                    color: Colors.redAccent,
-                                                    fontWeight:
-                                                        FontWeight.bold))),
-                                      ],
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // SECTION 1: BACKGROUND THEMES
+                                Theme(
+                                  data: Theme.of(context).copyWith(
+                                    dividerColor: Colors.transparent,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  child: ExpansionTile(
+                                    tilePadding: EdgeInsets.zero,
+                                    leading: const SizedBox(
+                                      width: 24,
+                                      child: Icon(Icons.palette_outlined,
+                                          color: Color(0xFFFFD700)),
                                     ),
-                                  );
-                                },
-                              ),
-                            ],
+                                    title: Text(
+                                      _currentLocale == 'tl'
+                                          ? 'Baguhin ang Kulay ng Background'
+                                          : (_currentLocale == 'id'
+                                              ? 'Ubah Warna Latar Belakang'
+                                              : 'Change Background Color'),
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white),
+                                    ),
+                                    iconColor: const Color(0xFFFFD700),
+                                    collapsedIconColor: Colors.white54,
+                                    children: [
+                                      const SizedBox(height: 8),
+                                      _buildPresetRowItem(
+                                          "Classic Dark 🕶️",
+                                          const Color(0xFF121212),
+                                          Colors.white,
+                                          const Color(0xFF1E1E1E),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Golden Pro 💼",
+                                          Colors.black,
+                                          const Color(0xFFFFD700),
+                                          const Color(0xFF1A1916),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Midnight Neon 👾",
+                                          const Color(0xFF0A001F),
+                                          const Color(0xFF00FFCC),
+                                          const Color(0xFF1A0B36),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Rose Gold 👑",
+                                          const Color(0xFF1A1216),
+                                          const Color(0xFFFFB7CE),
+                                          const Color(0xFF2E1F27),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Deep Ocean ⚓",
+                                          const Color(0xFF0B132B),
+                                          const Color(0xFF48CAE4),
+                                          const Color(0xFF1C2541),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Matte Commando 🎖️",
+                                          const Color(0xFF1B221B),
+                                          const Color(0xFFD4AF37),
+                                          const Color(0xFF2A342A),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Sakura Pink 🌸",
+                                          const Color(0xFF1F1619),
+                                          const Color(0xFFFFC0CB),
+                                          const Color(0xFF332025),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Lavender Dreams 🔮",
+                                          const Color(0xFF120E2E),
+                                          const Color(0xFFE0B0FF),
+                                          const Color(0xFF241B4B),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Crimson Stealth 🚗",
+                                          const Color(0xFF140D0D),
+                                          const Color(0xFFFF4D4D),
+                                          const Color(0xFF241717),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Mint Fresh 🍃",
+                                          const Color(0xFF0F171A),
+                                          const Color(0xFFB9F6CA),
+                                          const Color(0xFF1C282C),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Barbie Dream 💅",
+                                          const Color(0xFF2B0A1A),
+                                          const Color(0xFFFF69B4),
+                                          const Color(0xFF4A1530),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Cyberpunk ⚡",
+                                          const Color(0xFF1A0033),
+                                          const Color(0xFFFFF000),
+                                          const Color(0xFF330066),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Emerald Luxury 💎",
+                                          const Color(0xFF06140E),
+                                          const Color(0xFF50C878),
+                                          const Color(0xFF0D281C),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Ice Princess ❄️",
+                                          const Color(0xFF0F1C2E),
+                                          const Color(0xFFE0F7FA),
+                                          const Color(0xFF1F3A60),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Chocolate Mocha ☕",
+                                          const Color(0xFF1A110B),
+                                          const Color(0xFFD7CCC8),
+                                          const Color(0xFF2D1E15),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Cotton Candy 🍧",
+                                          const Color(0xFF141724),
+                                          const Color(0xFFFBB6CE),
+                                          const Color(0xFF23293F),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Sunset Vibe 🌅",
+                                          const Color(0xFF1F0D0D),
+                                          const Color(0xFFFF9E79),
+                                          const Color(0xFF3D1919),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Orchid Glam 💄",
+                                          const Color(0xFF180A22),
+                                          const Color(0xFFDA70D6),
+                                          const Color(0xFF2E1542),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Stealth Carbon 🛹",
+                                          const Color(0xFF0F0F0F),
+                                          const Color(0xFF90A4AE),
+                                          const Color(0xFF212121),
+                                          setDialogState),
+                                      _buildPresetRowItem(
+                                          "Vintage Autumn 🍂",
+                                          const Color(0xFF1B140E),
+                                          const Color(0xFFFFB300),
+                                          const Color(0xFF2E2216),
+                                          setDialogState),
+                                    ],
+                                  ),
+                                ),
+                                const Divider(color: Colors.white10),
+
+                                // SECTION 2: CHANGE PIN CODE
+                                Theme(
+                                  data: Theme.of(context).copyWith(
+                                    dividerColor: Colors.transparent,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  child: ExpansionTile(
+                                    tilePadding: EdgeInsets.zero,
+                                    leading: const SizedBox(
+                                      width: 24,
+                                      child: Icon(Icons.lock_outline,
+                                          color: Color(0xFFFFD700)),
+                                    ),
+                                    title: Text(
+                                      _currentLocale == 'tl'
+                                          ? 'Palitan ang PIN Code'
+                                          : (_currentLocale == 'id'
+                                              ? 'Ubah Kode PIN'
+                                              : 'Change PIN Code'),
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white),
+                                    ),
+                                    iconColor: const Color(0xFFFFD700),
+                                    collapsedIconColor: Colors.white54,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            left: 24.0,
+                                            right: 8.0,
+                                            top: 4.0,
+                                            bottom: 12.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            TextField(
+                                              controller: newPinCtrl,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              obscureText: true,
+                                              maxLength: 4,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  letterSpacing: 8),
+                                              inputFormatters: [
+                                                FilteringTextInputFormatter
+                                                    .digitsOnly
+                                              ],
+                                              decoration: InputDecoration(
+                                                counterText: "",
+                                                hintText: "••••",
+                                                hintStyle: const TextStyle(
+                                                    color: Colors.white24,
+                                                    letterSpacing: 8),
+                                                labelText: _currentLocale ==
+                                                        'tl'
+                                                    ? 'Ipasok ang Bagong 4-Digit PIN'
+                                                    : (_currentLocale == 'id'
+                                                        ? 'Masukkan PIN 4-Digit Baru'
+                                                        : 'Enter New 4-Digit PIN'),
+                                                labelStyle: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.white54,
+                                                    letterSpacing: 0),
+                                                enabledBorder:
+                                                    UnderlineInputBorder(
+                                                        borderSide: BorderSide(
+                                                            color: Colors
+                                                                .white
+                                                                .withValues(
+                                                                    alpha:
+                                                                        0.2))),
+                                                focusedBorder:
+                                                    const UnderlineInputBorder(
+                                                        borderSide: BorderSide(
+                                                            color: Color(
+                                                                0xFFFFD700))),
+                                              ),
+                                            ),
+                                            if (settingsError.isNotEmpty) ...[
+                                              const SizedBox(height: 8),
+                                              Text(settingsError,
+                                                  style: const TextStyle(
+                                                      color: Colors.redAccent,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                            ],
+                                            const SizedBox(height: 16),
+                                            ElevatedButton(
+                                              onPressed: () async {
+                                                String pinInput =
+                                                    newPinCtrl.text.trim();
+                                                if (pinInput.length < 4) {
+                                                  setDialogState(() {
+                                                    settingsError =
+                                                        _getTxt('pin_len_err');
+                                                  });
+                                                  return;
+                                                }
+                                                final prefs =
+                                                    await SharedPreferences
+                                                        .getInstance();
+                                                await prefs.setString(
+                                                    'user_pincode', pinInput);
+                                                setDialogState(() {
+                                                  settingsError = "";
+                                                  newPinCtrl.clear();
+                                                });
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                        content: Text(_getTxt(
+                                                            'pin_success')),
+                                                        backgroundColor:
+                                                            Colors.green),
+                                                  );
+                                                }
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFFFFD700),
+                                                  foregroundColor: Colors.black,
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8))),
+                                              child: Text(_getTxt('btn_save'),
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                const Divider(color: Colors.white10),
+// SECTION 3: COMPACT MODE SWITCH
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  secondary: const SizedBox(
+                                    width: 24,
+                                    child: Icon(Icons.view_headline_rounded,
+                                        color: Color(0xFFFFD700)),
+                                  ),
+                                  title: Text(
+                                    _currentLocale == 'tl'
+                                        ? 'Compact Mode'
+                                        : (_currentLocale == 'id'
+                                            ? 'Mode Ringkas'
+                                            : 'Compact Mode'),
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white),
+                                  ),
+                                  subtitle: Text(
+                                    _currentLocale == 'tl'
+                                        ? 'Paliitin ang listahan ng mga gastos'
+                                        : (_currentLocale == 'id'
+                                            ? 'Perkecil tampilan riwayat'
+                                            : 'Make expense list rows smaller'),
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.white38),
+                                  ),
+                                  value: _isCompactMode,
+                                  activeColor: const Color(0xFFFFD700),
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      _isCompactMode = value;
+                                    });
+                                    setDialogState(() {});
+                                  },
+                                ),
+                                const Divider(color: Colors.white10),
+// SECTION 4: RESET APP DATA
+                                ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const SizedBox(
+                                    width: 24,
+                                    child: Icon(Icons.delete_forever,
+                                        color: Colors.redAccent),
+                                  ),
+                                  title: Text(_getTxt('reset_data'),
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.redAccent,
+                                          fontWeight: FontWeight.bold)),
+                                  subtitle: Text(_getTxt('reset_subtitle'),
+                                      style: const TextStyle(
+                                          fontSize: 10, color: Colors.white38)),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) =>
+                                          AlertDialog(
+                                        backgroundColor:
+                                            const Color(0xFF1E1E1E),
+                                        title: Text(
+                                            _getTxt('reset_confirm_title')),
+                                        content:
+                                            Text(_getTxt('reset_confirm_desc')),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: Text(_getTxt('btn_cancel'),
+                                                  style: const TextStyle(
+                                                      color: Colors.white30))),
+                                          TextButton(
+                                              onPressed: () {
+                                                clearAllApplicationData();
+                                                Navigator.pop(context);
+                                              },
+                                              child: Text(_getTxt('btn_reset'),
+                                                  style: const TextStyle(
+                                                      color: Colors.redAccent,
+                                                      fontWeight:
+                                                          FontWeight.bold))),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
                             child: Text(
-                                _currentLocale == 'en' ? 'CLOSE' : 'ISARA',
+                                _currentLocale == 'en'
+                                    ? 'CLOSE'
+                                    : (_currentLocale == 'id'
+                                        ? 'TUTUP'
+                                        : 'ISARA'),
                                 style: const TextStyle(
                                     color: Color(0xFFFFD700),
                                     fontWeight: FontWeight.bold)),
@@ -3061,7 +3496,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   );
                 },
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -3248,31 +3682,46 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                           finalFilteredExpenses.length - 1 - index];
                       return Card(
                         color: _boxBgColor,
-                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        // DYNAMIC MARGIN: Mas maliit na gap kapag compact mode
+                        margin: EdgeInsets.symmetric(
+                            vertical: _isCompactMode ? 2 : 6),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                         child: ListTile(
+                          // DYNAMIC PADDING: Mas manipis na vertical gap kapag compact mode
+                          contentPadding: _isCompactMode
+                              ? const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 0)
+                              : const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 4),
                           leading: CircleAvatar(
+                            radius: _isCompactMode ? 16 : 20,
                             backgroundColor: item.color,
-                            child: const Icon(Icons.payments,
-                                color: Colors.black87),
+                            child: Icon(Icons.payments,
+                                color: Colors.black87,
+                                size: _isCompactMode ? 16 : 20),
                           ),
                           title: Text(item.title,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: _appFontColor)),
-                          subtitle: Text(
-                              DateFormat('MMM dd, yyyy - hh:mm a')
-                                  .format(item.date),
-                              style: const TextStyle(
-                                  color: Colors.white38, fontSize: 12)),
+                                  color: _appFontColor,
+                                  fontSize: _isCompactMode ? 13 : 14)),
+                          // DYNAMIC SUBTITLE: Tinatanggihan ang petsa kapag compact mode para makatipid sa vertical space
+                          subtitle: _isCompactMode
+                              ? null
+                              : Text(
+                                  DateFormat('MMM dd, yyyy - hh:mm a')
+                                      .format(item.date),
+                                  style: const TextStyle(
+                                      color: Colors.white38, fontSize: 12)),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(peso(item.amount),
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: _appFontColor)),
+                                      color: _appFontColor,
+                                      fontSize: _isCompactMode ? 13 : 14)),
                               const SizedBox(width: 8),
                               IconButton(
                                 icon: Icon(Icons.edit,
@@ -3293,7 +3742,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                             title: Text(
                                               _currentLocale == 'tl'
                                                   ? 'I-edit ang Entry?'
-                                                  : 'Edit Entry?',
+                                                  : (_currentLocale == 'id'
+                                                      ? 'Ubah Catatan?'
+                                                      : 'Edit Entry?'),
                                               style: const TextStyle(
                                                   color: Color(0xFFFFD700),
                                                   fontWeight: FontWeight.bold),
@@ -3301,7 +3752,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                             content: Text(
                                               _currentLocale == 'tl'
                                                   ? 'Gusto mo bang baguhin ang mga detalye ng "${item.title}"?'
-                                                  : 'Do you want to modify the details for "${item.title}"?',
+                                                  : (_currentLocale == 'id'
+                                                      ? 'Apakah Anda ingin mengubah detail untuk "${item.title}"?'
+                                                      : 'Do you want to modify the details for "${item.title}"?'),
                                               style: const TextStyle(
                                                   color: Colors.white70),
                                             ),
@@ -3310,9 +3763,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                 onPressed: () =>
                                                     Navigator.pop(context),
                                                 child: Text(
-                                                    _getTxt('btn_cancel'),
-                                                    style: const TextStyle(
-                                                        color: Colors.white30)),
+                                                  _getTxt('btn_cancel'),
+                                                  style: const TextStyle(
+                                                      color: Colors.white30),
+                                                ),
                                               ),
                                               TextButton(
                                                 onPressed: () {
@@ -3322,7 +3776,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                 child: Text(
                                                   _currentLocale == 'tl'
                                                       ? 'ITULOY'
-                                                      : 'PROCEED',
+                                                      : (_currentLocale == 'id'
+                                                          ? 'LANJUTKAN'
+                                                          : 'PROCEED'),
                                                   style: const TextStyle(
                                                       color: Color(0xFFFFD700),
                                                       fontWeight:
@@ -3353,7 +3809,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                             title: Text(
                                               _currentLocale == 'tl'
                                                   ? 'Burahin ang Entry?'
-                                                  : 'Delete Entry?',
+                                                  : (_currentLocale == 'id'
+                                                      ? 'Hapus Catatan?'
+                                                      : 'Delete Entry?'),
                                               style: const TextStyle(
                                                   color: Colors.redAccent,
                                                   fontWeight: FontWeight.bold),
@@ -3361,7 +3819,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                             content: Text(
                                               _currentLocale == 'tl'
                                                   ? 'Sigurado ka bang gusto mong burahin ang "${item.title}" na nagkakahalagang ${peso(item.amount)}?'
-                                                  : 'Are you sure you want to delete "item.title" worth {peso(item.amount)}?',
+                                                  : (_currentLocale == 'id'
+                                                      ? 'Apakah Anda yakin ingin menghapus "${item.title}" senilai ${peso(item.amount)}?'
+                                                      : 'Are you sure you want to delete "${item.title}" worth ${peso(item.amount)}?'),
                                               style: const TextStyle(
                                                   color: Colors.white70),
                                             ),
@@ -3385,7 +3845,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                 child: Text(
                                                   _currentLocale == 'tl'
                                                       ? 'BURAHIN'
-                                                      : 'DELETE',
+                                                      : (_currentLocale == 'id'
+                                                          ? 'HAPUS'
+                                                          : 'DELETE'),
                                                   style: const TextStyle(
                                                       color: Colors.redAccent,
                                                       fontWeight:
