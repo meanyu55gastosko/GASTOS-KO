@@ -2576,10 +2576,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
 
   Widget _buildSummaryCardDateFilters() {
     String customBtnLabel = _selectedDateRange == null
-        ? (_currentLocale == 'tl'
-            ? "Pumili ng Range"
-            : (_currentLocale == 'id' ? "Pilih Rentang" : "Pick Range"))
-        : "\({DateFormat('MM/dd').format(_selectedDateRange!.start)} -\){DateFormat('MM/dd').format(_selectedDateRange!.end)}";
+        ? (_currentLocale == 'tl' ? "Pumili ng Range" : "Pick Range")
+        : "${DateFormat('MM/dd').format(_selectedDateRange!.start)} - ${DateFormat('MM/dd').format(_selectedDateRange!.end)}";
     final bool canInteract = !(_isTrialExpired && !_isPremiumUser);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -2952,33 +2950,23 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       ListTile(
                         leading: const Icon(Icons.privacy_tip,
                             color: Color(0xFF00E676)),
-                        title: Text(
-                          _currentLocale == 'tl'
-                              ? 'Patakaran sa Pagkapribado'
-                              : _currentLocale == 'id'
-                                  ? 'Kebijakan Privasi'
-                                  : 'Privacy Policy', // Default kapag 'en'
-                          style: const TextStyle(fontSize: 14),
-                        ),
+                        title: const Text('Privacy Policy',
+                            style: TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
-                          _launchComplianceUrl('google.com');
+                          _launchComplianceUrl(
+                              'https://docs.google.com/document/d/e/2PACX-1vTjonFfWFs9UiUqNne5Ro0c2ab2UhR1mnwe0E1BBl68qrK5gdaqWc9STAAvTAapBSve_7AuS8-rNNpx/pub');
                         },
                       ),
                       ListTile(
                         leading: const Icon(Icons.description,
                             color: Color(0xFF29B6F6)),
-                        title: Text(
-                          _currentLocale == 'tl'
-                              ? 'Mga Tuntunin sa Paggamit'
-                              : _currentLocale == 'id'
-                                  ? 'Syarat Penggunaan'
-                                  : 'Terms of Use (EULA)', // Default kapag 'en'
-                          style: const TextStyle(fontSize: 14),
-                        ),
+                        title: const Text('Terms of Use (EULA)',
+                            style: TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
-                          _launchComplianceUrl('google.com');
+                          _launchComplianceUrl(
+                              'https://docs.google.com/document/d/e/2PACX-1vS4ekakFeVHrKq98abpasJFDV9tdEQGFWf9USDoSOADmlY859l75tURqA5qPrcbFwEKfMPb-Bg-hLpL/pub');
                         },
                       ),
                       ExpansionTile(
