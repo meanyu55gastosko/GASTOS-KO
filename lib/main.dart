@@ -955,10 +955,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'file_sheet_web_warn':
           'The file sharing sheet only works when installed on a physical phone!',
       'csv_hdr_wallet': 'Wallet Name',
-      'csv_hdr_budget': 'Current Budget (₱)',
+      'csv_hdr_budget': 'Current Budget',
       'csv_hdr_id': 'Expense ID',
       'csv_hdr_cat': 'Category / Title',
-      'csv_hdr_amt': 'Amount (₱)',
+      'csv_hdr_amt': 'Amount',
       'csv_hdr_date': 'Date and Time',
       'csv_share_txt': 'Here is my export file from the Gastos Ko App!',
       'csv_err': 'Error exporting data: ',
@@ -1042,10 +1042,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'file_sheet_web_warn':
           'Ang file sharing sheet ay gumagana lang kapag naka-install na sa totoong CP!',
       'csv_hdr_wallet': 'Pangalan ng Wallet',
-      'csv_hdr_budget': 'Kasalukuyang Badyet (₱)',
+      'csv_hdr_budget': 'Kasalukuyang Badyet',
       'csv_hdr_id': 'ID ng Gastos',
       'csv_hdr_cat': 'Kategorya / Pamagat',
-      'csv_hdr_amt': 'Halaga (₱)',
+      'csv_hdr_amt': 'Halaga',
       'csv_hdr_date': 'Petsa at Oras',
       'csv_share_txt': 'Narito ang aking export file galing sa Gastos Ko App!',
       'csv_err': 'May error sa pag-export: ',
@@ -1131,10 +1131,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'file_sheet_web_warn':
           'Lembar berbagi file hanya berfungsi jika diinstal pada ponsel fisik!',
       'csv_hdr_wallet': 'Nama Dompet',
-      'csv_hdr_budget': 'Anggaran Saat Ini (₱)',
+      'csv_hdr_budget': 'Anggaran Saat Ini',
       'csv_hdr_id': 'ID Pengeluaran',
       'csv_hdr_cat': 'Kategori / Judul',
-      'csv_hdr_amt': 'Jumlah (₱)',
+      'csv_hdr_amt': 'Jumlah',
       'csv_hdr_date': 'Tanggal dan Waktu',
       'csv_share_txt': 'Ini adalah file ekspor saya dari Aplikasi Gastos Ko!',
       'csv_err': 'Kesalahan saat mengekspor data: ',
@@ -1439,16 +1439,26 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           break;
         }
       }
+      // TAMA: Dynamic na nitong ipapasok ang active currency ng wallet tulad ng Rp, $, o ₱ sa tab ng header
       List<List> csvRows = [
         [
           _getTxt('csv_hdr_wallet'),
-          _getTxt('csv_hdr_budget'),
+          _currentLocale == 'tl'
+              ? 'Badyet ng Wallet ($_currentCurrency)'
+              : (_currentLocale == 'id'
+                  ? 'Anggaran Dompet ($_currentCurrency)'
+                  : 'Wallet Budget ($_currentCurrency)'),
           _getTxt('csv_hdr_id'),
           _getTxt('csv_hdr_cat'),
-          _getTxt('csv_hdr_amt'),
+          _currentLocale == 'tl'
+              ? 'Halaga ($_currentCurrency)'
+              : (_currentLocale == 'id'
+                  ? 'Jumlah ($_currentCurrency)'
+                  : 'Amount ($_currentCurrency)'),
           _getTxt('csv_hdr_date')
         ]
       ];
+
       for (var expense in all) {
         csvRows.add([
           activeWalletName,
