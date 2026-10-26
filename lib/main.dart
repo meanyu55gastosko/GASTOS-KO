@@ -1710,21 +1710,36 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     final p = await SharedPreferences.getInstance();
     String deviceLanguage =
         PlatformDispatcher.instance.locale.languageCode.toLowerCase();
-    String defaultLocale = 'en';
 
-    // Matalinong pag-deduce ng panimulang currency base sa wika ng device ng user
-    String initialCurrency = "\$"; // Default fallback para sa 'en' o iba pa
+    // 👑 KINUKUHA ANG REGION NG PHONE (E.g., PH, ID, US)
+    String? deviceRegion =
+        PlatformDispatcher.instance.locale.countryCode?.toUpperCase();
+
+    // Limitado lamang sa tatlong aktwal na wika ng iyong app
+    String defaultLocale = 'en';
     if (deviceLanguage == 'tl' || deviceLanguage == 'fil') {
       defaultLocale = 'tl';
-      initialCurrency =
-          "₱"; // Gagamit ng Peso kapag Tagalog/Filipino ang device
     } else if (deviceLanguage == 'id') {
       defaultLocale = 'id';
-      initialCurrency = "Rp"; // Gagamit ng Rupiah kapag Indonesian ang device
+    }
+
+    // AUTOMATION LOGIC BASE SA REHIYON O LOKASYON:
+    // Kahit naka-English ang device, kung ang physical region ay nasa PH o ID,
+    // ito ang awtomatikong gagamiting simbolo sa fresh install.
+    String initialCurrency = "\$"; // Default fallback para sa iba pa
+
+    if (deviceRegion == 'PH') {
+      initialCurrency = "₱"; // Philippine Peso
+    } else if (deviceRegion == 'ID') {
+      initialCurrency = "Rp"; // Indonesian Rupiah
+    } else {
+      // Kung hindi nakuha ang region code, mag-fallback gamit ang wika ng device
+      if (defaultLocale == 'tl') initialCurrency = "₱";
+      if (defaultLocale == 'id') initialCurrency = "Rp";
     }
 
     setState(() {
-      // 1. I-LOAD O I-DEDUCE ANG CURRENT LOCALE
+      // I-load ang locale na ligtas at limitado lang sa 3 wika mo ngayon
       String tempLocale = p.getString('app_lang_locale') ?? defaultLocale;
       if (tempLocale != 'en' && tempLocale != 'tl' && tempLocale != 'id') {
         _currentLocale = defaultLocale;
@@ -1732,13 +1747,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         _currentLocale = tempLocale;
       }
 
-      // 2. I-LOAD ANG MGA WALLETS MULA SA MEMORY
       String? wData = p.getString('app_wallets');
       if (wData != null) {
         List l = jsonDecode(wData);
         wallets = l.map((e) => AppWallet.fromJson(e)).toList();
       } else {
-        // Gagamitin ang 'initialCurrency' na kinuha mula sa settings ng device para sa fresh install
+        // Gagamitin ang automated currency symbol para sa bagong Main Wallet
         wallets = [
           AppWallet(
               id: "default",
@@ -1767,16 +1781,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   id: "default",
                   name: "Main Wallet",
                   budget: 0.0,
-                  currency:
-                      initialCurrency)); // Gagamitin din ang deduces currency dito bilang fallback sa loop
+                  currency: initialCurrency));
 
       activeWalletId = activeWallet.id;
       budget = activeWallet.budget;
-
-      // Ito ang namamahala sa pag-sync ng currency mula sa active wallet
       _currentCurrency = activeWallet.currency;
 
-      // KASUNOD ANG EXPENSE LIFECYCLE DATA LOADING
       String? d = p.getString('expenses$activeWalletId');
       if (d != null) {
         List l = jsonDecode(d);
