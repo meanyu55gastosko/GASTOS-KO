@@ -1442,6 +1442,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       List<List> csvRows = [
         [
           _getTxt('csv_hdr_wallet'),
+          _getTxt('csv_hdr_budget'),
           _getTxt('csv_hdr_id'),
           _getTxt('csv_hdr_cat'),
           _getTxt('csv_hdr_amt'),
@@ -1983,13 +1984,13 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 // SEARCH PICKER BUTTON ROW
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.public, color: Color(0xFFFFD700)),
+                  // ✂️ TINANGGAL ANG LINYA NG LEADING ICON DITO PARA MAWALA ANG MUNDO
                   title: Text(
                     _currentLocale == 'tl'
-                        ? 'Baguhin ang Pera (Currency)'
+                        ? 'Pumili ng Pera (Currency)'
                         : (_currentLocale == 'id'
-                            ? 'Ubah Mata Uang'
-                            : 'Change Currency'),
+                            ? 'Pilih Mata Uang'
+                            : 'Select Currency'),
                     style: const TextStyle(fontSize: 12, color: Colors.white54),
                   ),
                   subtitle: Text(
@@ -2004,7 +2005,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   onTap: () {
                     _openCurrencySearchPicker((chosen) {
                       setDialogState(() {
-                        // Code na ang ini-store sa form controller para maging magkaiba ang China (CNY) at Japan (JPY)
                         selectedWalletCurrencyCode = chosen["code"]!;
                       });
                     });
@@ -2429,7 +2429,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   // SEARCH PICKER BUTTON ROW
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.public, color: Color(0xFFFFD700)),
                     title: Text(
                       _currentLocale == 'tl'
                           ? 'Pumili ng Pera (Currency)'
@@ -3945,11 +3944,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                     // TAMA: Nakadepende nang direkta sa _currentLocale gamit ang ternary operators
                                                     settingsError = _currentLocale ==
                                                             'tl'
-                                                        ? 'Maglagay ng apat na numero!'
+                                                        ? 'Pakilagay ng apat na numero!'
                                                         : (_currentLocale ==
                                                                 'id'
                                                             ? 'Masukkan empat angka!'
-                                                            : 'Only 4 digits allowed!');
+                                                            : 'Please input 4 digits!');
                                                   });
                                                   return;
                                                 }
