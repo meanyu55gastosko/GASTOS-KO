@@ -12,6 +12,9 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 void main() => runApp(const GastosKoApp());
 
@@ -222,16 +225,18 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
       'btn_unlock': 'UNLOCK',
       'forgot_pin': 'Forgot PIN Code?',
       'back_lock': 'Back to Lock Screen',
+      'Only 4 digits allowed!': 'Only 4 digits allowed!',
+      'Pin successfully changed!': 'PIN successfully changed!',
     },
     'tl': {
       'set_pin': 'MAG-SET NG IYONG PINCODE',
       'enter_pin': 'I-ENTER ANG IYONG PINCODE',
-      'trial_expired_title': '🔒 EXPIRATION LOCK SCREEN',
+      'trial_expired_title': '🔒 LOCK SCREEN PARA SA PAG-EXPIRE',
       'trial_expired_info':
           'Tapos na ang iyong 30-day free trial. Ipasok ang PIN para mabuksan ang app sa limitadong mode.',
       'pin_len_err': 'Dapat ay may 4-digits ang PIN code.',
       'pin_success': 'Matagumpay na na-update ang iyong PIN!',
-      'security_title': '🔒 SECURITY QUESTION',
+      'security_title': '🔒 TANONG PANGSEGURIDAD',
       'security_question':
           'Ano ang pangalan ng iyong unang naging Alagang Hayop (Pet)?',
       'security_hint': 'Sagot mo dito...',
@@ -254,6 +259,8 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
       'btn_unlock': 'I-UNLOCK',
       'forgot_pin': 'Nakalimutan ang PIN Code?',
       'back_lock': 'Bumalik sa Lock Screen',
+      'Only 4 digits allowed!': '4 na numero lamang ang pinapayagan!',
+      'Pin successfully changed!': 'Matagumpay na naitakda ang bagong PIN!',
     },
     'id': {
       'set_pin': 'ATUR PINCODE ANDA',
@@ -284,6 +291,8 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
       'btn_unlock': 'BUKA KUNCI',
       'forgot_pin': 'Lupa Kode PIN?',
       'back_lock': 'Kembali ke Layar Kunci',
+      'Only 4 digits allowed!': 'Hanya diperbolehkan 4 digit!',
+      'Pin successfully changed!': 'PIN berhasil diubah!',
     },
   };
   String _getTxt(String key) => _pinLocalization[_currentLocale]?[key] ?? key;
@@ -1023,7 +1032,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'btn_save': 'I-Save',
       'btn_update': 'I-Update',
       'btn_add': 'Idagdag',
-      'wallet_manager': 'WALLET MANAGER',
+      'wallet_manager': 'MGA PITAKA',
       'btn_add_wallet': 'MAGDAGDAG',
       'reset_data': 'I-Reset ang App',
       'reset_subtitle': 'Buburahin lahat ng entries',
@@ -1032,9 +1041,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'no_exp_err': 'Walang mga gastos na maie-export!',
       'file_sheet_web_warn':
           'Ang file sharing sheet ay gumagana lang kapag naka-install na sa totoong CP!',
-      'csv_hdr_wallet': 'Wallet Name',
-      'csv_hdr_budget': 'Current Budget (₱)',
-      'csv_hdr_id': 'Expense ID',
+      'csv_hdr_wallet': 'Pangalan ng Wallet',
+      'csv_hdr_budget': 'Kasalukuyang Badyet (₱)',
+      'csv_hdr_id': 'ID ng Gastos',
       'csv_hdr_cat': 'Kategorya / Pamagat',
       'csv_hdr_amt': 'Halaga (₱)',
       'csv_hdr_date': 'Petsa at Oras',
@@ -1043,7 +1052,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'billing_err': 'May error sa transaksyon. Subukan muli.',
       'billing_success': 'Salamat! Matagumpay ang iyong PRO Activation! 🎉',
       'google_store_err': 'Hindi pa handa ang produkto mula sa Google Store.',
-      'congrats_title': 'CONGRATULATIONS!',
+      'congrats_title': 'MAHUSAY!',
       'congrats_desc':
           'Ang iyong bagong wallet "{name}" ay nagawa na at may budget na {budget}.',
       'email_app_err': 'Walang nahanap na email app o hindi mabuksan.',
@@ -1064,7 +1073,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'no_wallet_found': 'Walang nahanap na wallet.',
       'add_fund_tooltip': 'Magdagdag Pondo',
       'edit_wallet_tooltip': 'I-edit ang Pangalan',
-      'del_wallet_tooltip': 'Delete Wallet',
+      'del_wallet_tooltip': 'Burahin ang Wallet',
       'create_wallet_title': 'Gumawa ng Bagong Wallet',
       'wallet_name_lbl': 'Pangalan ng Wallet (e.g. Sweldo)',
       'wallet_budget_lbl': 'Magkano ang Budget?',
@@ -1433,7 +1442,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       List<List> csvRows = [
         [
           _getTxt('csv_hdr_wallet'),
-          _getTxt('csv_hdr_budget'),
           _getTxt('csv_hdr_id'),
           _getTxt('csv_hdr_cat'),
           _getTxt('csv_hdr_amt'),
@@ -1464,6 +1472,117 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("${_getTxt('csv_err')}$e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportWalletToPDF() async {
+    final bool trialExpiredWithNoPremium = _isTrialExpired && !_isPremiumUser;
+    if (trialExpiredWithNoPremium) {
+      _showUpgradeOptionsBottomSheet();
+      return;
+    }
+    if (all.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_currentLocale == 'tl'
+              ? 'Walang mga gastos na maie-export!'
+              : (_currentLocale == 'id'
+                  ? 'Tidak ada pengeluران untuk diekspor!'
+                  : 'No expenses to export!')),
+        ),
+      );
+      return;
+    }
+
+    try {
+      String activeWalletName = "Main Wallet";
+      for (var w in wallets) {
+        if (w.id == activeWalletId) {
+          activeWalletName = w.name;
+          break;
+        }
+      }
+
+      final pdf = pw.Document();
+
+      final hWallet = _currentLocale == 'tl'
+          ? 'Wallet'
+          : (_currentLocale == 'id' ? 'Dompet' : 'Wallet');
+      final hCategory = _currentLocale == 'tl'
+          ? 'Kategorya'
+          : (_currentLocale == 'id' ? 'Kategori' : 'Category');
+      final hAmount = _currentLocale == 'tl'
+          ? 'Halaga'
+          : (_currentLocale == 'id' ? 'Jumlah' : 'Amount');
+      final hDate = _currentLocale == 'tl'
+          ? 'Petsa'
+          : (_currentLocale == 'id' ? 'Tanggal' : 'Date');
+      final reportTitle = _currentLocale == 'tl'
+          ? 'ULAT NG GASTOS'
+          : (_currentLocale == 'id' ? 'LAPORAN PENGELUARAN' : 'EXPENSE REPORT');
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Row(
+                  // 👑 INAYOS DITO: Idinagdag ang ": " at inalis ang ekstrang "pw." sa unahan ng parameter name
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(reportTitle,
+                        style: pw.TextStyle(
+                            fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                    pw.Text(activeWalletName.toUpperCase(),
+                        style: pw.TextStyle(
+                            fontSize: 14, color: PdfColors.grey700)),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Row(
+                // 👑 INAYOS DITO: Idinagdag ang ": " at inalis ang ekstrang "pw." sa unahan ng parameter name
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                      '${_currentLocale == 'tl' ? 'Kabuuang Budget' : (_currentLocale == 'id' ? 'Total Anggaran' : 'Total Budget')}: ${peso(budget)}'),
+                  pw.Text(
+                      '${_currentLocale == 'tl' ? 'Kabuuang Gastos' : (_currentLocale == 'id' ? 'Total Pengeluaran' : 'Total Expenses')}: ${peso(all.fold(0, (sum, item) => sum + item.amount))}'),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+              pw.TableHelper.fromTextArray(
+                headers: [hWallet, hCategory, hAmount, hDate],
+                data: all.map((expense) {
+                  return [
+                    activeWalletName,
+                    expense.title,
+                    peso(expense.amount),
+                    DateFormat('yyyy-MM-dd hh:mm a').format(expense.date),
+                  ];
+                }).toList(),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                headerDecoration:
+                    const pw.BoxDecoration(color: PdfColors.grey300),
+                cellAlignment: pw.Alignment.centerLeft,
+              ),
+            ];
+          },
+        ),
+      );
+
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+        name: 'GastosKo_${activeWalletName}_Report',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF Error: $e')),
         );
       }
     }
@@ -3248,15 +3367,68 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(Icons.download_rounded,
-                color: trialExpiredWithNoPremium
-                    ? Colors.white10
-                    : const Color(0xFFFFD700),
-                size: 24),
-            tooltip: 'Export sa CSV',
-            onPressed: _exportWalletToCSV,
+          // 👑 PINAGSAMA NA EXPORT BUTTON
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.ios_share_rounded,
+              color: trialExpiredWithNoPremium
+                  ? Colors.white10
+                  : const Color(0xFFFFD700),
+              size: 24,
+            ),
+            tooltip: _currentLocale == 'tl'
+                ? 'I-export ang Data'
+                : (_currentLocale == 'id' ? 'Ekspor Data' : 'Export Data'),
+            // 👑 INAYOS DITO: Ginamit ang 'color' sa halip na 'dropdownColor'
+            color: const Color(0xFF1E1E1E),
+            onSelected: (String value) {
+              if (value == 'csv') {
+                _exportWalletToCSV();
+              } else if (value == 'pdf') {
+                _exportWalletToPDF();
+              }
+            },
+
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    const Icon(Icons.picture_as_pdf_rounded,
+                        color: Colors.redAccent, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      _currentLocale == 'tl'
+                          ? 'I-export sa PDF'
+                          : (_currentLocale == 'id'
+                              ? 'Ekspor ke PDF'
+                              : 'Export to PDF'),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'csv',
+                child: Row(
+                  children: [
+                    const Icon(Icons.table_chart_rounded,
+                        color: Color(0xFF00E676), size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      _currentLocale == 'tl'
+                          ? 'I-export sa CSV'
+                          : (_currentLocale == 'id'
+                              ? 'Ekspor ke CSV'
+                              : 'Export to CSV'),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          // WALLET MANAGER BUTTON
           IconButton(
             icon: Icon(Icons.account_balance_wallet,
                 color: trialExpiredWithNoPremium
@@ -3770,30 +3942,55 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                     newPinCtrl.text.trim();
                                                 if (pinInput.length < 4) {
                                                   setDialogState(() {
-                                                    settingsError =
-                                                        _getTxt('pin_len_err');
+                                                    // TAMA: Nakadepende nang direkta sa _currentLocale gamit ang ternary operators
+                                                    settingsError = _currentLocale ==
+                                                            'tl'
+                                                        ? 'Maglagay ng apat na numero!'
+                                                        : (_currentLocale ==
+                                                                'id'
+                                                            ? 'Masukkan empat angka!'
+                                                            : 'Only 4 digits allowed!');
                                                   });
                                                   return;
                                                 }
+
+                                                final messenger =
+                                                    ScaffoldMessenger.of(
+                                                        context);
+                                                final navigator =
+                                                    Navigator.of(context);
+
+                                                // TAMA: Nakadepende nang direkta sa _currentLocale gamit ang ternary operators para sa success message
+                                                String successMessage = _currentLocale ==
+                                                        'tl'
+                                                    ? 'Matagumpay na naitakda ang bagong PIN!'
+                                                    : (_currentLocale == 'id'
+                                                        ? 'PIN berhasil diubah!'
+                                                        : 'Pin successfully changed!');
+
                                                 final prefs =
                                                     await SharedPreferences
                                                         .getInstance();
                                                 await prefs.setString(
                                                     'user_pincode', pinInput);
+
                                                 setDialogState(() {
                                                   settingsError = "";
                                                   newPinCtrl.clear();
                                                 });
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                        content: Text(_getTxt(
-                                                            'pin_success')),
-                                                        backgroundColor:
-                                                            Colors.green),
-                                                  );
-                                                }
+
+                                                if (!mounted) return;
+
+                                                navigator.pop();
+
+                                                messenger.showSnackBar(
+                                                  SnackBar(
+                                                    content:
+                                                        Text(successMessage),
+                                                    backgroundColor:
+                                                        Colors.green,
+                                                  ),
+                                                );
                                               },
                                               style: ElevatedButton.styleFrom(
                                                   backgroundColor:
@@ -3803,10 +4000,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               8))),
-                                              child: Text(_getTxt('btn_save'),
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold)),
+                                              child: Text(
+                                                _currentLocale == 'tl'
+                                                    ? 'I-SAVE'
+                                                    : (_currentLocale == 'id'
+                                                        ? 'SIMPAN'
+                                                        : 'SAVE'),
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
                                             ),
                                           ],
                                         ),
