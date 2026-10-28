@@ -2089,10 +2089,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         backgroundColor: const Color(0xFF1E1E1E),
         title: Text(
           _currentLocale == 'tl'
-              ? 'I-backup ang Iyong Data'
+              ? 'I-manage ang Iyong Data'
               : (_currentLocale == 'id'
-                  ? 'Cadangkan Data Anda'
-                  : 'Backup Your Data'),
+                  ? 'Kelola Data Anda'
+                  : 'Manage Your Data'),
           style: const TextStyle(
               color: Color(0xFFFFD700),
               fontWeight: FontWeight.bold,
@@ -4447,10 +4447,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                   child: ExpansionTile(
                                     tilePadding: EdgeInsets.zero,
+                                    // 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                     leading: const SizedBox(
-                                      width: 24,
-                                      child: Icon(Icons.palette_outlined,
-                                          color: Color(0xFFFFD700)),
+                                      width: 28,
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Icon(Icons.palette_outlined,
+                                            color: Color(0xFFFFD700)),
+                                      ),
                                     ),
                                     title: Text(
                                       _currentLocale == 'tl'
@@ -4600,10 +4604,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                   child: ExpansionTile(
                                     tilePadding: EdgeInsets.zero,
+                                    // 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                     leading: const SizedBox(
-                                      width: 24,
-                                      child: Icon(Icons.lock_outline,
-                                          color: Color(0xFFFFD700)),
+                                      width: 28,
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Icon(Icons.lock_outline,
+                                            color: Color(0xFFFFD700)),
+                                      ),
                                     ),
                                     title: Text(
                                       _currentLocale == 'tl'
@@ -4690,7 +4698,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                     newPinCtrl.text.trim();
                                                 if (pinInput.length < 4) {
                                                   setDialogState(() {
-                                                    // TAMA: Nakadepende nang direkta sa _currentLocale gamit ang ternary operators
                                                     settingsError = _currentLocale ==
                                                             'tl'
                                                         ? 'Pakilagay ng apat na numero!'
@@ -4701,36 +4708,28 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                   });
                                                   return;
                                                 }
-
                                                 final messenger =
                                                     ScaffoldMessenger.of(
                                                         context);
                                                 final navigator =
                                                     Navigator.of(context);
-
-                                                // TAMA: Nakadepende nang direkta sa _currentLocale gamit ang ternary operators para sa success message
                                                 String successMessage = _currentLocale ==
                                                         'tl'
                                                     ? 'Matagumpay na naitakda ang bagong PIN!'
                                                     : (_currentLocale == 'id'
                                                         ? 'PIN berhasil diubah!'
                                                         : 'Pin successfully changed!');
-
                                                 final prefs =
                                                     await SharedPreferences
                                                         .getInstance();
                                                 await prefs.setString(
                                                     'user_pincode', pinInput);
-
                                                 setDialogState(() {
                                                   settingsError = "";
                                                   newPinCtrl.clear();
                                                 });
-
                                                 if (!mounted) return;
-
                                                 navigator.pop();
-
                                                 messenger.showSnackBar(
                                                   SnackBar(
                                                     content:
@@ -4766,13 +4765,17 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                 ),
                                 const Divider(color: Colors.white10),
-                                // SECTION 3: COMPACT MODE SWITCH
+// SECTION 3: COMPACT MODE SWITCH
                                 SwitchListTile(
                                   contentPadding: EdgeInsets.zero,
+// 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                   secondary: const SizedBox(
-                                    width: 24,
-                                    child: Icon(Icons.view_headline_rounded,
-                                        color: Color(0xFFFFD700)),
+                                    width: 28,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Icon(Icons.view_headline_rounded,
+                                          color: Color(0xFFFFD700)),
+                                    ),
                                   ),
                                   title: Text(
                                     _currentLocale == 'tl'
@@ -4781,9 +4784,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                             ? 'Mode Ringkas'
                                             : 'Compact Mode'),
                                     style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                   subtitle: Text(
                                     _currentLocale == 'tl'
@@ -4797,12 +4801,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   value: _isCompactMode,
                                   activeColor: const Color(0xFFFFD700),
                                   onChanged: (bool value) async {
-                                    // 🛠️ MGA TEXT AT MENSAHE PARA SA DALAWAWANG KONDISYON (Base sa Wika)
                                     String dialogTitle = "";
                                     String dialogContent = "";
-
                                     if (value) {
-                                      // Mensahe kapag binubuksan (Enabling)
                                       dialogTitle = _currentLocale == 'tl'
                                           ? 'I-on ang Compact Mode?'
                                           : (_currentLocale == 'id'
@@ -4814,7 +4815,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                               ? 'Tampilan layar utama akan diperkecil untuk daftar yang lebih ringkas. Lanjutkan?'
                                               : 'The main screen layout will shrink for a tighter list view. Do you want to proceed?');
                                     } else {
-                                      // 🔥 BAGONG MENSAHE: Kapag pinapatay (Disabling)
                                       dialogTitle = _currentLocale == 'tl'
                                           ? 'I-off ang Compact Mode?'
                                           : (_currentLocale == 'id'
@@ -4826,9 +4826,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                               ? 'Tampilan layar utama akan kembali ke ukuran normal yang lebih besar. Lanjutkan?'
                                               : 'The main screen layout will return to the normal, larger size. Do you want to proceed?');
                                     }
-
-                                    // 2. PROMPT BOX BAGO MAG-APPLY (Para sa ON at OFF)
-                                    bool? shouldApply = await showDialog<bool>(
+                                    bool? shouldApply = await showDialog(
                                       context: context,
                                       builder: (BuildContext context) =>
                                           AlertDialog(
@@ -4847,9 +4845,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         ),
                                         actions: [
                                           TextButton(
-                                            onPressed: () => Navigator.pop(
-                                                context,
-                                                false), // Kanselahin ang pagbabago
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
                                             child: Text(
                                               _getTxt('btn_cancel'),
                                               style: const TextStyle(
@@ -4857,9 +4854,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                             ),
                                           ),
                                           TextButton(
-                                            onPressed: () => Navigator.pop(
-                                                context,
-                                                true), // Ituloy ang pagbabago
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
                                             child: Text(
                                               _currentLocale == 'tl'
                                                   ? 'ITULOY'
@@ -4874,37 +4870,37 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         ],
                                       ),
                                     );
-
-                                    // 3. I-apply lamang ang pagbabago kung pinindot ang 'ITULOY / PROCEED'
                                     if (shouldApply == true) {
                                       setState(() {
-                                        _isCompactMode =
-                                            value; // Kung true magiging true, kung false magiging false
+                                        _isCompactMode = value;
                                       });
                                       setDialogState(() {});
                                     }
                                   },
                                 ),
-
                                 const Divider(color: Colors.white10),
-// SECTION 4: RESET APP DATA
+// SECTION 4: PINAGSAMANG BACKUP AT RESTORE
                                 ListTile(
                                   contentPadding: EdgeInsets.zero,
+// 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                   leading: const SizedBox(
-                                    width: 24,
-                                    child: Icon(Icons.cloud_sync_outlined,
-                                        color: Color(0xFFFFD700)),
+                                    width: 28,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Icon(Icons.cloud_sync_outlined,
+                                          color: Color(0xFFFFD700)),
+                                    ),
                                   ),
                                   title: Text(
                                     _currentLocale == 'tl'
-                                        ? 'I-backup ang Iyong Data'
+                                        ? 'I-manage ang Iyong Data'
                                         : (_currentLocale == 'id'
-                                            ? 'Cadangkan Data Anda'
-                                            : 'Backup Your Data'),
+                                            ? 'Kelola Data Anda'
+                                            : 'Manage Your Data'),
                                     style: const TextStyle(
-                                        color: Color(0xFFFFD700),
+                                        fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 16),
+                                        color: Color(0xFFFFD700)),
                                   ),
                                   subtitle: Text(
                                       _currentLocale == 'tl'
@@ -4915,18 +4911,21 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                       style: const TextStyle(
                                           fontSize: 10, color: Colors.white38)),
                                   onTap: () {
-                                    _showBackupAndRestoreOptionsDialog(); // Buksan ang sub-menu box
+                                    _showBackupAndRestoreOptionsDialog();
                                   },
                                 ),
                                 const Divider(color: Colors.white10),
-                                const Divider(color: Colors.white10),
-// SECTION 4: RESET APP DATA
+// SECTION 5: RESET APP DATA
                                 ListTile(
                                   contentPadding: EdgeInsets.zero,
+// 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                   leading: const SizedBox(
-                                    width: 24,
-                                    child: Icon(Icons.delete_forever,
-                                        color: Colors.redAccent),
+                                    width: 28,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Icon(Icons.delete_forever,
+                                          color: Colors.redAccent),
+                                    ),
                                   ),
                                   title: Text(_getTxt('reset_data'),
                                       style: const TextStyle(
