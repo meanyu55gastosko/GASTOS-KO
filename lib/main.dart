@@ -15,6 +15,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:file_picker/file_picker.dart';
 
 void main() => runApp(const GastosKoApp());
 
@@ -945,7 +946,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'btn_save': 'Save',
       'btn_update': 'Update',
       'btn_add': 'Add',
-      'wallet_manager': 'WALLET MANAGER',
+      'wallet_manager': 'YOUR WALLETS',
       'btn_add_wallet': 'ADD NEW WALLET',
       'reset_data': 'Reset App Data',
       'reset_subtitle': 'Will delete all items',
@@ -1032,7 +1033,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'btn_save': 'I-Save',
       'btn_update': 'I-Update',
       'btn_add': 'Idagdag',
-      'wallet_manager': 'MGA PITAKA',
+      'wallet_manager': 'IYONG MGA PITAKA',
       'btn_add_wallet': 'MAGDAGDAG',
       'reset_data': 'I-Reset ang App',
       'reset_subtitle': 'Buburahin lahat ng entries',
@@ -1121,7 +1122,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'btn_save': 'Simpan',
       'btn_update': 'Perbarui',
       'btn_add': 'Tambah',
-      'wallet_manager': 'PENGELOLA DOMPET',
+      'wallet_manager': 'DOMPET ANDA',
       'btn_add_wallet': 'TAMBAH DOMPET BARU',
       'reset_data': 'Atur Ulang Data Aplikasi',
       'reset_subtitle': 'Akan menghapus semua item',
@@ -1409,17 +1410,62 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     }
   }
 
-  Future _exportWalletToCSV() async {
+  Future<void> _exportWalletToCSV(List filteredList) async {
     if (_isTrialExpired && !_isPremiumUser) {
       _showUpgradeOptionsBottomSheet();
       return;
     }
-    if (all.isEmpty) {
+    if (filteredList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_getTxt('no_exp_err'))),
       );
       return;
     }
+
+    // Prompt Box
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _currentLocale == 'tl'
+              ? 'I-export ang Listahan?'
+              : (_currentLocale == 'id'
+                  ? 'Ekspor Daftar?'
+                  : 'Export Current List?'),
+          style: const TextStyle(
+              color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          _currentLocale == 'tl'
+              ? 'I-eexport ang kasalukuyang ${filteredList.length} items sa listahan patungong CSV file. Ituloy?'
+              : (_currentLocale == 'id'
+                  ? 'Ekspor ${filteredList.length} item saat ini di daftar ke file CSV. Lanjutkan?'
+                  : 'This will export the current ${filteredList.length} items in the list to a CSV file. Proceed?'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(_getTxt('btn_cancel'),
+                style: const TextStyle(color: Colors.white30)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              _currentLocale == 'tl'
+                  ? 'ITULOY'
+                  : (_currentLocale == 'id' ? 'LANJUTKAN' : 'PROCEED'),
+              style: const TextStyle(
+                  color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     if (kIsWeb) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1429,6 +1475,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       );
       return;
     }
+
     try {
       String activeWalletName = "Main Wallet";
       double activeWalletBudget = budget;
@@ -1439,7 +1486,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           break;
         }
       }
-      // TAMA: Dynamic na nitong ipapasok ang active currency ng wallet tulad ng Rp, $, o ₱ sa tab ng header
+
+      // 🛠️ KALKULASYON NG KABUUANG GASTOS AT NATITIRANG BADYET
+      final double totalExpenses =
+          filteredList.fold(0.0, (sum, item) => sum + item.amount);
+      final double remainingBudget = activeWalletBudget - totalExpenses;
+
       List<List> csvRows = [
         [
           _getTxt('csv_hdr_wallet'),
@@ -1448,6 +1500,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               : (_currentLocale == 'id'
                   ? 'Anggaran Dompet ($_currentCurrency)'
                   : 'Wallet Budget ($_currentCurrency)'),
+          // 🔥 IDINAGDAG ANG HEADER NG REMAINING BUDGET SA CSV
+          _currentLocale == 'tl'
+              ? 'Natitirang Budget ($_currentCurrency)'
+              : (_currentLocale == 'id'
+                  ? 'Sisa Anggaran ($_currentCurrency)'
+                  : 'Remaining Budget ($_currentCurrency)'),
           _getTxt('csv_hdr_id'),
           _getTxt('csv_hdr_cat'),
           _currentLocale == 'tl'
@@ -1459,16 +1517,18 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         ]
       ];
 
-      for (var expense in all) {
+      for (var expense in filteredList) {
         csvRows.add([
           activeWalletName,
           activeWalletBudget,
+          remainingBudget, // 🔥 IDINAGDAG ANG DATA NG REMAINING BUDGET SA ROW
           expense.id,
           expense.title,
           expense.amount,
           DateFormat('yyyy-MM-dd hh:mm a').format(expense.date),
         ]);
       }
+
       String csvData = '\uFEFF' + const ListToCsvConverter().convert(csvRows);
       final directory = await getTemporaryDirectory();
       String cleanFileName =
@@ -1488,24 +1548,68 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _exportWalletToPDF() async {
+  Future<void> _exportWalletToPDF(List filteredList) async {
     final bool trialExpiredWithNoPremium = _isTrialExpired && !_isPremiumUser;
     if (trialExpiredWithNoPremium) {
       _showUpgradeOptionsBottomSheet();
       return;
     }
-    if (all.isEmpty) {
+    if (filteredList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_currentLocale == 'tl'
               ? 'Walang mga gastos na maie-export!'
               : (_currentLocale == 'id'
-                  ? 'Tidak ada pengeluران untuk diekspor!'
+                  ? 'Tidak ada pengeluaran untuk diekspor!'
                   : 'No expenses to export!')),
         ),
       );
       return;
     }
+
+    // Confirm Dialog
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _currentLocale == 'tl'
+              ? 'I-export ang Listahan?'
+              : (_currentLocale == 'id'
+                  ? 'Ekspor Daftar?'
+                  : 'Export Current List?'),
+          style: const TextStyle(
+              color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          _currentLocale == 'tl'
+              ? 'I-eexport ang kasalukuyang ${filteredList.length} items sa listahan patungong PDF file. Ituloy?'
+              : (_currentLocale == 'id'
+                  ? 'Ekspor ${filteredList.length} item saat ini di daftar ke file PDF. Lanjutkan?'
+                  : 'This will export the current ${filteredList.length} items in the list to a PDF file. Proceed?'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(_getTxt('btn_cancel'),
+                style: const TextStyle(color: Colors.white30)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              _currentLocale == 'tl'
+                  ? 'ITULOY'
+                  : (_currentLocale == 'id' ? 'LANJUTKAN' : 'PROCEED'),
+              style: const TextStyle(
+                  color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
 
     try {
       String activeWalletName = "Main Wallet";
@@ -1517,7 +1621,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       }
 
       final pdf = pw.Document();
-
       final hWallet = _currentLocale == 'tl'
           ? 'Wallet'
           : (_currentLocale == 'id' ? 'Dompet' : 'Wallet');
@@ -1534,6 +1637,22 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           ? 'ULAT NG GASTOS'
           : (_currentLocale == 'id' ? 'LAPORAN PENGELUARAN' : 'EXPENSE REPORT');
 
+      String formatPdfCurrency(double value) {
+        String originalFormatted = peso(value);
+        if (_currentCurrency == 'PHP' || _currentCurrency == '₱') {
+          final rawNumbers = originalFormatted
+              .replaceAll(RegExp(r'[^\d.,-]'), '')
+              .trim(); // Pinapayagan ang negative sign kung lumampas sa budget
+          return 'P $rawNumbers';
+        }
+        return originalFormatted;
+      }
+
+      // 🛠️ KALKULASYON NG MGA DETALYE NG BUDGET
+      final double totalExpenses =
+          filteredList.fold(0.0, (sum, item) => sum + item.amount);
+      final double remainingBudget = budget - totalExpenses;
+
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -1542,7 +1661,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               pw.Header(
                 level: 0,
                 child: pw.Row(
-                  // 👑 INAYOS DITO: Idinagdag ang ": " at inalis ang ekstrang "pw." sa unahan ng parameter name
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Text(reportTitle,
@@ -1555,24 +1673,38 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 ),
               ),
               pw.SizedBox(height: 10),
+              // 🔥 BINAGONG BAHAGI: Naka-Row at Column para malinis tingnan ang tatlong detalye
               pw.Row(
-                // 👑 INAYOS DITO: Idinagdag ang ": " at inalis ang ekstrang "pw." sa unahan ng parameter name
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                          '${_currentLocale == 'tl' ? 'Kabuuang Budget' : (_currentLocale == 'id' ? 'Total Anggaran' : 'Total Budget')}: ${formatPdfCurrency(budget)}'),
+                      pw.Text(
+                          '${_currentLocale == 'tl' ? 'Kabuuang Gastos' : (_currentLocale == 'id' ? 'Total Pengeluaran' : 'Total Expenses')}: ${formatPdfCurrency(totalExpenses)}'),
+                    ],
+                  ),
+                  // 🔥 IDINAGDAG NA NATITERANG BADYET
                   pw.Text(
-                      '${_currentLocale == 'tl' ? 'Kabuuang Budget' : (_currentLocale == 'id' ? 'Total Anggaran' : 'Total Budget')}: ${peso(budget)}'),
-                  pw.Text(
-                      '${_currentLocale == 'tl' ? 'Kabuuang Gastos' : (_currentLocale == 'id' ? 'Total Pengeluaran' : 'Total Expenses')}: ${peso(all.fold(0, (sum, item) => sum + item.amount))}'),
+                    '${_currentLocale == 'tl' ? 'Natitirang Budget' : (_currentLocale == 'id' ? 'Sisa Anggaran' : 'Remaining Budget')}: ${formatPdfCurrency(remainingBudget)}',
+                    style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        color: remainingBudget < 0
+                            ? PdfColors.red
+                            : PdfColors.green),
+                  ),
                 ],
               ),
               pw.SizedBox(height: 20),
               pw.TableHelper.fromTextArray(
                 headers: [hWallet, hCategory, hAmount, hDate],
-                data: all.map((expense) {
+                data: filteredList.map((expense) {
                   return [
                     activeWalletName,
                     expense.title,
-                    peso(expense.amount),
+                    formatPdfCurrency(expense.amount),
                     DateFormat('yyyy-MM-dd hh:mm a').format(expense.date),
                   ];
                 }).toList(),
@@ -1949,12 +2081,393 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     }
   }
 
+  // 🔥 ANG KULANG NA METHOD NA NAKAPAGDUDULOT NG ERROR
+  void _showBackupAndRestoreOptionsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _currentLocale == 'tl'
+              ? 'I-backup ang Iyong Data'
+              : (_currentLocale == 'id'
+                  ? 'Cadangkan Data Anda'
+                  : 'Backup Your Data'),
+          style: const TextStyle(
+              color: Color(0xFFFFD700),
+              fontWeight: FontWeight.bold,
+              fontSize: 16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _currentLocale == 'tl'
+                  ? 'Pumili ng aksyon para sa iyong mga pitaka, kasaysayan ng gastos, at app settings.'
+                  : (_currentLocale == 'id'
+                      ? 'Pilih tindakan untuk dompet, riwayat pengeluaran, dan pengaturan aplikasi Anda.'
+                      : 'Select an action for your wallets, expense histories, and application settings.'),
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
+            ),
+            const SizedBox(height: 16),
+
+            // OPTION 1: GUMAWA NG BACKUP (EXPORT)
+            ElevatedButton.icon(
+              onPressed: () {
+                // ✂️ TINANGGAL ANG Navigator.pop(context) DITO PARA HINDI MAGSARA AGAD
+                _exportFullBackup();
+              },
+              icon: const Icon(Icons.cloud_upload_outlined, size: 18),
+              label: Text(
+                _currentLocale == 'tl'
+                    ? 'Gumawa ng Backup (Export)'
+                    : (_currentLocale == 'id'
+                        ? 'Buat Cadangan (Ekspor)'
+                        : 'Create Full Backup (Export)'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    const Color(0xFF00E676).withValues(alpha: 0.15),
+                foregroundColor: const Color(0xFF00E676),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // OPTION 2: I-RESTORE ANG BACKUP (IMPORT)
+            ElevatedButton.icon(
+              onPressed: () {
+                // ✂️ TINANGGAL ANG Navigator.pop(context) DITO PARA HINDI MAGSARA AGAD
+                _importFullBackup();
+              },
+              icon: const Icon(Icons.cloud_download_outlined, size: 18),
+              label: Text(
+                _currentLocale == 'tl'
+                    ? 'I-restore ang Data (Import)'
+                    : (_currentLocale == 'id'
+                        ? 'Pulihkan Data (Impor)'
+                        : 'Restore Data Backup (Import)'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    const Color(0xFF29B6F6).withValues(alpha: 0.15),
+                foregroundColor: const Color(0xFF29B6F6),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // 🚀 TAMA: Dahil hindi natin pinatay ang settings kanina,
+              // ang pop na ito ay maayos na babalik patungo sa Settings window!
+              Navigator.pop(context);
+            },
+            child: Text(
+              _currentLocale == 'en'
+                  ? 'CLOSE'
+                  : (_currentLocale == 'id' ? 'TUTUP' : 'ISARA'),
+              style: const TextStyle(
+                  color: Colors.white38, fontWeight: FontWeight.bold),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportFullBackup() async {
+    final bool trialExpiredWithNoPremium = _isTrialExpired && !_isPremiumUser;
+    if (trialExpiredWithNoPremium) {
+      _showUpgradeOptionsBottomSheet();
+      return;
+    }
+
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _currentLocale == 'tl'
+              ? 'Gumawa ng Buong Backup?'
+              : (_currentLocale == 'id'
+                  ? 'Buat Cadangan Penuh?'
+                  : 'Create Full Backup?'),
+          style: const TextStyle(
+              color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          _currentLocale == 'tl'
+              ? 'I-eexport ang lahat ng iyong wallets, expenses history, at app settings sa isang backup file. Ituloy?'
+              : (_currentLocale == 'id'
+                  ? 'Ekspor semua dompet, riwayat pengeluaran, dan pengaturan aplikasi Anda ke file cadangan. Lanjutkan?'
+                  : 'This will export all your wallets, expense histories, and app configurations into a backup file. Proceed?'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(_getTxt('btn_cancel'),
+                style: const TextStyle(color: Colors.white30)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              _currentLocale == 'tl'
+                  ? 'ITULOY'
+                  : (_currentLocale == 'id' ? 'LANJUTKAN' : 'PROCEED'),
+              style: const TextStyle(
+                  color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final p = await SharedPreferences.getInstance();
+      Map<String, dynamic> backupData = {};
+
+      backupData['app_lang_locale'] =
+          p.getString('app_lang_locale') ?? _currentLocale;
+      backupData['user_pincode'] = p.getString('user_pincode') ?? "";
+      backupData['security_answer'] = p.getString('security_answer') ?? "";
+      backupData['app_wallets'] = p.getString('app_wallets') ?? "[]";
+      backupData['active_wallet_id'] =
+          p.getString('active_wallet_id') ?? "default";
+
+      if (wallets.isNotEmpty) {
+        for (var w in wallets) {
+          backupData['expenses${w.id}'] =
+              p.getString('expenses${w.id}') ?? "[]";
+        }
+      }
+
+      String jsonString = jsonEncode(backupData);
+
+      // 🔥 WEB FALLBACK INTERFACE: Kung nasa FlutLab/Web UI, magpapakita ng text copy prompt box
+      if (kIsWeb) {
+        if (!mounted) return;
+        final TextEditingController copyCtrl =
+            TextEditingController(text: jsonString);
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            title: const Text('FlutLab Web Backup Content',
+                style: TextStyle(color: Color(0xFFFFD700))),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                    'Dahil nasa web view ka, kopyahin (Copy) ang code sa ibaba at i-save sa iyong notes/notepad:',
+                    style: TextStyle(fontSize: 12, color: Colors.white54)),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: copyCtrl,
+                  maxLines: 5,
+                  readOnly: true,
+                  style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.white70,
+                      fontFamily: 'monospace'),
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Color(0xFF121212)),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: jsonString));
+                    Navigator.pop(context);
+                  },
+                  child: const Text('COPY & CLOSE',
+                      style: TextStyle(
+                          color: Color(0xFFFFD700),
+                          fontWeight: FontWeight.bold))),
+            ],
+          ),
+        );
+        return;
+      }
+
+      // PHONE PLATFORM MODE: Ito ang gagana kapag binuod sa physical device
+      final directory = await getTemporaryDirectory();
+      final String filePath = '${directory.path}/GastosKo_Full_Backup.json';
+      final File file = File(filePath);
+      await file.writeAsString(jsonString, encoding: utf8);
+
+      final XFile xFile = XFile(filePath);
+      final box = context.findRenderObject() as RenderBox?;
+
+      await Share.shareXFiles(
+        [xFile],
+        text: 'My Gastos Ko Application Security Backup File',
+        sharePositionOrigin:
+            box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+      );
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF2C1A1A),
+            title: const Text('Backup Failed',
+                style: TextStyle(color: Colors.redAccent)),
+            content: Text('Error: $e'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'))
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _importFullBackup() async {
+    final bool trialExpiredWithNoPremium = _isTrialExpired && !_isPremiumUser;
+    if (trialExpiredWithNoPremium) {
+      _showUpgradeOptionsBottomSheet();
+      return;
+    }
+
+    // 1. Security Warning Prompt Box
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _currentLocale == 'tl'
+              ? 'Mag-restore ng Data?'
+              : (_currentLocale == 'id'
+                  ? 'Pulihkan Data?'
+                  : 'Restore Data Backup?'),
+          style: const TextStyle(
+              color: Colors.redAccent, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          _currentLocale == 'tl'
+              ? 'BABALA: Mapapalitan at mabubura ang lahat ng kasalukuyang data ng app mo ng data mula sa ia-upload mong backup file. Sigurado ka ba?'
+              : (_currentLocale == 'id'
+                  ? 'PERINGATAN: Semua data aplikasi saat ini akan diganti dan dihapus oleh data dari file cadangan yang Anda unggah. Apakah Anda yakin?'
+                  : 'WARNING: All current application data will be overwritten and permanently replaced by the data from the backup file you upload. Are you sure?'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(_getTxt('btn_cancel'),
+                style: const TextStyle(color: Colors.white30)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              _currentLocale == 'tl'
+                  ? 'ITULOY'
+                  : (_currentLocale == 'id' ? 'LANJUTKAN' : 'PROCEED'),
+              style: const TextStyle(
+                  color: Colors.redAccent, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // 2. 🔥 MAGBUBUKAS NG NATIVE FILE EXPLORER NG PHONE
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'json'
+        ], // `.json` file lang ang pwedeng piliin ng user
+      );
+
+      // Kung kinansela ng user ang pagpili sa file explorer
+      if (result == null || result.files.single.path == null) return;
+
+      // 3. Basahin ang nilalaman ng napiling file
+      final File file = File(result.files.single.path!);
+      final String fileContent = await file.readAsString(encoding: utf8);
+
+      // I-parse ang JSON string
+      Map<String, dynamic> parsedData = jsonDecode(fileContent.trim());
+      final p = await SharedPreferences.getInstance();
+
+      // Pagsusuri kung valid na backup file ng Gastos Ko App ang ipinasok
+      if (!parsedData.containsKey('app_wallets') ||
+          !parsedData.containsKey('active_wallet_id')) {
+        throw const FormatException("Invalid Gastos Ko backup format.");
+      }
+
+      // 4. Isulat ang bawat na-parse na data sa local memory database (SharedPreferences)
+      await p.setString(
+          'app_lang_locale', parsedData['app_lang_locale'] ?? 'en');
+      if (parsedData.containsKey('user_pincode'))
+        await p.setString('user_pincode', parsedData['user_pincode']);
+      if (parsedData.containsKey('security_answer'))
+        await p.setString('security_answer', parsedData['security_answer']);
+      await p.setString('app_wallets', parsedData['app_wallets']);
+      await p.setString('active_wallet_id', parsedData['active_wallet_id']);
+
+      // I-restore ang bawat nakitang expense logs ng mga wallet
+      parsedData.forEach((key, value) async {
+        if (key.startsWith('expenses')) {
+          await p.setString(key, value.toString());
+        }
+      });
+
+      // 5. Success Banner at Auto-reload ng Dashboard state
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_currentLocale == 'tl'
+                ? 'Matagumpay na nai-restore ang data! Magre-refresh ang app...'
+                : 'Backup successfully restored! App will reload...'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          loadData(); // Awtomatikong mag-re-refresh ang buong dashboard UI
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_currentLocale == 'tl'
+                ? 'Maling format ng backup file: $e'
+                : 'Invalid backup data format: $e'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _showEditWalletBudgetDialog(
       AppWallet wallet, StateSetter setModalState) {
     final nameCtrl = TextEditingController(text: wallet.name);
 
-    // 🔥 TAMA: Maghahanap muna ng katugmang ISO code base sa kasalukuyang simbolo ng wallet
-    // para ito ang maging unique selection controller sa loob ng dialogue box.
     final initialCurrencyDetails = globalCurrencies.firstWhere(
       (c) => c["symbol"] == wallet.currency,
       orElse: () =>
@@ -1967,7 +2480,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          // Hinahanap ang buong detalye gamit ang unique 'code' sa halip na 'symbol'
           final currentCurrencyDetails = globalCurrencies.firstWhere(
             (c) => c["code"] == selectedWalletCurrencyCode,
             orElse: () => {
@@ -2001,10 +2513,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                               : 'New Wallet Name')),
                 ),
                 const SizedBox(height: 12),
-                // SEARCH PICKER BUTTON ROW
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  // ✂️ TINANGGAL ANG LINYA NG LEADING ICON DITO PARA MAWALA ANG MUNDO
                   title: Text(
                     _currentLocale == 'tl'
                         ? 'Pumili ng Pera (Currency)'
@@ -2041,23 +2551,44 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               TextButton(
                 onPressed: () {
                   if (nameCtrl.text.trim().isNotEmpty) {
-                    // Kunin ang katumbas na simbolo bago i-save sa wallet data model
+                    String oldName = wallet.name;
+                    String newName = nameCtrl.text.trim();
                     String finalSymbol = currentCurrencyDetails["symbol"]!;
 
                     setState(() {
-                      wallet.name = nameCtrl.text.trim();
-                      wallet.currency =
-                          finalSymbol; // 🚀 LIGTAS: Simbolo pa rin ang naisave sa database para sa application calculations
+                      wallet.name = newName;
+                      wallet.currency = finalSymbol;
 
-                      // Kung ang ine-edit ay ang kasalukuyang aktibong wallet, i-sync din ang global currency filter
                       if (wallet.id == activeWalletId) {
                         _currentCurrency = finalSymbol;
                       }
                       saveData();
                     });
-                    setModalState(
-                        () {}); // I-refresh ang Wallet Manager layout list
+
+                    setModalState(() {});
                     Navigator.pop(context);
+
+                    // 🔥 IDINAGDAG NA SUCCESS PROMPT MESSAGES
+                    if (mounted) {
+                      String walletEditSuccessMsg = _currentLocale == 'tl'
+                          ? 'Matagumpay na na-update ang wallet patungong "$newName"!'
+                          : (_currentLocale == 'id'
+                              ? 'Dompet berhasil diperbarui menjadi "$newName"!'
+                              : 'Wallet successfully updated to "$newName"!');
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            walletEditSuccessMsg,
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                          backgroundColor: const Color(
+                              0xFFFFD700), // Gold background matching standard update action
+                          behavior: SnackBarBehavior.floating,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   }
                 },
                 child: Text(_getTxt('btn_save'),
@@ -2137,6 +2668,85 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     );
   }
 
+  // 🔥 BAGONG IMPLEMENTASYON: DIALOG PARA MAG-RESET NG ISANG WALLET LANG
+  void _showResetSingleWalletConfirmDialog(
+      AppWallet wallet, StateSetter setModalState) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _currentLocale == 'tl'
+              ? 'I-reset ang Wallet?'
+              : (_currentLocale == 'id'
+                  ? 'Atur Ulang Dompet?'
+                  : 'Reset Wallet Expenses?'),
+          style: const TextStyle(
+              color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          _currentLocale == 'tl'
+              ? 'Sigurado ka ba? Buburahin nito ang LAHAT ng kasaysayan ng gastos sa wallet na "${wallet.name}". Mananatili ang wallet ngunit babalik sa 0 ang kabuuang nagastos.'
+              : (_currentLocale == 'id'
+                  ? 'Apakah Anda yakin? Ini akan menghapus SEMUA riwayat pengeluaran di dompet "${wallet.name}". Dompet akan tetap ada tetapi total pengeluaran kembali ke 0.'
+                  : 'Are you sure? This will delete ALL expense history inside the wallet "${wallet.name}". The wallet will remain but total expenses will return to 0.'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_getTxt('btn_cancel'),
+                style: const TextStyle(color: Colors.white30)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final p = await SharedPreferences.getInstance();
+
+              // 1. Buburahin ang mga gastos ng partikular na wallet sa database
+              await p.remove('expenses${wallet.id}');
+
+              // 2. Kung ito ang kasalukuyang aktibong wallet, linisin din ang active screen list state
+              if (wallet.id == activeWalletId) {
+                setState(() {
+                  all.clear();
+                  selectedIndex = null;
+                });
+              }
+
+              // 3. I-refresh ang layout
+              setModalState(() {});
+              await loadData();
+
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _currentLocale == 'tl'
+                          ? 'Matagumpay na na-reset ang wallet na "${wallet.name}"!'
+                          : 'Wallet "${wallet.name}" successfully reset!',
+                    ),
+                    backgroundColor: Colors.orangeAccent,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: Text(
+              _currentLocale == 'tl'
+                  ? 'I-RESET'
+                  : (_currentLocale == 'id' ? 'ATUR ULANG' : 'RESET'),
+              style: const TextStyle(
+                  color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  // 🔥 IBALIK ANG NAWALANG METHOD NG PAG-DELETE NG PITAKA
+  // 🔥 INAYOS NA METHOD NG PAG-DELETE NG PITAKA NA MAY SUCCESS PROMPT
   void _showDeleteWalletConfirmDialog(
       AppWallet wallet, StateSetter setModalState) {
     if (wallet.id == "default") {
@@ -2165,10 +2775,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           ),
           TextButton(
             onPressed: () async {
+              // 1. I-save muna ang pangalan ng wallet para sa notification bago burahin
+              String deletedWalletName = wallet.name;
+
               final p = await SharedPreferences.getInstance();
               await p.remove('expenses${wallet.id}');
 
-              // KUKUHA NG ANGKOP NA CURRENCY PARA SA FALLBACK WALLET BASE SA KASALUKUYANG WIKA
               String resetCurrency = "₱";
               if (_currentLocale == 'id') {
                 resetCurrency = "Rp";
@@ -2181,7 +2793,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 if (activeWalletId == wallet.id) {
                   if (wallets.isNotEmpty) {
                     activeWalletId = wallets.first.id;
-                    // IA-ALIGN ANG GLOBAL CURRENCY SA NALIPATANG UUNANG WALLET entry
                     _currentCurrency = wallets.first.currency;
                   } else {
                     wallets = [
@@ -2192,7 +2803,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                           currency: resetCurrency)
                     ];
                     activeWalletId = "default";
-                    // IA-ALIGN ANG GLOBAL CURRENCY SA RESET VALUE NG FALLBACK WALLET
                     _currentCurrency = resetCurrency;
                   }
                 }
@@ -2202,8 +2812,29 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               await p.setString('active_wallet_id', activeWalletId);
               setModalState(() {});
               loadData();
+
               if (mounted) {
                 Navigator.pop(context);
+
+                // 🔥 IDINAGDAG NA SUCCESS PROMPT MESSAGES KAPAG NABURA ANG WALLET
+                String walletDeleteSuccessMsg = _currentLocale == 'tl'
+                    ? 'Matagumpay na nabura ang wallet na "$deletedWalletName"!'
+                    : (_currentLocale == 'id'
+                        ? 'Dompet "$deletedWalletName" berhasil dihapus!'
+                        : 'Wallet "$deletedWalletName" successfully deleted!');
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      walletDeleteSuccessMsg,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: Colors
+                        .redAccent, // Red background para sa delete action
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               }
             },
             child: Text(_getTxt('btn_delete'),
@@ -2271,7 +2902,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                               margin: const EdgeInsets.symmetric(vertical: 2),
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 4),
+                                    horizontal: 12, vertical: 4),
                                 leading: Icon(Icons.wallet,
                                     color: isSelected
                                         ? const Color(0xFFFFD700)
@@ -2279,95 +2910,35 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                 title: Row(
                                   children: [
                                     Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            w.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                                color: isSelected
-                                                    ? const Color(0xFFFFD700)
-                                                    : _appFontColor,
-                                                fontWeight: isSelected
-                                                    ? FontWeight.bold
-                                                    : FontWeight.normal),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          //  TAMA (Bagong Code):
-                                          Text(
-                                            'Budget: ${w.currency}${fmt(w.budget)}',
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white54),
-                                          ),
-                                        ],
+                                      child: Text(
+                                        w.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            color: isSelected
+                                                ? const Color(0xFFFFD700)
+                                                : _appFontColor,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal),
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.add,
-                                              color: Color(0xFFFFD700),
-                                              size: 18),
-                                          tooltip: _getTxt('add_fund_tooltip'),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          visualDensity: VisualDensity.compact,
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            _showAddAmountToWalletDialog(w);
-                                          },
-                                        ),
-                                        const SizedBox(width: 4),
-                                        IconButton(
-                                          icon: const Icon(Icons.edit,
-                                              color: Colors.white38, size: 18),
-                                          tooltip: _currentLocale == 'tl'
-                                              ? 'I-edit ang Pangalan'
-                                              : (_currentLocale == 'id'
-                                                  ? 'Ubah Nama'
-                                                  : 'Edit Name'),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          visualDensity: VisualDensity.compact,
-                                          onPressed: () =>
-                                              _showEditWalletBudgetDialog(
-                                                  w, setModalState),
-                                        ),
-                                        if (w.id != "default") ...[
-                                          const SizedBox(width: 4),
-                                          IconButton(
-                                            icon: const Icon(
-                                                Icons.delete_outline,
-                                                color: Colors.redAccent,
-                                                size: 18),
-                                            tooltip:
-                                                _getTxt('del_wallet_tooltip'),
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            onPressed: () =>
-                                                _showDeleteWalletConfirmDialog(
-                                                    w, setModalState),
-                                          ),
-                                        ],
-                                        if (isSelected) ...[
-                                          const SizedBox(width: 4),
-                                          const Icon(Icons.check_circle,
-                                              color: Color(0xFF00E676),
-                                              size: 18),
-                                        ],
-                                      ],
-                                    ),
+                                    if (isSelected) ...[
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.check_circle,
+                                          color: Color(0xFF00E676), size: 16),
+                                    ],
                                   ],
                                 ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 2.0),
+                                  child: Text(
+                                    'Budget: ${w.currency}${fmt(w.budget)}',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.white54),
+                                  ),
+                                ),
+                                // 🚀 TAMA AT GUMAGANA: Dito nakalagay ang pag-select ng wallet kapag pinindot ang card o tile mismo
                                 onTap: () {
                                   setModalState(() {
                                     activeWalletId = w.id;
@@ -2381,6 +2952,87 @@ class HomeScreenState extends State with WidgetsBindingObserver {
 
                                   _switchWallet(w.id);
                                 },
+                                trailing: PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert,
+                                      color: Colors.white54),
+                                  color: const Color(0xFF252525),
+                                  onSelected: (String action) {
+                                    if (action == 'add') {
+                                      Navigator.pop(context);
+                                      _showAddAmountToWalletDialog(w);
+                                    } else if (action == 'edit') {
+                                      _showEditWalletBudgetDialog(
+                                          w, setModalState);
+                                    } else if (action == 'reset') {
+                                      _showResetSingleWalletConfirmDialog(
+                                          w, setModalState);
+                                    } else if (action == 'delete') {
+                                      _showDeleteWalletConfirmDialog(
+                                          w, setModalState);
+                                    }
+                                  },
+                                  itemBuilder: (BuildContext context) => [
+                                    PopupMenuItem<String>(
+                                      value: 'add',
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.add,
+                                              color: Color(0xFFFFD700),
+                                              size: 18),
+                                          const SizedBox(width: 10),
+                                          Text(_getTxt('add_fund_tooltip'),
+                                              style: const TextStyle(
+                                                  fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem<String>(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.edit,
+                                              color: Colors.white70, size: 18),
+                                          const SizedBox(width: 10),
+                                          Text(_getTxt('edit_wallet_tooltip'),
+                                              style: const TextStyle(
+                                                  fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem<String>(
+                                      value: 'reset',
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.refresh_rounded,
+                                              color: Colors.orangeAccent,
+                                              size: 18),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                              _currentLocale == 'tl'
+                                                  ? 'I-reset ang mga Gastos'
+                                                  : 'Reset Wallet History',
+                                              style: const TextStyle(
+                                                  fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                    if (w.id != "default")
+                                      PopupMenuItem<String>(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.delete_outline,
+                                                color: Colors.redAccent,
+                                                size: 18),
+                                            const SizedBox(width: 10),
+                                            Text(_getTxt('del_wallet_tooltip'),
+                                                style: const TextStyle(
+                                                    fontSize: 13)),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -2792,6 +3444,24 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     all.add(newExpense);
                     saveData();
                   });
+
+// 🔥 IDINAGDAG NA BANNER PARA SA PAG-ADD
+                  if (mounted) {
+                    String addSuccessMsg = _currentLocale == 'tl'
+                        ? 'Matagumpay na naidagdag ang gastos!'
+                        : (_currentLocale == 'id'
+                            ? 'Pengeluaran berhasil ditambahkan!'
+                            : 'Expense successfully added!');
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(addSuccessMsg),
+                        backgroundColor: const Color(
+                            0xFF00E676), // Green color para sa success
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                   Navigator.pop(context);
                   if (natitiraPagkatapos <= 0) {
                     Future.delayed(const Duration(milliseconds: 150), () {
@@ -2919,6 +3589,28 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     item.date = napilingPetsa;
                     saveData();
                   });
+
+// 🔥 IDINAGDAG NA BANNER PARA SA PAG-EDIT
+                  if (mounted) {
+                    String editSuccessMsg = _currentLocale == 'tl'
+                        ? 'Matagumpay na na-update ang gastos!'
+                        : (_currentLocale == 'id'
+                            ? 'Catatan pengeluaran berhasil diperbarui!'
+                            : 'Expense successfully updated!');
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          editSuccessMsg,
+                          style: const TextStyle(
+                              color: Colors
+                                  .black), // 🔥 DITO ILALAGAY ANG KULAY NG TEXT
+                        ),
+                        backgroundColor: const Color(0xFFFFD700),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                   Navigator.pop(context);
                   if (natitiraPagkatapos <= 0) {
                     Future.delayed(const Duration(milliseconds: 150), () {
@@ -3120,7 +3812,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       bool highlightCard = false}) {
     return Container(
       width: isFullWidth ? double.infinity : null,
-      padding: const EdgeInsets.all(16),
+      // 🔥 Mas pino ang padding kapag compact mode (10 kumpara sa default na 16)
+      padding: EdgeInsets.all(_isCompactMode ? 10 : 16),
       decoration: BoxDecoration(
         color: _boxBgColor,
         borderRadius: BorderRadius.circular(16),
@@ -3134,17 +3827,31 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             children: [
               Text(title,
                   style: TextStyle(
-                      fontSize: highlightCard ? 13 : 11,
+                      // 🔥 Mas maliit na upper label size kapag compact mode
+                      fontSize: highlightCard
+                          ? (_isCompactMode ? 11 : 13)
+                          : (_isCompactMode ? 9 : 11),
                       color: _appFontColor.withValues(alpha: 0.5),
                       fontWeight: FontWeight.w600)),
-              Icon(icon, color: color, size: highlightCard ? 19 : 16),
+              // 🔥 Mas maliit na icon size kapag compact mode
+              Icon(icon,
+                  color: color,
+                  size: highlightCard
+                      ? (_isCompactMode ? 16 : 19)
+                      : (_isCompactMode ? 13 : 16)),
             ],
           ),
-          const SizedBox(height: 8),
+          // 🔥 Binawasan ang patlang mula 8 patungong 4 kapag compact mode
+          SizedBox(height: _isCompactMode ? 4 : 8),
           Text(value,
               textAlign: TextAlign.start,
               style: TextStyle(
-                  fontSize: highlightCard ? 26 : (isFullWidth ? 22 : 18),
+                  // 🔥 Matalinong pagpili ng laki ng halaga ng pera para hindi mag-overflow
+                  fontSize: highlightCard
+                      ? (_isCompactMode ? 20 : 26)
+                      : (isFullWidth
+                          ? (_isCompactMode ? 18 : 22)
+                          : (_isCompactMode ? 15 : 18)),
                   fontWeight: FontWeight.bold,
                   color: color)),
         ],
@@ -3158,14 +3865,20 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         : "${DateFormat('MM/dd').format(_selectedDateRange!.start)} - ${DateFormat('MM/dd').format(_selectedDateRange!.end)}";
     final bool canInteract = !(_isTrialExpired && !_isPremiumUser);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      // 🔥 Mula 12, ginawang 4 ang bottom padding kapag compact mode
+      padding: EdgeInsets.only(bottom: _isCompactMode ? 4.0 : 12.0),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         child: Row(
           children: [
             ChoiceChip(
-              label: Text(_getTxt('filter_all')),
+              // 🔥 Ginawang mas compact ang padding sa loob ng chip
+              visualDensity: _isCompactMode
+                  ? VisualDensity.compact
+                  : VisualDensity.standard,
+              label: Text(_getTxt('filter_all'),
+                  style: TextStyle(fontSize: _isCompactMode ? 11 : 13)),
               selected: _activeDateFilter == "all",
               selectedColor: const Color(0xFFFFD700),
               labelStyle: TextStyle(
@@ -3183,9 +3896,13 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     }
                   : null,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             ChoiceChip(
-              label: Text(_getTxt('filter_today')),
+              visualDensity: _isCompactMode
+                  ? VisualDensity.compact
+                  : VisualDensity.standard,
+              label: Text(_getTxt('filter_today'),
+                  style: TextStyle(fontSize: _isCompactMode ? 11 : 13)),
               selected: _activeDateFilter == "today",
               selectedColor: const Color(0xFFFFD700),
               labelStyle: TextStyle(
@@ -3203,14 +3920,18 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     }
                   : null,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             InputChip(
+              visualDensity: _isCompactMode
+                  ? VisualDensity.compact
+                  : VisualDensity.standard,
               avatar: Icon(Icons.calendar_month,
-                  size: 16,
+                  size: _isCompactMode ? 14 : 16,
                   color: _activeDateFilter == "custom"
                       ? Colors.black
                       : const Color(0xFFFFD700)),
-              label: Text(customBtnLabel),
+              label: Text(customBtnLabel,
+                  style: TextStyle(fontSize: _isCompactMode ? 11 : 13)),
               selected: _activeDateFilter == "custom",
               selectedColor: const Color(0xFFFFD700),
               labelStyle: TextStyle(
@@ -3311,6 +4032,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         count: list.length,
       ));
     });
+
+    // 🔥 INILAGAY DITO ANG MATALINONG SORTING LOGIC PARA SA GRAPH AT LEGENDS (Highest to Lowest)
+    chartData.sort((a, b) => b.total.compareTo(a.total));
+
     double natirangBudget = budget - totalGastos;
     String activeWalletName = "Main Wallet";
     for (var w in wallets) {
@@ -3319,9 +4044,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         break;
       }
     }
+
     List finalFilteredExpenses = dateFilteredExpenses.where((item) {
       return item.title.toLowerCase().contains(searchQuery.toLowerCase());
     }).toList();
+    finalFilteredExpenses.sort((a, b) => b.date.compareTo(a.date));
     final bool trialExpiredWithNoPremium = _isTrialExpired && !_isPremiumUser;
     return Scaffold(
       backgroundColor: _appBgColor,
@@ -3402,9 +4129,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             color: const Color(0xFF1E1E1E),
             onSelected: (String value) {
               if (value == 'csv') {
-                _exportWalletToCSV();
+                // 🔥 IPINASA ANG VARIABLES SA LOOB NG PARENTHESES
+                _exportWalletToCSV(finalFilteredExpenses);
               } else if (value == 'pdf') {
-                _exportWalletToPDF();
+                // 🔥 IPINASA ANG VARIABLES SA LOOB NG PARENTHESES
+                _exportWalletToPDF(finalFilteredExpenses);
               }
             },
 
@@ -4037,7 +4766,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                 ),
                                 const Divider(color: Colors.white10),
-// SECTION 3: COMPACT MODE SWITCH
+                                // SECTION 3: COMPACT MODE SWITCH
                                 SwitchListTile(
                                   contentPadding: EdgeInsets.zero,
                                   secondary: const SizedBox(
@@ -4067,13 +4796,129 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                   value: _isCompactMode,
                                   activeColor: const Color(0xFFFFD700),
-                                  onChanged: (bool value) {
-                                    setState(() {
-                                      _isCompactMode = value;
-                                    });
-                                    setDialogState(() {});
+                                  onChanged: (bool value) async {
+                                    // 🛠️ MGA TEXT AT MENSAHE PARA SA DALAWAWANG KONDISYON (Base sa Wika)
+                                    String dialogTitle = "";
+                                    String dialogContent = "";
+
+                                    if (value) {
+                                      // Mensahe kapag binubuksan (Enabling)
+                                      dialogTitle = _currentLocale == 'tl'
+                                          ? 'I-on ang Compact Mode?'
+                                          : (_currentLocale == 'id'
+                                              ? 'Aktifkan Mode Ringkas?'
+                                              : 'Enable Compact Mode?');
+                                      dialogContent = _currentLocale == 'tl'
+                                          ? 'Liliit ang view ng iyong main screen para sa mas masikip na listahan. Nais mo bang ituloy?'
+                                          : (_currentLocale == 'id'
+                                              ? 'Tampilan layar utama akan diperkecil untuk daftar yang lebih ringkas. Lanjutkan?'
+                                              : 'The main screen layout will shrink for a tighter list view. Do you want to proceed?');
+                                    } else {
+                                      // 🔥 BAGONG MENSAHE: Kapag pinapatay (Disabling)
+                                      dialogTitle = _currentLocale == 'tl'
+                                          ? 'I-off ang Compact Mode?'
+                                          : (_currentLocale == 'id'
+                                              ? 'Matikan Mode Ringkas?'
+                                              : 'Disable Compact Mode?');
+                                      dialogContent = _currentLocale == 'tl'
+                                          ? 'Babalik sa normal at mas malaking sukat ang layout ng iyong main screen. Nais mo bang ituloy?'
+                                          : (_currentLocale == 'id'
+                                              ? 'Tampilan layar utama akan kembali ke ukuran normal yang lebih besar. Lanjutkan?'
+                                              : 'The main screen layout will return to the normal, larger size. Do you want to proceed?');
+                                    }
+
+                                    // 2. PROMPT BOX BAGO MAG-APPLY (Para sa ON at OFF)
+                                    bool? shouldApply = await showDialog<bool>(
+                                      context: context,
+                                      builder: (BuildContext context) =>
+                                          AlertDialog(
+                                        backgroundColor:
+                                            const Color(0xFF1E1E1E),
+                                        title: Text(
+                                          dialogTitle,
+                                          style: const TextStyle(
+                                              color: Color(0xFFFFD700),
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        content: Text(
+                                          dialogContent,
+                                          style: const TextStyle(
+                                              color: Colors.white70),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(
+                                                context,
+                                                false), // Kanselahin ang pagbabago
+                                            child: Text(
+                                              _getTxt('btn_cancel'),
+                                              style: const TextStyle(
+                                                  color: Colors.white30),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(
+                                                context,
+                                                true), // Ituloy ang pagbabago
+                                            child: Text(
+                                              _currentLocale == 'tl'
+                                                  ? 'ITULOY'
+                                                  : (_currentLocale == 'id'
+                                                      ? 'LANJUTKAN'
+                                                      : 'PROCEED'),
+                                              style: const TextStyle(
+                                                  color: Color(0xFFFFD700),
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    // 3. I-apply lamang ang pagbabago kung pinindot ang 'ITULOY / PROCEED'
+                                    if (shouldApply == true) {
+                                      setState(() {
+                                        _isCompactMode =
+                                            value; // Kung true magiging true, kung false magiging false
+                                      });
+                                      setDialogState(() {});
+                                    }
                                   },
                                 ),
+
+                                const Divider(color: Colors.white10),
+// SECTION 4: RESET APP DATA
+                                ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const SizedBox(
+                                    width: 24,
+                                    child: Icon(Icons.cloud_sync_outlined,
+                                        color: Color(0xFFFFD700)),
+                                  ),
+                                  title: Text(
+                                    _currentLocale == 'tl'
+                                        ? 'I-backup ang Iyong Data'
+                                        : (_currentLocale == 'id'
+                                            ? 'Cadangkan Data Anda'
+                                            : 'Backup Your Data'),
+                                    style: const TextStyle(
+                                        color: Color(0xFFFFD700),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
+                                  ),
+                                  subtitle: Text(
+                                      _currentLocale == 'tl'
+                                          ? 'I-backup o i-restore ang buong app data'
+                                          : (_currentLocale == 'id'
+                                              ? 'Cadangkan atau pulihkan data aplikasi'
+                                              : 'Backup or restore full application data'),
+                                      style: const TextStyle(
+                                          fontSize: 10, color: Colors.white38)),
+                                  onTap: () {
+                                    _showBackupAndRestoreOptionsDialog(); // Buksan ang sub-menu box
+                                  },
+                                ),
+                                const Divider(color: Colors.white10),
                                 const Divider(color: Colors.white10),
 // SECTION 4: RESET APP DATA
                                 ListTile(
@@ -4092,7 +4937,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                       style: const TextStyle(
                                           fontSize: 10, color: Colors.white38)),
                                   onTap: () {
-                                    Navigator.pop(context);
                                     showDialog(
                                       context: context,
                                       builder: (BuildContext context) =>
@@ -4190,7 +5034,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                         highlightCard: false,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    // 🔥 Ginawang 8 ang agwat ng dalawang card (mula 12) kapag compact mode
+                    SizedBox(width: _isCompactMode ? 8 : 12),
                     Expanded(
                       child: _buildSummaryCard(
                         title: _getTxt('total_expenses'),
@@ -4206,7 +5051,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                // 🔥 Ginawang 8 ang agwat sa ilalim ng dalawang card (mula 12) kapag compact mode
+                SizedBox(height: _isCompactMode ? 8 : 12),
                 _buildSummaryCard(
                   title: _getTxt('remaining_budget'),
                   value: peso(natirangBudget),
@@ -4330,20 +5176,18 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: finalFilteredExpenses.length,
                     itemBuilder: (context, index) {
-                      final item = finalFilteredExpenses[
-                          finalFilteredExpenses.length - 1 - index];
+                      // 🚀 TAMA: Diretsong index na dahil naka-sort na ang listahan sa itaas
+                      final item = finalFilteredExpenses[index];
                       return Card(
                         color: _boxBgColor,
-                        // DYNAMIC MARGIN: Mas maliit na gap kapag compact mode
                         margin: EdgeInsets.symmetric(
                             vertical: _isCompactMode ? 2 : 6),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                         child: ListTile(
-                          // DYNAMIC PADDING: Mas manipis na vertical gap kapag compact mode
                           contentPadding: _isCompactMode
                               ? const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 0)
+                                  horizontal: 10, vertical: 4)
                               : const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 4),
                           leading: CircleAvatar(
@@ -4353,12 +5197,30 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                 color: Colors.black87,
                                 size: _isCompactMode ? 16 : 20),
                           ),
-                          title: Text(item.title,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: _appFontColor,
-                                  fontSize: _isCompactMode ? 13 : 14)),
-                          // DYNAMIC SUBTITLE: Tinatanggihan ang petsa kapag compact mode para makatipid sa vertical space
+                          title: _isCompactMode
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(item.title,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: _appFontColor,
+                                            fontSize: 13)),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                        DateFormat('MMM dd, yyyy - hh:mm a')
+                                            .format(item.date),
+                                        style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 10)),
+                                  ],
+                                )
+                              : Text(item.title,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: _appFontColor,
+                                      fontSize: 14)),
                           subtitle: _isCompactMode
                               ? null
                               : Text(
@@ -4488,11 +5350,40 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                               ),
                                               TextButton(
                                                 onPressed: () {
+                                                  String deletedItemTitle =
+                                                      item.title;
                                                   setState(() {
                                                     all.remove(item);
                                                     saveData();
                                                   });
                                                   Navigator.pop(context);
+                                                  if (mounted) {
+                                                    String deleteSuccessMsg =
+                                                        _currentLocale == 'tl'
+                                                            ? 'Matagumpay na nabura ang "$deletedItemTitle"!'
+                                                            : (_currentLocale ==
+                                                                    'id'
+                                                                ? 'Berhasil menghapus "$deletedItemTitle"!'
+                                                                : '"$deletedItemTitle" successfully deleted!');
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          deleteSuccessMsg,
+                                                          style:
+                                                              const TextStyle(
+                                                                  color: Colors
+                                                                      .white),
+                                                        ),
+                                                        backgroundColor:
+                                                            Colors.redAccent,
+                                                        behavior:
+                                                            SnackBarBehavior
+                                                                .floating,
+                                                      ),
+                                                    );
+                                                  }
                                                 },
                                                 child: Text(
                                                   _currentLocale == 'tl'
@@ -4523,26 +5414,37 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor:
-            trialExpiredWithNoPremium ? Colors.grey : const Color(0xFFFFD700),
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.black, size: 30),
-        onPressed: () {
-          if (trialExpiredWithNoPremium) {
-            _showUpgradeOptionsBottomSheet();
-          } else {
-            _checkBudgetBeforeAdding();
-          }
-        },
+      floatingActionButton: SizedBox(
+        width:
+            38, // 🔥 MULA SA DEFAULT NA 56, GINAWA NATING 48 PARA MALIITAN NANG KAUNTI
+        height: 38, // 🔥 PAREHAS NA 48 PARA PANATILIHING PERFECT CIRCLE
+        child: FloatingActionButton(
+          backgroundColor:
+              trialExpiredWithNoPremium ? Colors.grey : const Color(0xFFFFD700),
+          shape: const CircleBorder(),
+          child: const Icon(
+            Icons.add,
+            color: Colors.black,
+            size:
+                24, // 🔥 BINABAAN MULA 30 PATUNGONG 24 PARA BUMAGAY SA MAS MALIIT NA BILOG
+          ),
+          onPressed: () {
+            if (trialExpiredWithNoPremium) {
+              _showUpgradeOptionsBottomSheet();
+            } else {
+              _checkBudgetBeforeAdding();
+            }
+          },
+        ),
       ),
     );
   }
 
   Widget runWalletCategoryLegends(List chartData) {
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      // 🔥 Matalinong spacing base sa kung naka-compact mode ang app
+      spacing: _isCompactMode ? 6 : 10,
+      runSpacing: _isCompactMode ? 6 : 10,
       alignment: WrapAlignment.center,
       children: List.generate(chartData.length, (index) {
         final item = chartData[index];
@@ -4555,7 +5457,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            // 🔥 Ginawang mas maliit ang padding kapag compact mode (horizontal 8, vertical 4)
+            padding: EdgeInsets.symmetric(
+                horizontal: _isCompactMode ? 8 : 12,
+                vertical: _isCompactMode ? 4 : 6),
             decoration: BoxDecoration(
               color:
                   isSelected ? item.color.withValues(alpha: 0.25) : _boxBgColor,
@@ -4567,18 +5472,22 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             ),
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 6,
+              spacing: _isCompactMode
+                  ? 4
+                  : 6, // 🔥 Mas maliit na agwat sa pagitan ng bilog at text
               children: [
                 Container(
-                  width: 10,
-                  height: 10,
+                  // 🔥 Pinalitang sukat mula 10 patungong 8 para sa kulay na bilog
+                  width: _isCompactMode ? 8 : 10,
+                  height: _isCompactMode ? 8 : 10,
                   decoration:
                       BoxDecoration(color: item.color, shape: BoxShape.circle),
                 ),
                 Text(
-                  item.title,
+                  "${item.title}: ${peso(item.total)}",
                   style: TextStyle(
-                    fontSize: 12,
+                    // 🔥 Ginawang fontSize 10 (mula 12) para mas pino at compact tingnan
+                    fontSize: _isCompactMode ? 10 : 12,
                     fontWeight:
                         isSelected ? FontWeight.bold : FontWeight.normal,
                     color: isSelected
