@@ -49,6 +49,355 @@ class CommaFormatter extends TextInputFormatter {
   }
 }
 
+class AppTourScreen extends StatefulWidget {
+  const AppTourScreen({super.key});
+
+  @override
+  State<AppTourScreen> createState() => _AppTourScreenState();
+}
+
+class _AppTourScreenState extends State<AppTourScreen> {
+  final PageController _pageController = PageController();
+  int _currentTourPage = 0;
+  String _selectedLocale = ""; // "" kapag hindi pa pumipili ang user
+
+  // 🔥 MULTILINGGWAL TOUR TRANSLATION DATABASE ENGINE
+  // 🎯 NAITUGMA NA TOUR TRANSLATION DATABASE ENGINE (Tugma sa Dashboard Design)
+  final Map<String, List<Map<String, String>>> _localizedTourData = {
+    "en": [
+      {
+        "title": "WELCOME! 👋",
+        "desc":
+            "GASTOS KO is your personal companion for smart budgeting and daily fund monitoring.",
+        "icon": "📱"
+      },
+      {
+        "title": "MULTI-WALLET MANAGER 💼",
+        "desc":
+            "Tap the Gold Wallet icon (🪙/💼) at the top right to add new wallets, change national currencies, or manage your budgets easily.",
+        "icon": "💳"
+      },
+      {
+        "title": "KEYBOARD EMOJI ICONS 🍔",
+        "desc":
+            "Customize your entries! Choose any raw emoji icon (🍔, 🚗, 🛍️) directly from your keyboard via the floating circular (+) button.",
+        "icon": "✨"
+      },
+      {
+        "title": "EXPENSE TRENDS 📊",
+        "desc":
+            "Use the interactive Bar Charts and step buttons (➖/➕) or type directly inside the input box to decrease your target limit and compute simulated projected gains.",
+        "icon": "📊"
+      },
+      {
+        "title": "PRIVACY SHIELD MODE 🕶️",
+        "desc":
+            "Open the app safely in public! Toggle the 'Hide All Numbers' switch in settings to instantly mask balances into '••••'.",
+        "icon": "🔒"
+      }
+    ],
+    "tl": [
+      {
+        "title": "MALIGAYANG PAGDATING! 👋",
+        "desc":
+            "Ang GASTOS KO ay ang iyong personal na katuwang sa matalinong pagbabadyet at pag-monitor ng pondo araw-araw.",
+        "icon": "📱"
+      },
+      {
+        "title": "MULTI-WALLET MANAGER 💼",
+        "desc":
+            "I-tap ang kulay-gintong wallet icon (🪙/💼) sa kanang itaas para mag-add ng bagong wallet, magpalit ng pambansang currency, o magbago ng badyet.",
+        "icon": "💳"
+      },
+      {
+        "title": "KEYBOARD EMOJI ICONS 🍔",
+        "desc":
+            "Gawing kakaiba ang kategorya! Pumili ng kahit anong emoji icon (🍔, 🚗, 🛍️) direkta mula sa keyboard ng cellphone gamit ang bilog na (+) button.",
+        "icon": "✨"
+      },
+      {
+        "title": "GASTOS TRENDS 📊",
+        "desc":
+            "Gamitin ang interactive Bar Chart at mga pindutan (➖/➕) o direktang i-type sa loob ng kahon ang target limit upang makalkula ang maaari mong maipon o matipid.",
+        "icon": "📊"
+      },
+      {
+        "title": "PRIVACY SHIELD MODE 🕶️",
+        "desc":
+            "Ligtas na buksan ang app sa pampublikong lugar! I-on ang 'Ika-atake ng Privacy' sa settings upang agarang gawing '••••' ang mga numero.",
+        "icon": "🔒"
+      }
+    ],
+    "id": [
+      {
+        "title": "SELAMAT DATANG! 👋",
+        "desc":
+            "GASTOS KO adalah mitra pribadi Anda untuk penganggaran cerdas dan pemantauan dana harian.",
+        "icon": "📱"
+      },
+      {
+        "title": "PENGELOLA BANYAK DOMPET 💼",
+        "desc":
+            "Ketuk ikon dompet emas (🪙/💼) di kanan atas untuk menambah dompet baru, mengubah mata uang nasional, atau mengelola anggaran dengan mudah.",
+        "icon": "💳"
+      },
+      {
+        "title": "IKON EMOJI KEYBOARD 🍔",
+        "desc":
+            "Sesuaikan catatan Anda! Pilih ikon emoji apa saja (🍔, 🚗, 🛍️) langsung dari keyboard ponsel Anda melalui tombol lingkaran (+) terapung.",
+        "icon": "✨"
+      },
+      {
+        "title": "TREN PENGELUARAN 📊",
+        "desc":
+            "Gunakan Grafik Batang interaktif dan tombol langkah (➖/➕) atau ketik langsung di dalam kotak untuk menurunkan batas target Anda dan menghitung simulasi keuntungan.",
+        "icon": "📊"
+      },
+      {
+        "title": "MODE PERISAI PRIVASI 🕶️",
+        "desc":
+            "Buka aplikasi dengan aman di tempat umum! Aktifkan sakelar 'Sembunyikan Semua Angka' di pengaturan untuk langsung menyamarkan saldo menjadi '••••'.",
+        "icon": "🔒"
+      }
+    ]
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. KUNG WALA PANG NAPIPILING WIKA, IPAKITA ANG SELECTION SCREEN INTERFACE
+    if (_selectedLocale.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF121212),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.language_rounded,
+                    size: 70, color: Color(0xFFFFD700)),
+                const SizedBox(height: 24),
+                const Text(
+                  "CHOOSE APP LANGUAGE\nPUMILI NG WIKA NG APP\nPILIH BAHASA APLIKASI",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      height: 1.5),
+                ),
+                const SizedBox(height: 40),
+                _buildLanguageButton("🇺🇸 English", "en"),
+                const SizedBox(height: 12),
+                _buildLanguageButton("🇵🇭 Tagalog / Filipino", "tl"),
+                const SizedBox(height: 12),
+                _buildLanguageButton("🇮🇩 Bahasa Indonesia", "id"),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 2. KUNG MAY NAPILI NANG WIKA, DIRETSO NA ITO SA TRANSLATED SLIDES TOUR
+    final tourData = _localizedTourData[_selectedLocale]!;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              // Skip Button
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _finishTourAndGoRegister,
+                  child: Text(
+                    _selectedLocale == 'en'
+                        ? "SKIP"
+                        : (_selectedLocale == 'id' ? "LEWATI" : "LAKTAWAN"),
+                    style: const TextStyle(
+                        color: Colors.white38, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+
+              // Slidable Page Body
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: tourData.length,
+                  onPageChanged: (idx) {
+                    setState(() {
+                      _currentTourPage = idx;
+                    });
+                  },
+                  itemBuilder: (context, idx) {
+                    final item = tourData[idx];
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(item["icon"]!,
+                            style: const TextStyle(fontSize: 80)),
+                        const SizedBox(height: 32),
+                        Text(
+                          item["title"]!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFFD700),
+                              letterSpacing: 0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text(
+                            item["desc"]!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
+                                height: 1.4),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              // Bottom Progress Dots and Navigation Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Indicators Dots Loop
+                  Row(
+                    children: List.generate(tourData.length, (idx) {
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(right: 6),
+                        width: _currentTourPage == idx ? 18 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: _currentTourPage == idx
+                              ? const Color(0xFFFFD700)
+                              : Colors.white10,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  // Action Button
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_currentTourPage < tourData.length - 1) {
+                        _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut);
+                      } else {
+                        _finishTourAndGoRegister();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFD700),
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                    ),
+                    child: Text(
+                      _currentTourPage == tourData.length - 1
+                          ? (_selectedLocale == 'en'
+                              ? "START"
+                              : (_selectedLocale == 'id'
+                                  ? "MULAI"
+                                  : "MAGSIMULA"))
+                          : (_selectedLocale == 'en'
+                              ? "NEXT"
+                              : (_selectedLocale == 'id' ? "LANJUT" : "SUNOD")),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+// Helper widget builder para sa makikinis na mga pindutan ng wika
+  Widget _buildLanguageButton(String title, String localeCode) {
+    return ElevatedButton(
+      onPressed: () {
+        setState(() {
+          _selectedLocale = localeCode;
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1E1E1E),
+        foregroundColor: const Color(0xFFFFD700),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          // 🔥 NAITAMA: Ginamit ang 'side: BorderSide' sa halip na 'border: Border.all'
+          side: const BorderSide(color: Colors.white10, width: 1),
+        ),
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    );
+  }
+
+  void _finishTourAndGoRegister() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 1. 🔥 MAHALAGANG-MAHALAGA: I-save agad ang piniling wika ng user sa database disk file registry
+    await prefs.setBool('is_app_quick_tour_done', true);
+    await prefs.setString('app_lang_locale', _selectedLocale);
+
+    // 2. AUTOMATION ENGINE: Itugma ang paunang currency ng default wallet sa wika na pinili ng user
+    String initialCurrency = "\$"; // Default fallback
+    if (_selectedLocale == 'tl') {
+      initialCurrency = "₱"; // Philippine Peso para sa Tagalog
+    } else if (_selectedLocale == 'id') {
+      initialCurrency = "Rp"; // Indonesian Rupiah para sa Bahasa Indonesia
+    }
+
+    // 3. Gumawa ng fresh initialized wallet list gamit ang tamang localized symbol profile
+    List<AppWallet> initialWallets = [
+      AppWallet(
+        id: "default",
+        name: _selectedLocale == 'tl'
+            ? "Pangunahing Wallet"
+            : (_selectedLocale == 'id' ? "Dompet Utama" : "Main Wallet"),
+        budget: 0.0,
+        currency: initialCurrency,
+      )
+    ];
+
+    // 4. I-save agad ang setup sa shared preferences para sumunod ang main dashboard frame pagkagising ng screen matrix
+    await prefs.setString('app_wallets',
+        jsonEncode(initialWallets.map((w) => w.toJson()).toList()));
+    await prefs.setString('active_wallet_id', "default");
+    await prefs.setString('app_currency_symbol', initialCurrency);
+
+    if (!mounted) return;
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const RegistrationScreen()));
+  }
+}
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   @override
@@ -78,6 +427,14 @@ class _SplashState extends State<SplashScreen>
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
+
+    // 🔥 TIGNAN KUNG BAGONG INSTALL PARA SA QUICK TOUR
+    bool isTourDone = prefs.getBool('is_app_quick_tour_done') ?? false;
+    if (!isTourDone) {
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const AppTourScreen()));
+      return;
+    }
 
     String? installDateStr = prefs.getString('app_install_date');
     DateTime now = DateTime.now();
@@ -662,25 +1019,34 @@ class Expense {
   double amount;
   DateTime date;
   Color color;
-  Expense(
-      {required this.id,
-      required this.title,
-      required this.amount,
-      required this.date,
-      required this.color});
+  String iconEmoji; // 💰 Holds the raw emoji string from the keyboard
+
+  Expense({
+    required this.id,
+    required this.title,
+    required this.amount,
+    required this.date,
+    required this.color,
+    this.iconEmoji = "💰", // Default fallback emoji
+  });
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
         'amount': amount,
         'date': date.toIso8601String(),
-        'color': color.toARGB32()
+        'color': color.toARGB32(),
+        'iconEmoji': iconEmoji,
       };
+
   factory Expense.fromJson(Map<String, dynamic> j) => Expense(
-      id: j['id'],
-      title: j['title'],
-      amount: (j['amount'] as num).toDouble(),
-      date: DateTime.parse(j['date']),
-      color: Color(j['color']));
+        id: j['id'],
+        title: j['title'],
+        amount: (j['amount'] as num).toDouble(),
+        date: DateTime.parse(j['date']),
+        color: Color(j['color']),
+        iconEmoji: j['iconEmoji'] ?? "💰",
+      );
 }
 
 class AppWallet {
@@ -716,11 +1082,15 @@ class GroupedExpense {
   double total;
   Color color;
   int count;
-  GroupedExpense(
-      {required this.title,
-      required this.total,
-      required this.color,
-      required this.count});
+  String iconEmoji; // 🔥 Idinagdag para maipasa ang emoji sa chart legends
+
+  GroupedExpense({
+    required this.title,
+    required this.total,
+    required this.color,
+    required this.count,
+    this.iconEmoji = "💰", // Default fallback emoji
+  });
 }
 
 class PiePainter extends CustomPainter {
@@ -728,12 +1098,25 @@ class PiePainter extends CustomPainter {
   final double total;
   final int? selectedIndex;
   PiePainter({required this.data, required this.total, this.selectedIndex});
+
   @override
   void paint(Canvas canvas, Size size) {
-    if (total <= 0 || data.isEmpty) return;
-    double start = -math.pi / 2;
     final center = Offset(size.width / 2, size.height / 2);
     double radius = math.min(size.width, size.height) / 2;
+
+    // 🔥 BAGONG LOGIC: Kung walang entries, gumuhit ng magandang Empty Placeholder Circle
+    if (total <= 0 || data.isEmpty) {
+      final paintEmpty = Paint()
+        ..color = Colors.white.withValues(alpha: 0.08)
+        ..style = PaintingStyle.fill;
+      canvas.drawArc(Rect.fromCircle(center: center, radius: radius),
+          -math.pi / 2, 2 * math.pi, true, paintEmpty);
+      canvas.drawCircle(
+          center, radius * 0.55, Paint()..color = const Color(0xFF1E1E1E));
+      return;
+    }
+
+    double start = -math.pi / 2;
     for (int i = 0; i < data.length; i++) {
       var g = data[i];
       double sweep = (g.total / total) * 2 * math.pi;
@@ -759,8 +1142,7 @@ class PiePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant PiePainter oldDelegate) =>
-      oldDelegate.selectedIndex != selectedIndex || oldDelegate.data != data;
+  bool shouldRepaint(covariant PiePainter oldDelegate) => true;
 }
 
 class HomeScreen extends StatefulWidget {
@@ -776,6 +1158,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   bool _isPremiumUser = false;
   bool _isTrialExpired = false;
   bool _isCompactMode = false;
+  bool _isPrivacyHideMode = false;
+  bool _isInteractiveTourActive = false;
+  int _currentTourStep = 0;
   int _trialDaysLeft = 30;
   String _purchasedPlanTitle = "";
   String _currentCurrency = "₱";
@@ -784,11 +1169,21 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   double budget = 0;
   List all = [];
   String searchQuery = "";
+  String _activeSortFilter = "latest";
+  double _savingsGoalPercentage = 20.0;
+  String _selectedReportCategory = "";
+  Map<String, double> _customCategoryTargets = {};
   final TextEditingController _searchController = TextEditingController();
   int? selectedIndex;
   final NumberFormat commaFormat = NumberFormat('#,##0');
   String fmt(num n) => commaFormat.format(n.toInt());
-  String peso(num n) => '$_currentCurrency${fmt(n)}';
+  String peso(num n) {
+    if (_isPrivacyHideMode) {
+      return '$_currentCurrency••••'; // 🔥 Itatago ang numero kapag naka-on ang Privacy setting
+    }
+    return '$_currentCurrency${fmt(n)}';
+  }
+
   final List dynamicColors = [
     const Color(0xFF00E676),
     const Color(0xFF00BFA5),
@@ -924,6 +1319,1068 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     },
   ];
 
+  // 🔥 1. POP-UP PROMPT: Nagtatanong kung gustong mag-tour bago magsimula
+  // 🔥 1. POP-UP PROMPT: Nagtatanong kung gustong mag-tour bago magsimula
+  // 🔥 MULTILINGGWAL PROMPT DIALOG PARA SA DASHBOARD INTERACTIVE TOUR
+  void _showStartTourPromptDialog() {
+    String dialogTitle = "";
+    String dialogContent = "";
+    String btnCancelLabel = "";
+    String btnStartLabel = "";
+
+    // Sinasala ang mga teksto base sa aktibong wika ng app session
+    if (_currentLocale == 'en') {
+      dialogTitle = "🎯 Quick Dashboard Tour";
+      dialogContent =
+          "Would you like to take a quick tour of your main screen features to understand how each button works?";
+      btnCancelLabel = "CANCEL";
+      btnStartLabel = "LET'S START";
+    } else if (_currentLocale == 'id') {
+      dialogTitle = "🎯 Tur Dasbor Ringkas";
+      dialogContent =
+          "Apakah Anda ingin berkeliling cepat melihat fitur-fitur layar utama untuk mengetahui fungsi setiap tombol?";
+      btnCancelLabel = "BATAL";
+      btnStartLabel = "MULAI TUR";
+    } else {
+      // Default ay Tagalog ('tl')
+      dialogTitle = "🎯 Quick Dashboard Tour";
+      dialogContent =
+          "Gusto mo bang libutin natin nang mabilis ang mga feature ng iyong main screen para malaman ang gamit ng bawat button?";
+      btnCancelLabel = "BATAL";
+      btnStartLabel = "LET'S START";
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          dialogTitle,
+          style: const TextStyle(
+              color: Color(0xFFFFD700),
+              fontWeight: FontWeight.bold,
+              fontSize: 16),
+        ),
+        content: Text(dialogContent),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('is_main_dashboard_tour_done', true);
+            },
+            child: Text(
+              btnCancelLabel,
+              style: const TextStyle(
+                  color: Colors.white30, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _isInteractiveTourActive = true;
+                _currentTourStep =
+                    1; // Awtomatikong mag-a-activate ang Step 1 ng overlay box
+              });
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+                foregroundColor: Colors.black),
+            child: Text(
+              btnStartLabel,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔥 2. TOUR FINISHER: Sine-save sa memory na tapos na ang user
+  // 🔥 MULTILINGGWAL SNACKBAR NOTIFICATION PAGKATAPOS NG TOUR
+  void _finishDashboardInteractiveTour() async {
+    setState(() {
+      _isInteractiveTourActive = false;
+      _currentTourStep = 0;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_main_dashboard_tour_done', true);
+
+    if (mounted) {
+      String snackBarMsg = "";
+
+      // Sinasala ang mensahe depende sa piniling wika ng user
+      if (_currentLocale == 'en') {
+        snackBarMsg = "🎉 Awesome! You are now ready to use Gastos Ko!";
+      } else if (_currentLocale == 'id') {
+        snackBarMsg =
+            "🎉 Luar biasa! Anda sekarang siap menggunakan Gastos Ko!";
+      } else {
+        // Default ay Tagalog ('tl')
+        snackBarMsg = "🎉 Mahusay! Handa ka nang gamitin ang Gastos Ko!";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            snackBarMsg,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: const Color(0xFF00E676),
+          behavior: SnackBarBehavior
+              .floating, // Binigyan ng lumulutang na anyo para mas makinis tingnan
+        ),
+      );
+    }
+  }
+
+  // 🔥 3. OVERLAY BOX GENERATOR: Tagagawa ng lumulutang na helper description box
+  // 🔥 TAGAGAWA NG LUMULUTANG NA INTERACTIVE HELPER BOX SCREEN
+  Widget _buildTourOverlayOverlay() {
+    if (!_isInteractiveTourActive) return const SizedBox();
+
+    String stepTitle = "";
+    String stepDesc = "";
+    Alignment boxAlignment = Alignment.center;
+
+    // 🔥 PINALAWAK NA MULTILINGGWAL ENGINE (6 HAKBANG - KASAMA ANG BURGER MENU)
+    switch (_currentTourStep) {
+      case 1:
+        boxAlignment = Alignment.topLeft;
+        if (_currentLocale == 'en') {
+          stepTitle = "Main Menu (Burger Menu) ☰";
+          stepDesc =
+              "Tap the menu button at the top left to change languages, choose custom color themes, check privacy policies, or reset application data.";
+        } else if (_currentLocale == 'id') {
+          stepTitle = "Menu Utama (Menu Burger) ☰";
+          stepDesc =
+              "Ketuk tombol menu di kiri atas untuk mengubah bahasa, memilih tema warna khusus, melihat kebijakan privasi, atau mengatur ulang data aplikasi.";
+        } else {
+          // Default: Tagalog ('tl')
+          stepTitle = "Main Menu (Burger Menu) ☰";
+          stepDesc =
+              "I-tap ang menu button sa kaliwang itaas upang magpalit ng wika, pumili ng custom color themes, basahin ang privacy policy, o mag-reset ng app.";
+        }
+        break;
+
+      case 2:
+        boxAlignment = Alignment.topCenter;
+        if (_currentLocale == 'en') {
+          stepTitle = "Wallet Manager 💼";
+          stepDesc =
+              "Tap the wallet icon at the top right to add a new wallet, change national currencies (₱, Rp, \$), or update your budget.";
+        } else if (_currentLocale == 'id') {
+          stepTitle = "Pengelola Dompet 💼";
+          stepDesc =
+              "Ketuk ikon dompet di kanan atas untuk menambahkan dompet baru, mengubah mata uang (₱, Rp, \$), atau memperbarui anggaran.";
+        } else {
+          stepTitle = "Wallet Manager 💼";
+          stepDesc =
+              "I-tap ang wallet icon sa kanang itaas para mag-add ng bagong wallet, magpalit ng pambansang currency (₱, Rp, \$), o mag-bago ng budget.";
+        }
+        break;
+
+      case 3:
+        boxAlignment = Alignment.topRight;
+        if (_currentLocale == 'en') {
+          stepTitle = "Export Reports 📑";
+          stepDesc =
+              "Use the share button at the top to export and download your expense list into PDF or Excel-ready CSV reports.";
+        } else if (_currentLocale == 'id') {
+          stepTitle = "Ekspor Laporan 📑";
+          stepDesc =
+              "Gunakan tombol bagikan di atas untuk mengekspor dan mengunduh daftar pengeluaran Anda ke laporan PDF atau CSV siap-Excel.";
+        } else {
+          stepTitle = "Export Reports 📑";
+          stepDesc =
+              "Gamitin ang share button sa itaas upang i-export at i-download ang iyong listahan patungong PDF o Excel-ready CSV report.";
+        }
+        break;
+
+      case 4:
+        boxAlignment = Alignment.center;
+        if (_currentLocale == 'en') {
+          stepTitle = "Visual Trends & Goals 📊";
+          stepDesc =
+              "Here you can see the percentage Pie Chart, along with the Bar Report and Slider where you can shrink your target limit to save.";
+        } else if (_currentLocale == 'id') {
+          stepTitle = "Tren & Target Visual 📊";
+          stepDesc =
+              "Di sini terhampar Diagram Lingkaran persentase, serta Laporan Batang dan Slider di mana Anda dapat memperkecil batas target untuk menghemat.";
+        } else {
+          stepTitle = "Visual Trends & Goals 📊";
+          stepDesc =
+              "Dito nakalatag ang Pie Chart ng porsyento, pati ang Bar Report at Slider kung saan pwede mong paliitin ang target limit upang makatipid.";
+        }
+        break;
+
+      case 5:
+        boxAlignment = Alignment.bottomCenter;
+        if (_currentLocale == 'en') {
+          stepTitle = "History & Sorting 🔍";
+          stepDesc =
+              "Your transactions are listed here. You can use the gold-colored chips to sort them from highest, lowest, latest, or oldest.";
+        } else if (_currentLocale == 'id') {
+          stepTitle = "Riwayat & Pengurutan 🔍";
+          stepDesc =
+              "Daftar catatan Anda ada di sini. Anda dapat menggunakan chip berwarna emas untuk mengurutkannya dari yang tertinggi, terendah, terbaru, atau terlama.";
+        } else {
+          stepTitle = "History & Sorting 🔍";
+          stepDesc =
+              "Dito nakalista ang iyong mga entries. Pwede mong gamitin ang mga kulay-gintong chips upang i-sort ito mula sa pinakamataas o pinakababa.";
+        }
+        break;
+
+      case 6:
+        boxAlignment = Alignment.bottomRight;
+        if (_currentLocale == 'en') {
+          stepTitle = "Add Expense ➕";
+          stepDesc =
+              "Tap this floating circular button to log a new expense and select a custom emoji directly from your native keyboard.";
+        } else if (_currentLocale == 'id') {
+          stepTitle = "Tambah Pengeluaran ➕";
+          stepDesc =
+              "Ketuk tombol lingkaran melayang ini untuk mencatat pengeluaran baru dan memilih emoji khusus langsung dari keyboard bawaan Anda.";
+        } else {
+          stepTitle = "Magdagdag ng Gastos ➕";
+          stepDesc =
+              "I-tap ang lumulutang na bilog na button na ito para mag-encode ng bagong gastos at pumili ng custom emoji mula sa iyong native keyboard.";
+        }
+        break;
+
+      default:
+        return const SizedBox();
+    }
+
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () {},
+          child: Container(
+            color: Colors.black.withOpacity(0.75),
+          ),
+        ),
+        SafeArea(
+          child: Align(
+            alignment: boxAlignment,
+            child: Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
+              width: MediaQuery.of(context).size.width * 0.88,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFFD700), width: 1.5),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Colors.black54, blurRadius: 12, spreadRadius: 3)
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.stars,
+                          color: Color(0xFFFFD700), size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(stepTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Color(0xFFFFD700),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(stepDesc,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 12.5, height: 1.4)),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _currentLocale == 'en'
+                            ? "Step $_currentTourStep of 6"
+                            : (_currentLocale == 'id'
+                                ? "Langkah $_currentTourStep dari 6"
+                                : "Hakbang $_currentTourStep ng 6"),
+                        style: const TextStyle(
+                            color: Colors.white30,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (_currentTourStep < 6) {
+                            setState(() {
+                              _currentTourStep++;
+                            });
+                          } else {
+                            _finishDashboardInteractiveTour();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD700),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: Text(
+                          _currentTourStep == 6
+                              ? (_currentLocale == 'en'
+                                  ? "DONE"
+                                  : (_currentLocale == 'id'
+                                      ? "SELESAI"
+                                      : "TAPOS"))
+                              : (_currentLocale == 'en'
+                                  ? "NEXT"
+                                  : (_currentLocale == 'id'
+                                      ? "LANJUT"
+                                      : "SUNOD")),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInteractiveBarChartReport(List chartData) {
+    if (chartData.isEmpty) return const SizedBox();
+
+    if (_selectedReportCategory.isEmpty ||
+        !chartData.any((e) =>
+            e.title.toLowerCase().trim() ==
+            _selectedReportCategory.toLowerCase().trim())) {
+      _selectedReportCategory = chartData.first.title.toLowerCase().trim();
+    }
+
+    double kabuuangGastos =
+        chartData.fold(0.0, (sum, item) => sum + item.total);
+    double kabuuangTarget = 0.0;
+
+    for (var item in chartData) {
+      String key = item.title.toLowerCase().trim();
+      double targetLimit = _customCategoryTargets[key] ?? (item.total * 0.9);
+      kabuuangTarget += targetLimit;
+    }
+
+    double kabuuangMaiipon = kabuuangGastos - kabuuangTarget;
+
+    var activeGroupedItem = chartData.firstWhere(
+      (e) => e.title.toLowerCase().trim() == _selectedReportCategory,
+      orElse: () => chartData.first,
+    );
+
+    String activeKey = activeGroupedItem.title.toLowerCase().trim();
+    double currentSpendingVal = activeGroupedItem.total;
+    double currentTargetVal =
+        _customCategoryTargets[activeKey] ?? (currentSpendingVal * 0.9);
+
+    String dynamicInsightMsg = "";
+    if (currentTargetVal < currentSpendingVal) {
+      double natipid = currentSpendingVal - currentTargetVal;
+      dynamicInsightMsg = _currentLocale == 'tl'
+          ? "Magaling! Sa pagbabawas ng gastos sa ${activeGroupedItem.title} nang ${peso(natipid)}, makakatipid ka ng karagdagang pondo."
+          : "Awesome! Cutting down on ${activeGroupedItem.title} by ${peso(natipid)} will free up more funds.";
+    } else {
+      dynamicInsightMsg = _currentLocale == 'tl'
+          ? "Naka-set ang pondo sa normal o higit pa. Subukang ibaba ang slider upang makahanap ng pwedeng maipon."
+          : "Target budget is set to standard or higher. Try sliding left to explore optimization opportunities.";
+    }
+
+    double maxBarVal = budget > 0 ? budget : 1.0;
+    for (var item in chartData) {
+      if (item.total > maxBarVal) maxBarVal = item.total;
+    }
+
+    // 🔥 AUTOMATION CONTROLLER: Gumagawa ng pansamantalang controller na may fixed selection upang hindi maputol ang tinatype ng user
+    final String textValue =
+        _isPrivacyHideMode ? "••••" : currentTargetVal.toStringAsFixed(0);
+    final TextEditingController targetInputCtrl =
+        TextEditingController(text: textValue);
+    targetInputCtrl.selection = TextSelection.fromPosition(
+        TextPosition(offset: targetInputCtrl.text.length));
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(_isCompactMode ? 12 : 16),
+      decoration: BoxDecoration(
+        color: _boxBgColor,
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 160,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: chartData.take(5).map<Widget>((item) {
+                String itemKey = item.title.toLowerCase().trim();
+                double itemTarget =
+                    _customCategoryTargets[itemKey] ?? (item.total * 0.9);
+
+                double spendBarHeight = (item.total / maxBarVal) * 110;
+                double targetBarHeight = (itemTarget / maxBarVal) * 110;
+
+                if (spendBarHeight < 5) spendBarHeight = 5;
+                if (targetBarHeight < 5) targetBarHeight = 5;
+
+                bool isItemActive = itemKey == _selectedReportCategory;
+
+                return Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: _isCompactMode ? 10 : 14,
+                            height: spendBarHeight,
+                            decoration: BoxDecoration(
+                              color: item.color
+                                  .withValues(alpha: isItemActive ? 0.8 : 0.4),
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(4)),
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: _isCompactMode ? 10 : 14,
+                            height: targetBarHeight,
+                            decoration: BoxDecoration(
+                              color: isItemActive
+                                  ? const Color(0xFFFFD700)
+                                  : item.color,
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(4)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: isItemActive
+                              ? const Color(0xFFFFD700)
+                              : Colors.white38,
+                          fontWeight: isItemActive
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMetricsColumn(
+                  _currentLocale == 'tl' ? "Kabuuang Gastos" : "Total Cost",
+                  peso(kabuuangGastos),
+                  Colors.white60),
+              _buildMetricsColumn(
+                  _currentLocale == 'tl' ? "Target na Gastos" : "Target Limit",
+                  peso(kabuuangTarget),
+                  const Color(0xFFFFD700)),
+              _buildMetricsColumn(
+                  _currentLocale == 'tl'
+                      ? "Maiipon (Gains)"
+                      : "Projected Gains",
+                  "${kabuuangMaiipon >= 0 ? '+' : ''}${peso(kabuuangMaiipon)}",
+                  kabuuangMaiipon >= 0
+                      ? const Color(0xFF00E676)
+                      : Colors.redAccent),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _currentLocale == 'tl'
+                ? "Pumili ng Kategorya ng Gastos upang I-adjust:"
+                : "Select Category to Optimize:",
+            style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white38,
+                fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          // 🔥 NAITAMA: Pinalitan ang SingleChildScrollView ng Wrap widget para awtomatikong mag-fit lahat sa screen
+          Wrap(
+            spacing: 6, // Agwat ng mga chips pakaliwa-pakanan (horizontal)
+            runSpacing:
+                6, // Agwat kapag gumulong na sa susunod na linya (vertical)
+            alignment: WrapAlignment.start,
+            children: chartData.map<Widget>((item) {
+              String itemKey = item.title.toLowerCase().trim();
+              bool isSelected = itemKey == _selectedReportCategory;
+              return ChoiceChip(
+                visualDensity: VisualDensity.compact,
+                label: Text(item.title, style: const TextStyle(fontSize: 11)),
+                selected: isSelected,
+                selectedColor: const Color(0xFFFFD700),
+                labelStyle: TextStyle(
+                    color: isSelected ? Colors.black : Colors.white70),
+                onSelected: (val) {
+                  if (val) {
+                    setState(() {
+                      _selectedReportCategory = itemKey;
+                    });
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _currentLocale == 'tl'
+                    ? "Target na Layunin"
+                    : "Adjust Optimization Target",
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+              Text(
+                "${_currentLocale == 'tl' ? 'Kasalukuyan: ' : 'Current: '}${peso(currentSpendingVal)}",
+                style: const TextStyle(fontSize: 11, color: Colors.white38),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // ➖ MINUS BUTTON (Tig-1 Bawas)
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.remove_circle_outline,
+                    color: Color(0xFFFFD700), size: 26),
+                onPressed: currentTargetVal > 0
+                    ? () async {
+                        double newVal = currentTargetVal - 1.0;
+                        if (newVal < 0) newVal = 0.0;
+                        setState(() {
+                          _customCategoryTargets[activeKey] = newVal;
+                        });
+                        final p = await SharedPreferences.getInstance();
+                        await p.setString(
+                            'user_custom_category_targets$activeWalletId',
+                            jsonEncode(_customCategoryTargets));
+                      }
+                    : null,
+              ),
+              const SizedBox(width: 16),
+// 🔥 SINKRONAYS NA MANUWAL INPUT BOX FIELD (Hindi nawawala ang focus)
+              Expanded(
+                child: Container(
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF252525),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white10, width: 1),
+                  ),
+                  child: TextFormField(
+                    controller:
+                        targetInputCtrl, // 🚀 LIGTAS: Ginamit ang controller na may text memory pointer
+                    readOnly: _isPrivacyHideMode,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFFD700)),
+                    textAlign: TextAlign.center,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      prefixText:
+                          _isPrivacyHideMode ? "" : '$_currentCurrency ',
+                      prefixStyle: const TextStyle(
+                          color: Color(0xFFFFD700),
+                          fontWeight: FontWeight.bold),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 2),
+                    ),
+                    onChanged: (val) async {
+                      if (!_isPrivacyHideMode && val.trim().isNotEmpty) {
+                        double typedVal = double.tryParse(val.trim()) ?? 0.0;
+                        double maxLimit = currentSpendingVal * 1.5 == 0
+                            ? 1000000.0
+                            : currentSpendingVal * 1.5;
+                        if (typedVal > maxLimit) typedVal = maxLimit;
+// Ina-update ang record sa memory loop bago ang asynchronous disk write
+                        _customCategoryTargets[activeKey] = typedVal;
+                        final p = await SharedPreferences.getInstance();
+                        await p.setString(
+                            'user_custom_category_targets_$activeWalletId',
+                            jsonEncode(_customCategoryTargets));
+// 🔥 LIVE INTERACTION ENGAGEMENT: Tinatawag muli ang UI frame para sumunod ang mga kulay ng bar chart agad!
+                        setState(() {});
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+// ➕ PLUS BUTTON (Tig-1 Dagdag)
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.add_circle_outline,
+                    color: Color(0xFFFFD700), size: 26),
+                onPressed: () async {
+                  double maxLimit = currentSpendingVal * 1.5 == 0
+                      ? 1000000.0
+                      : currentSpendingVal * 1.5;
+                  double newVal = currentTargetVal + 1.0;
+                  if (newVal > maxLimit) newVal = maxLimit;
+                  setState(() {
+                    _customCategoryTargets[activeKey] = newVal;
+                  });
+                  final p = await SharedPreferences.getInstance();
+                  await p.setString(
+                      'user_custom_category_targets$activeWalletId',
+                      jsonEncode(_customCategoryTargets));
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF252525),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline,
+                    color: Color(0xFF29B6F6), size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    dynamicInsightMsg,
+                    style: const TextStyle(
+                        fontSize: 11, color: Colors.white70, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Helper widget para sa alignment ng matrix columns
+  Widget _buildMetricsColumn(String label, String value, Color valueColor) {
+    return Column(
+      children: [
+        Text(label,
+            style: const TextStyle(fontSize: 10, color: Colors.white38)),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: valueColor)),
+      ],
+    );
+  }
+
+  void _showSetSavingsGoalDialog() {
+    final goalCtrl =
+        TextEditingController(text: _savingsGoalPercentage.toStringAsFixed(0));
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _currentLocale == 'tl'
+              ? '🎯 I-set ang Savings Target'
+              : '🎯 Set Savings Target',
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFFFD700)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _currentLocale == 'tl'
+                  ? 'Ilang porsyento (%) ng kabuuang badyet ang gusto mong maitabi bilang permanenteng ipon?'
+                  : 'What percentage (%) of your total budget do you want to secure as net savings?',
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: goalCtrl,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                suffixText: '%',
+                focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFFFFD700))),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_getTxt('btn_cancel'),
+                style: const TextStyle(color: Colors.white30)),
+          ),
+          TextButton(
+            onPressed: () async {
+              double chosenPercentage =
+                  double.tryParse(goalCtrl.text.trim()) ?? 20.0;
+              if (chosenPercentage > 100)
+                chosenPercentage = 100; // Limit block to max 100%
+
+              setState(() {
+                _savingsGoalPercentage = chosenPercentage;
+              });
+
+              final p = await SharedPreferences.getInstance();
+              await p.setDouble(
+                  'user_savings_goal_percentage', chosenPercentage);
+
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_currentLocale == 'tl'
+                        ? 'Matagumpay na na-update ang target ipon!'
+                        : 'Savings target successfully updated!'),
+                    backgroundColor: const Color(0xFF00E676),
+                  ),
+                );
+              }
+            },
+            child: Text(_getTxt('btn_save'),
+                style: const TextStyle(
+                    color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔥 HELPER WIDGET: Tagagawa ng Automated Financial Insights at Layunin (Goals)
+  Widget _buildFinancialTrendsAndGoalsCard(
+      double totalGastos, double natirangBudget) {
+    if (budget <= 0) return const SizedBox();
+
+    double expensePercentage = (totalGastos / budget) * 100;
+    double targetSavingsAmount = budget * (_savingsGoalPercentage / 100);
+    bool isGoalAchieved = natirangBudget >= targetSavingsAmount;
+
+    String statusTitle = "";
+    String statusAdvice = "";
+    Color statusColor = const Color(0xFF00E676);
+    IconData statusIcon = Icons.check_circle_outline_rounded;
+
+    if (expensePercentage == 0) {
+      statusTitle =
+          _currentLocale == 'tl' ? "Malinis na Simula! 🎯" : "Fresh Start! 🎯";
+      statusAdvice = _currentLocale == 'tl'
+          ? "Hindi mo pa nagagalaw ang iyong badyet. Target na ipon: ${peso(targetSavingsAmount)} ($_savingsGoalPercentage%)."
+          : "You haven't spent anything yet. Your savings target is ${peso(targetSavingsAmount)} ($_savingsGoalPercentage%).";
+    } else if (expensePercentage <= (100 - _savingsGoalPercentage)) {
+      statusTitle = _currentLocale == 'tl' ? "Nasa Target! 🪙" : "On Track! 🪙";
+      statusAdvice = _currentLocale == 'tl'
+          ? "Maganda! Ang natitira mong pera ay pasok pa sa iyong target na ipon na ${peso(targetSavingsAmount)}."
+          : "Great! Your remaining balance is secure within your personal savings goal of ${peso(targetSavingsAmount)}.";
+    } else {
+      statusTitle =
+          _currentLocale == 'tl' ? "Alanganing Ipon ⚠️" : "Goal Endangered ⚠️";
+      statusColor = Colors.orangeAccent;
+      statusIcon = Icons.warning_amber_rounded;
+      statusAdvice = _currentLocale == 'tl'
+          ? "Babala! Lumalagpas ka na sa allowance mo. Ang natitirang pera ay mas mababa na sa target mong ipon."
+          : "Warning! You have crossed your allowance buffer. Remaining funds are now below your savings goal.";
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(_isCompactMode ? 12 : 16),
+      decoration: BoxDecoration(
+        color: _boxBgColor,
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: statusColor.withValues(alpha: 0.25), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row with Interactive Target Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(statusIcon,
+                      color: statusColor, size: _isCompactMode ? 18 : 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    statusTitle.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: _isCompactMode ? 12 : 14,
+                      fontWeight: FontWeight.w900,
+                      color: statusColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+              // 🔥 CLICKABLE SAVINGS TARGET BUTTON
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.track_changes_rounded,
+                    color: Color(0xFFFFD700), size: 18),
+                tooltip: _currentLocale == 'tl'
+                    ? "I-set ang Target"
+                    : "Set Savings Goal",
+                onPressed: _showSetSavingsGoalDialog,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            statusAdvice,
+            style: TextStyle(
+              fontSize: _isCompactMode ? 11 : 13,
+              color: _appFontColor.withValues(alpha: 0.8),
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 12),
+          // Progress bar indicators
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _currentLocale == 'tl'
+                    ? "Bilis ng Paggastos (Velocity)"
+                    : "Spending Velocity",
+                style: TextStyle(
+                    fontSize: _isCompactMode ? 10 : 11, color: Colors.white38),
+              ),
+              Text(
+                _isPrivacyHideMode
+                    ? '••%'
+                    : '${expensePercentage.toStringAsFixed(0)}%',
+                style: TextStyle(
+                    fontSize: _isCompactMode ? 10 : 12,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: expensePercentage > 100 ? 1.0 : (expensePercentage / 100),
+              backgroundColor: Colors.white10,
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+              minHeight: _isCompactMode ? 5 : 7,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔥 Preset list ng mga icons na madaling piliin ng user
+  final Map<String, IconData> presetIcons = {
+    "payments": Icons.payments,
+    "fastfood": Icons.fastfood,
+    "directions_car": Icons.directions_car,
+    "shopping_bag": Icons.shopping_bag,
+    "home": Icons.home,
+    "movie": Icons.movie,
+    "medical_services": Icons.medical_services,
+    "school": Icons.school,
+    "flight": Icons.flight,
+    "electrical_services": Icons.electrical_services,
+    "fitness_center": Icons.fitness_center,
+    "card_giftcard": Icons.card_giftcard,
+    "local_laundry_service": Icons.local_laundry_service,
+    "construction": Icons.construction,
+  };
+
+  // 🔥 Helper para makuha ang IconData mula sa pangalan nito
+  IconData _getIconData(String name) {
+    return presetIcons[name] ?? Icons.payments;
+  }
+
+  // 🔥 HELPER WIDGET PARA SA HINDI NAPIPITPIT NA SORT CHIPS
+  Widget _buildSortChip(
+      {required String filterValue,
+      required IconData icon,
+      required String label}) {
+    final bool isSelected = _activeSortFilter == filterValue;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeSortFilter = filterValue;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFD700) : _boxBgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFFFD700) : Colors.white10,
+            width: 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize:
+              MainAxisSize.min, // Kinukuha lang ang saktong haba ng text
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 13,
+              color: isSelected ? Colors.black : const Color(0xFFFFD700),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? Colors.black
+                    : Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🔥 Bottom Sheet Interface para sa pagpili ng Icon
+  void _openIconPickerSheet(Function(String) onIconSelected) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              Text(
+                _currentLocale == 'tl' ? 'PUMILI NG ICON' : 'SELECT ITEM ICON',
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFFD700)),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 5,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                  ),
+                  itemCount: presetIcons.length,
+                  itemBuilder: (context, index) {
+                    String key = presetIcons.keys.elementAt(index);
+                    IconData icon = presetIcons[key]!;
+                    return InkWell(
+                      onTap: () {
+                        onIconSelected(key);
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252525),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(icon,
+                            color: const Color(0xFFFFD700), size: 28),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   final Map<String, Map<String, String>> _localizedText = {
     'en': {
       'total_budget': 'TOTAL BUDGET',
@@ -949,7 +2406,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'wallet_manager': 'YOUR WALLETS',
       'btn_add_wallet': 'ADD NEW WALLET',
       'reset_data': 'Reset App Data',
-      'reset_subtitle': 'Will delete all items',
+      'reset_subtitle': 'Will delete all app data..',
       'upgrade_title': 'Upgrade to PRO version',
       'upgrade_subtitle': 'To unlock all features',
       'no_exp_err': 'No expenses to export!',
@@ -985,7 +2442,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'btn_delete': 'DELETE',
       'no_wallet_found': 'No wallets found.',
       'add_fund_tooltip': 'Add Funds',
-      'edit_wallet_tooltip': 'Edit Name',
+      'edit_wallet_tooltip': 'Edit Name or Currency',
       'del_wallet_tooltip': 'Delete Wallet',
       'create_wallet_title': 'Create New Wallet',
       'wallet_name_lbl': 'Wallet Name (e.g., Salary)',
@@ -1036,7 +2493,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'wallet_manager': 'IYONG MGA PITAKA',
       'btn_add_wallet': 'MAGDAGDAG',
       'reset_data': 'I-Reset ang App',
-      'reset_subtitle': 'Buburahin lahat ng entries',
+      'reset_subtitle': 'Buburahin lahat ng datos.',
       'upgrade_title': 'Mag-upgrade sa PRO version',
       'upgrade_subtitle': 'Para ma-unlock ang lahat ng features',
       'no_exp_err': 'Walang mga gastos na maie-export!',
@@ -1073,7 +2530,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'btn_delete': 'I-DELETE',
       'no_wallet_found': 'Walang nahanap na wallet.',
       'add_fund_tooltip': 'Magdagdag Pondo',
-      'edit_wallet_tooltip': 'I-edit ang Pangalan',
+      'edit_wallet_tooltip': 'I-edit ang Pangalan o Pera',
       'del_wallet_tooltip': 'Burahin ang Wallet',
       'create_wallet_title': 'Gumawa ng Bagong Wallet',
       'wallet_name_lbl': 'Pangalan ng Wallet (e.g. Sweldo)',
@@ -1125,7 +2582,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'wallet_manager': 'DOMPET ANDA',
       'btn_add_wallet': 'TAMBAH DOMPET BARU',
       'reset_data': 'Atur Ulang Data Aplikasi',
-      'reset_subtitle': 'Akan menghapus semua item',
+      'reset_subtitle': 'Akan menghapus semua data aplikasi.',
       'upgrade_title': 'Upgrade ke versi PRO',
       'upgrade_subtitle': 'Untuk membuka semua fitur',
       'no_exp_err': 'Tidak ada pengeluaran untuk diekspor!',
@@ -1162,7 +2619,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'btn_delete': 'HAPUS',
       'no_wallet_found': 'Dompet tidak ditemukan.',
       'add_fund_tooltip': 'Tambah Dana',
-      'edit_wallet_tooltip': 'Ubah Nama',
+      'edit_wallet_tooltip': 'Ubah Nama atau Mata Uang',
       'del_wallet_tooltip': 'Hapus Dompet',
       'create_wallet_title': 'Buat Dompet Baru',
       'wallet_name_lbl': 'Nama Dompet (misal: Gaji)',
@@ -1643,7 +3100,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           final rawNumbers = originalFormatted
               .replaceAll(RegExp(r'[^\d.,-]'), '')
               .trim(); // Pinapayagan ang negative sign kung lumampas sa budget
-          return 'P $rawNumbers';
+          return 'P$rawNumbers';
         }
         return originalFormatted;
       }
@@ -1852,12 +3309,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     final p = await SharedPreferences.getInstance();
     String deviceLanguage =
         PlatformDispatcher.instance.locale.languageCode.toLowerCase();
-
-    // 👑 KINUKUHA ANG REGION NG PHONE (E.g., PH, ID, US)
     String? deviceRegion =
         PlatformDispatcher.instance.locale.countryCode?.toUpperCase();
 
-    // Limitado lamang sa tatlong aktwal na wika ng iyong app
     String defaultLocale = 'en';
     if (deviceLanguage == 'tl' || deviceLanguage == 'fil') {
       defaultLocale = 'tl';
@@ -1865,23 +3319,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       defaultLocale = 'id';
     }
 
-    // AUTOMATION LOGIC BASE SA REHIYON O LOKASYON:
-    // Kahit naka-English ang device, kung ang physical region ay nasa PH o ID,
-    // ito ang awtomatikong gagamiting simbolo sa fresh install.
-    String initialCurrency = "\$"; // Default fallback para sa iba pa
-
-    if (deviceRegion == 'PH') {
-      initialCurrency = "₱"; // Philippine Peso
-    } else if (deviceRegion == 'ID') {
-      initialCurrency = "Rp"; // Indonesian Rupiah
-    } else {
-      // Kung hindi nakuha ang region code, mag-fallback gamit ang wika ng device
-      if (defaultLocale == 'tl') initialCurrency = "₱";
-      if (defaultLocale == 'id') initialCurrency = "Rp";
-    }
-
     setState(() {
-      // I-load ang locale na ligtas at limitado lang sa 3 wika mo ngayon
+      _isPrivacyHideMode = p.getBool('user_privacy_hide_mode') ?? false;
+
+      // 1. I-load ang locale (wika) na ligtas
       String tempLocale = p.getString('app_lang_locale') ?? defaultLocale;
       if (tempLocale != 'en' && tempLocale != 'tl' && tempLocale != 'id') {
         _currentLocale = defaultLocale;
@@ -1889,12 +3330,20 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         _currentLocale = tempLocale;
       }
 
+      _savingsGoalPercentage =
+          p.getDouble('user_savings_goal_percentage') ?? 20.0;
+
+      // DYNAMIC RE-ALIGNMENT: Kalkulahin ang backup fallback currency base sa wika
+      String initialCurrency = "\$";
+      if (_currentLocale == 'tl') initialCurrency = "₱";
+      if (_currentLocale == 'id') initialCurrency = "Rp";
+
+      // 2. I-load ang wallets data
       String? wData = p.getString('app_wallets');
       if (wData != null) {
         List l = jsonDecode(wData);
         wallets = l.map((e) => AppWallet.fromJson(e)).toList();
       } else {
-        // Gagamitin ang automated currency symbol para sa bagong Main Wallet
         wallets = [
           AppWallet(
               id: "default",
@@ -1929,15 +3378,50 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       budget = activeWallet.budget;
       _currentCurrency = activeWallet.currency;
 
+      String? savedTargets =
+          p.getString('user_custom_category_targets_$activeWalletId');
+      if (savedTargets != null) {
+        Map<String, dynamic> decoded = jsonDecode(savedTargets);
+        _customCategoryTargets = decoded
+            .map((key, value) => MapEntry(key, (value as num).toDouble()));
+      } else {
+        _customCategoryTargets.clear();
+      }
+
+      // 3. I-LOAD ANG EXPENSES AT I-RESTORE ANG COLOR MAP PARA SA MGA KATEGORYA
+      // 3. I-LOAD ANG EXPENSES AT I-RESTORE ANG COLOR MAP PARA SA MGA KATEGORYA
       String? d = p.getString('expenses$activeWalletId');
       if (d != null) {
         List l = jsonDecode(d);
         all = l.map((e) => Expense.fromJson(e)).toList();
+
         colorMap.clear();
+        for (var item in all) {
+          String key = item.title.toLowerCase().trim();
+          if (!colorMap.containsKey(key)) {
+            colorMap[key] =
+                dynamicColors[colorMap.length % dynamicColors.length];
+          }
+          item.color = colorMap[key]!;
+
+          // Siguraduhing may fallback emoji kung sakaling blangko ang na-load sa memory
+          if (item.iconEmoji.isEmpty) {
+            item.iconEmoji = "💰";
+          }
+        }
       } else {
         all.clear();
         colorMap.clear();
       }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final prefs = await SharedPreferences.getInstance();
+        bool mainTourDone =
+            prefs.getBool('is_main_dashboard_tour_done') ?? false;
+        if (!mainTourDone && mounted && !_isInteractiveTourActive) {
+          _showStartTourPromptDialog();
+        }
+      });
     });
   }
 
@@ -3349,72 +4833,297 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   void _showCounselingAddExpenseDialog() {
     final titleCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
+    final emojiCtrl = TextEditingController(text: "💰");
     DateTime napilingPetsa = DateTime.now();
+    final List<String> quickPresets = [
+      "💰",
+      "🍔",
+      "🚗",
+      "🛍️",
+      "🏠",
+      "🎬",
+      "💊",
+      "🎓",
+      "✈️",
+      "⚡",
+      "☕",
+      "🎮",
+      "🏋️",
+      "🎁",
+      "🥦",
+      "🐾",
+      "✂️",
+    ];
+
+    String titleError = "";
+    String amountError = "";
+
     showDialog(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E1E),
           title: Text(_getTxt('add_expense')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration:
-                    InputDecoration(labelText: _getTxt('category_label')),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  CommaFormatter()
-                ],
-                decoration: InputDecoration(
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. CATEGORY FIELD WITH GLOBAL WALLET RECOGNITION MEMORY
+                TextField(
+                  controller: titleCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: _getTxt('category_label'),
+                    errorText: titleError.isEmpty ? null : titleError,
+                    errorStyle: const TextStyle(
+                        color: Colors.redAccent, fontWeight: FontWeight.bold),
+                    focusedErrorBorder: const UnderlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Colors.redAccent, width: 1.5)),
+                  ),
+                  onChanged: (val) async {
+                    if (titleError.isNotEmpty) {
+                      setModalState(() {
+                        titleError = "";
+                      });
+                    }
+                    if (val.trim().isNotEmpty) {
+                      final String typedCategory = val.trim().toLowerCase();
+                      try {
+                        final p = await SharedPreferences.getInstance();
+                        String? foundEmoji;
+
+                        for (var w in wallets) {
+                          String? walletExpenseData =
+                              p.getString('expenses${w.id}');
+                          if (walletExpenseData != null) {
+                            List parsedList = jsonDecode(walletExpenseData);
+                            var match = parsedList.lastWhere(
+                              (e) =>
+                                  e['title'].toString().toLowerCase().trim() ==
+                                  typedCategory,
+                              orElse: () => null,
+                            );
+                            if (match != null && match['iconEmoji'] != null) {
+                              foundEmoji = match['iconEmoji'];
+                              break;
+                            }
+                          }
+                        }
+
+                        if (foundEmoji != null) {
+                          setModalState(() {
+                            emojiCtrl.text = foundEmoji!;
+                          });
+                        }
+                      } catch (_) {}
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // 2. AMOUNT FIELD
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CommaFormatter()
+                  ],
+                  decoration: InputDecoration(
                     prefixText: '$_currentCurrency ',
-                    labelText: _getTxt('amount_label')),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading:
-                    const Icon(Icons.calendar_today, color: Color(0xFFFFD700)),
-                title: Text(_getTxt('date_label'),
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.white54)),
-                subtitle: Text(DateFormat('yyyy-MM-dd').format(napilingPetsa),
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: napilingPetsa,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                    builder: (context, child) => Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.dark(
-                          primary: Color(0xFFFFD700),
-                          onPrimary: Colors.black,
-                          surface: Color(0xFF1E1E1E),
+                    labelText: _getTxt('amount_label'),
+                    errorText: amountError.isEmpty ? null : amountError,
+                    errorStyle: const TextStyle(
+                        color: Colors.redAccent, fontWeight: FontWeight.bold),
+                    focusedErrorBorder: const UnderlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Colors.redAccent, width: 1.5)),
+                  ),
+                  onChanged: (val) {
+                    if (amountError.isNotEmpty) {
+                      setModalState(() {
+                        amountError = "";
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                Text(
+                  _currentLocale == 'tl'
+                      ? 'Pumili ng Icon / Emoji:'
+                      : (_currentLocale == 'id'
+                          ? 'Pilih Ikon / Emoji:'
+                          : 'Select Icon / Emoji:'),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white54,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 8,
+                  children: [
+                    ...quickPresets.map((emoji) {
+                      final bool isSelected = emojiCtrl.text == emoji;
+                      return GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            emojiCtrl.text = emoji;
+                          });
+                        },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                                : const Color(0xFF252525),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFFFFD700)
+                                  : Colors.white10,
+                              width: isSelected ? 1.8 : 1.0,
+                            ),
+                          ),
+                          child:
+                              Text(emoji, style: const TextStyle(fontSize: 20)),
                         ),
+                      );
+                    }),
+                    GestureDetector(
+                      onTap: () {
+                        final customEmojiCtrl = TextEditingController(
+                            text: !quickPresets.contains(emojiCtrl.text)
+                                ? emojiCtrl.text
+                                : "");
+
+                        showDialog(
+                          context: context,
+                          builder: (subContext) => AlertDialog(
+                            backgroundColor: const Color(0xFF252525),
+                            title: Text(
+                              _currentLocale == 'tl'
+                                  ? 'Mag-type ng Custom Emoji'
+                                  : (_currentLocale == 'id'
+                                      ? 'Ketik Emoji Kustom'
+                                      : 'Type Custom Emoji'),
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFFFFD700),
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            content: TextField(
+                              controller: customEmojiCtrl,
+                              autofocus: true,
+                              maxLength: 1,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 26),
+                              decoration: const InputDecoration(
+                                counterText: "",
+                                hintText: "✨",
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(subContext),
+                                child: Text(_getTxt('btn_cancel'),
+                                    style:
+                                        const TextStyle(color: Colors.white30)),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  if (customEmojiCtrl.text.trim().isNotEmpty) {
+                                    setModalState(() {
+                                      emojiCtrl.text =
+                                          customEmojiCtrl.text.trim();
+                                    });
+                                  }
+                                  Navigator.pop(subContext);
+                                },
+                                child: const Text('OK',
+                                    style: TextStyle(
+                                        color: Color(0xFFFFD700),
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: !quickPresets.contains(emojiCtrl.text) &&
+                                  emojiCtrl.text.isNotEmpty
+                              ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                              : const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: !quickPresets.contains(emojiCtrl.text) &&
+                                    emojiCtrl.text.isNotEmpty
+                                ? const Color(0xFFFFD700)
+                                : Colors.white30,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: !quickPresets.contains(emojiCtrl.text) &&
+                                emojiCtrl.text.isNotEmpty
+                            ? Text(emojiCtrl.text,
+                                style: const TextStyle(fontSize: 20))
+                            : const Icon(Icons.add,
+                                color: Color(0xFFFFD700), size: 20),
                       ),
-                      child: child!,
                     ),
-                  );
-                  if (picked != null && picked != napilingPetsa) {
-                    setModalState(() {
-                      napilingPetsa = picked;
-                    });
-                  }
-                },
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(color: Colors.white10),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today,
+                      color: Color(0xFFFFD700)),
+                  title: Text(_getTxt('date_label'),
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.white54)),
+                  subtitle: Text(DateFormat('yyyy-MM-dd').format(napilingPetsa),
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                  onTap: () async {
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: napilingPetsa,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2101),
+                      builder: (context, child) => Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: Color(0xFFFFD700),
+                            onPrimary: Colors.black,
+                            surface: Color(0xFF1E1E1E),
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (picked != null && picked != napilingPetsa) {
+                      setModalState(() {
+                        napilingPetsa = picked;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -3422,62 +5131,122 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 child: Text(_getTxt('btn_cancel'),
                     style: const TextStyle(color: Colors.white30))),
             TextButton(
-              onPressed: () {
-                if (titleCtrl.text.isNotEmpty && amountCtrl.text.isNotEmpty) {
-                  String key = titleCtrl.text.toLowerCase().trim();
-                  double amt =
-                      double.tryParse(amountCtrl.text.replaceAll(',', '')) ?? 0;
-                  double kasalukuyangTotal =
-                      all.fold(0, (sum, item) => sum + item.amount);
-                  double bagongTotal = kasalukuyangTotal + amt;
-                  double natitiraPagkatapos = budget - bagongTotal;
-                  Color itemColor = colorMap[key] ??
-                      dynamicColors[colorMap.length % dynamicColors.length];
-                  setState(() {
-                    final newExpense = Expense(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      title: titleCtrl.text.trim(),
-                      amount: amt,
-                      date: napilingPetsa,
-                      color: itemColor,
-                    );
-                    all.add(newExpense);
-                    saveData();
-                  });
-
-// 🔥 IDINAGDAG NA BANNER PARA SA PAG-ADD
-                  if (mounted) {
-                    String addSuccessMsg = _currentLocale == 'tl'
-                        ? 'Matagumpay na naidagdag ang gastos!'
+              onPressed: () async {
+                final String inputTitle = titleCtrl.text.trim();
+                final String inputAmountRaw =
+                    amountCtrl.text.replaceAll(',', '').trim();
+                bool hasValidationError = false;
+                setModalState(() {
+                  if (inputTitle.isEmpty) {
+                    hasValidationError = true;
+                    titleError = _currentLocale == 'tl'
+                        ? "Kulang ang pangalan!"
                         : (_currentLocale == 'id'
-                            ? 'Pengeluaran berhasil ditambahkan!'
-                            : 'Expense successfully added!');
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(addSuccessMsg),
-                        backgroundColor: const Color(
-                            0xFF00E676), // Green color para sa success
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                            ? "Nama tidak boleh kosong!"
+                            : "Required field!");
+                  } else {
+                    titleError = "";
                   }
-                  Navigator.pop(context);
-                  if (natitiraPagkatapos <= 0) {
-                    Future.delayed(const Duration(milliseconds: 150), () {
-                      _showBudgetExhaustedAlert();
-                    });
-                  } else if (bagongTotal >= (budget * 0.9)) {
-                    Future.delayed(const Duration(milliseconds: 150), () {
-                      _showNearLimitBudgetDialog(kasalukuyangTotal, amt);
-                    });
+                  if (inputAmountRaw.isEmpty) {
+                    hasValidationError = true;
+                    amountError = _currentLocale == 'tl'
+                        ? "Kulang ang halaga!"
+                        : (_currentLocale == 'id'
+                            ? "Jumlah tidak boleh kosong!"
+                            : "Required field!");
+                  } else {
+                    amountError = "";
                   }
-                } else {
-                  Navigator.pop(context);
+                });
+                if (hasValidationError) return;
+                String targetCategoryKey = inputTitle.toLowerCase();
+                double amt = double.tryParse(inputAmountRaw) ?? 0;
+                double kasalukuyangTotal =
+                    all.fold(0, (sum, item) => sum + item.amount);
+                double bagongTotal = kasalukuyangTotal + amt;
+                double natitiraPagkatapos = budget - bagongTotal;
+                if (!colorMap.containsKey(targetCategoryKey)) {
+                  colorMap[targetCategoryKey] =
+                      dynamicColors[colorMap.length % dynamicColors.length];
+                }
+                Color itemColor = colorMap[targetCategoryKey]!;
+                String finalEmoji = emojiCtrl.text.trim().isEmpty
+                    ? "💰"
+                    : emojiCtrl.text.trim();
+                final p = await SharedPreferences.getInstance();
+                setState(() {
+// 1. I-save ang kasalukuyang bagong entry
+                  final newExpense = Expense(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    title: titleCtrl.text.trim(),
+                    amount: amt,
+                    date: napilingPetsa,
+                    color: itemColor,
+                    iconEmoji: finalEmoji,
+                  );
+                  all.add(newExpense);
+// 2. 🔥 BATCH UPDATE (ACTIVE UI): Baguhin ang icon ng lahat ng dating entries sa screen na kapareho ng tinype na pangalan
+                  for (var expense in all) {
+                    if (expense.title.toLowerCase().trim() ==
+                        targetCategoryKey) {
+                      expense.iconEmoji = finalEmoji;
+                    }
+                  }
+                });
+// 3. 🔥 BATCH UPDATE (GLOBAL DISK OVERWRITE): I-overwrite ang icons ng kategoryang ito sa lahat ng iba pang wallet data chunks sa database
+                try {
+                  for (var w in wallets) {
+                    String? walletExpenseData = p.getString('expenses${w.id}');
+                    if (walletExpenseData != null) {
+                      List parsedList = jsonDecode(walletExpenseData);
+                      bool chunkModified = false;
+                      for (var rawExp in parsedList) {
+                        if (rawExp['title'].toString().toLowerCase().trim() ==
+                            targetCategoryKey) {
+                          rawExp['iconEmoji'] = finalEmoji;
+                          chunkModified = true;
+                        }
+                      }
+                      if (chunkModified) {
+                        await p.setString(
+                            'expenses${w.id}', jsonEncode(parsedList));
+                      }
+                    }
+                  }
+                } catch (_) {}
+// I-save ang updated state database entries
+                await saveData();
+                if (mounted) {
+                  String addSuccessMsg = "";
+                  if (_currentLocale == 'tl') {
+                    addSuccessMsg = 'Matagumpay na naidagdag ang gastos!';
+                  } else if (_currentLocale == 'id') {
+                    addSuccessMsg = 'Catatan pengeluaran berhasil ditambahkan!';
+                  } else {
+                    addSuccessMsg = 'Expense successfully added!';
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(addSuccessMsg),
+                      backgroundColor: const Color(0xFF00E676),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+                Navigator.pop(context);
+                if (natitiraPagkatapos <= 0) {
+                  Future.delayed(const Duration(milliseconds: 150), () {
+                    _showBudgetExhaustedAlert();
+                  });
+                } else if (bagongTotal >= (budget * 0.9)) {
+                  Future.delayed(const Duration(milliseconds: 150), () {
+                    _showNearLimitBudgetDialog(kasalukuyangTotal, amt);
+                  });
                 }
               },
               child: Text(_getTxt('btn_add'),
-                  style: const TextStyle(color: Color(0xFFFFD700))),
+                  style: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
             )
           ],
         ),
@@ -3492,7 +5261,29 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     }
     final titleCtrl = TextEditingController(text: item.title);
     final amountCtrl = TextEditingController(text: fmt(item.amount));
+    final emojiCtrl = TextEditingController(text: item.iconEmoji);
     DateTime napilingPetsa = item.date;
+
+    final List<String> quickPresets = [
+      "💰",
+      "🍔",
+      "🚗",
+      "🛍️",
+      "🏠",
+      "🎬",
+      "💊",
+      "🎓",
+      "✈️",
+      "⚡",
+      "☕",
+      "🎮",
+      "🏋️",
+      "🎁",
+      "🥦",
+      "🐾",
+      "✂️",
+    ];
+
     showDialog(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
@@ -3505,65 +5296,231 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               Text(_getTxt('edit_expense')),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration:
-                    InputDecoration(labelText: _getTxt('category_label')),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  CommaFormatter()
-                ],
-                decoration: InputDecoration(
-                    prefixText: '$_currentCurrency ',
-                    labelText: _getTxt('amount_label')),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading:
-                    const Icon(Icons.calendar_today, color: Color(0xFFFFD700)),
-                title: Text(_getTxt('date_label'),
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.white54)),
-                subtitle: Text(DateFormat('yyyy-MM-dd').format(napilingPetsa),
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: napilingPetsa,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                    builder: (context, child) => Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.dark(
-                          primary: Color(0xFFFFD700),
-                          onPrimary: Colors.black,
-                          surface: Color(0xFF1E1E1E),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  decoration:
+                      InputDecoration(labelText: _getTxt('category_label')),
+                  onChanged: (val) async {
+                    if (val.trim().isNotEmpty) {
+                      final String typedCategory = val.trim().toLowerCase();
+                      try {
+                        final p = await SharedPreferences.getInstance();
+                        String? foundEmoji;
+
+                        for (var w in wallets) {
+                          String? walletExpenseData =
+                              p.getString('expenses${w.id}');
+                          if (walletExpenseData != null) {
+                            List parsedList = jsonDecode(walletExpenseData);
+                            var match = parsedList.lastWhere(
+                              (e) =>
+                                  e['title'].toString().toLowerCase().trim() ==
+                                  typedCategory,
+                              orElse: () => null,
+                            );
+                            if (match != null && match['iconEmoji'] != null) {
+                              foundEmoji = match['iconEmoji'];
+                              break;
+                            }
+                          }
+                        }
+
+                        if (foundEmoji != null) {
+                          setModalState(() {
+                            emojiCtrl.text = foundEmoji!;
+                          });
+                        }
+                      } catch (_) {}
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CommaFormatter()
+                  ],
+                  decoration: InputDecoration(
+                      prefixText: '$_currentCurrency ',
+                      labelText: _getTxt('amount_label')),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _currentLocale == 'tl'
+                      ? 'Baguhin ang Icon / Emoji:'
+                      : 'Change Icon / Emoji:',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white54,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 8,
+                  children: [
+                    ...quickPresets.map((emoji) {
+                      final bool isSelected = emojiCtrl.text == emoji;
+                      return GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            emojiCtrl.text = emoji;
+                          });
+                        },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                                : const Color(0xFF252525),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFFFFD700)
+                                  : Colors.white10,
+                              width: isSelected ? 1.8 : 1.0,
+                            ),
+                          ),
+                          child:
+                              Text(emoji, style: const TextStyle(fontSize: 20)),
                         ),
+                      );
+                    }),
+                    GestureDetector(
+                      onTap: () {
+                        final customEmojiCtrl = TextEditingController(
+                            text: !quickPresets.contains(emojiCtrl.text)
+                                ? emojiCtrl.text
+                                : "");
+
+                        showDialog(
+                          context: context,
+                          builder: (subContext) => AlertDialog(
+                            backgroundColor: const Color(0xFF252525),
+                            title: Text(
+                              _currentLocale == 'tl'
+                                  ? 'Mag-type ng Custom Emoji'
+                                  : 'Type Custom Emoji',
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFFFFD700),
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            content: TextField(
+                              controller: customEmojiCtrl,
+                              autofocus: true,
+                              maxLength: 1,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 26),
+                              decoration: const InputDecoration(
+                                counterText: "",
+                                hintText: "✨",
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(subContext),
+                                child: Text(_getTxt('btn_cancel'),
+                                    style:
+                                        const TextStyle(color: Colors.white30)),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  if (customEmojiCtrl.text.trim().isNotEmpty) {
+                                    setModalState(() {
+                                      emojiCtrl.text =
+                                          customEmojiCtrl.text.trim();
+                                    });
+                                  }
+                                  Navigator.pop(subContext);
+                                },
+                                child: const Text('OK',
+                                    style: TextStyle(
+                                        color: Color(0xFFFFD700),
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: !quickPresets.contains(emojiCtrl.text) &&
+                                  emojiCtrl.text.isNotEmpty
+                              ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                              : const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: !quickPresets.contains(emojiCtrl.text) &&
+                                    emojiCtrl.text.isNotEmpty
+                                ? const Color(0xFFFFD700)
+                                : Colors.white30,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: !quickPresets.contains(emojiCtrl.text) &&
+                                emojiCtrl.text.isNotEmpty
+                            ? Text(emojiCtrl.text,
+                                style: const TextStyle(fontSize: 20))
+                            : const Icon(Icons.add,
+                                color: Color(0xFFFFD700), size: 20),
                       ),
-                      child: child!,
                     ),
-                  );
-                  if (picked != null && picked != napilingPetsa) {
-                    setModalState(() {
-                      napilingPetsa = picked;
-                    });
-                  }
-                },
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(color: Colors.white10),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today,
+                      color: Color(0xFFFFD700)),
+                  title: Text(_getTxt('date_label'),
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.white54)),
+                  subtitle: Text(DateFormat('yyyy-MM-dd').format(napilingPetsa),
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                  onTap: () async {
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: napilingPetsa,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2101),
+                      builder: (context, child) => Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: Color(0xFFFFD700),
+                            onPrimary: Colors.black,
+                            surface: Color(0xFF1E1E1E),
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (picked != null && picked != napilingPetsa) {
+                      setModalState(() {
+                        napilingPetsa = picked;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -3571,9 +5528,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 child: Text(_getTxt('btn_cancel'),
                     style: const TextStyle(color: Colors.white30))),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 if (titleCtrl.text.isNotEmpty && amountCtrl.text.isNotEmpty) {
-                  String newKey = titleCtrl.text.toLowerCase().trim();
+                  String oldKeyName = item.title.toLowerCase().trim();
+                  String newKeyName = titleCtrl.text.toLowerCase().trim();
                   double newAmt =
                       double.tryParse(amountCtrl.text.replaceAll(',', '')) ?? 0;
                   double kasalukuyangTotalIwan = all
@@ -3581,31 +5539,62 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       .fold(0, (sum, e) => sum + e.amount);
                   double bagongTotalIwan = kasalukuyangTotalIwan + newAmt;
                   double natitiraPagkatapos = budget - bagongTotalIwan;
-                  Color updatedColor = colorMap[newKey] ?? item.color;
+                  Color updatedColor = colorMap[newKeyName] ?? item.color;
+                  String finalEmoji = emojiCtrl.text.trim().isEmpty
+                      ? "💰"
+                      : emojiCtrl.text.trim();
+                  final p = await SharedPreferences.getInstance();
                   setState(() {
+// 1. I-update muna ang partikular na item na pinili
                     item.title = titleCtrl.text.trim();
                     item.amount = newAmt;
                     item.color = updatedColor;
                     item.date = napilingPetsa;
-                    saveData();
+// 2. 🔥 BATCH UPDATE (ACTIVE WALLET): Baguhin ang icon ng LAHAT ng kapareho ng kategorya sa screen ngayon
+                    for (var expense in all) {
+                      if (expense.title.toLowerCase().trim() == oldKeyName ||
+                          expense.title.toLowerCase().trim() == newKeyName) {
+                        expense.iconEmoji = finalEmoji;
+                      }
+                    }
                   });
-
-// 🔥 IDINAGDAG NA BANNER PARA SA PAG-EDIT
+// 3. 🔥 BATCH UPDATE (GLOBAL DISK STORAGE): Baguhin ang icon sa lahat ng iba pang wallet data keys sa memory
+                  try {
+                    for (var w in wallets) {
+                      String? walletExpenseData =
+                          p.getString('expenses${w.id}');
+                      if (walletExpenseData != null) {
+                        List parsedList = jsonDecode(walletExpenseData);
+                        bool chunkModified = false;
+                        for (var rawExp in parsedList) {
+                          String rawTitle =
+                              rawExp['title'].toString().toLowerCase().trim();
+                          if (rawTitle == oldKeyName ||
+                              rawTitle == newKeyName) {
+                            rawExp['iconEmoji'] = finalEmoji;
+                            chunkModified = true;
+                          }
+                        }
+// Kung may binagong entry sa wallet na iyon, i-save pabalik sa disk ang updated array chunk
+                        if (chunkModified) {
+                          await p.setString(
+                              'expenses${w.id}', jsonEncode(parsedList));
+                        }
+                      }
+                    }
+                  } catch (_) {}
+// I-save ang kabuuang active state records
+                  await saveData();
                   if (mounted) {
                     String editSuccessMsg = _currentLocale == 'tl'
                         ? 'Matagumpay na na-update ang gastos!'
                         : (_currentLocale == 'id'
                             ? 'Catatan pengeluaran berhasil diperbarui!'
                             : 'Expense successfully updated!');
-
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                          editSuccessMsg,
-                          style: const TextStyle(
-                              color: Colors
-                                  .black), // 🔥 DITO ILALAGAY ANG KULAY NG TEXT
-                        ),
+                        content: Text(editSuccessMsg,
+                            style: const TextStyle(color: Colors.black)),
                         backgroundColor: const Color(0xFFFFD700),
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -4005,36 +5994,54 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       }
       return true;
     }).toList();
+
     double totalGastos = all.fold(0, (sum, item) => sum + item.amount);
     Map<String, List> grouped = {};
-    int colorIndex = 0;
-    Map<String, Color> activeSessionColors = {};
+
     for (var e in dateFilteredExpenses) {
       String key = e.title.toLowerCase().trim();
       grouped.putIfAbsent(key, () => []);
       grouped[key]!.add(e);
-      if (!activeSessionColors.containsKey(key)) {
-        activeSessionColors[key] =
-            dynamicColors[colorIndex % dynamicColors.length];
-        colorIndex++;
+
+      if (!colorMap.containsKey(key)) {
+        colorMap[key] = dynamicColors[colorMap.length % dynamicColors.length];
       }
-      e.color = activeSessionColors[key]!;
-      colorMap[key] = e.color;
+      e.color = colorMap[key]!;
     }
+
     List chartData = [];
     grouped.forEach((key, list) {
       double sum = list.fold(0, (prev, e) => prev + e.amount);
-      Color assignedColor = activeSessionColors[key] ?? dynamicColors.first;
+      Color assignedColor = colorMap[key] ?? dynamicColors.first;
+      String assignedEmoji = list.isNotEmpty ? list.first.iconEmoji : "💰";
+
       chartData.add(GroupedExpense(
         title: list.first.title,
         total: sum,
         color: assignedColor,
         count: list.length,
+        iconEmoji: assignedEmoji,
       ));
     });
 
-    // 🔥 INILAGAY DITO ANG MATALINONG SORTING LOGIC PARA SA GRAPH AT LEGENDS (Highest to Lowest)
     chartData.sort((a, b) => b.total.compareTo(a.total));
+
+    // 🔥 AUTOMATION ENGINE: Kung walang entries, gumawa ng multilinggwal na placeholder data para magpakita ang slider at bars
+    List visibleChartDataForLayout = List.from(chartData);
+    if (visibleChartDataForLayout.isEmpty) {
+      String placeholderLabel =
+          _currentLocale == 'tl' ? "Walang Gastos" : "No Expenses";
+      visibleChartDataForLayout.add(GroupedExpense(
+        title: placeholderLabel,
+        total: 0.0,
+        color: Colors.white24,
+        count: 0,
+        iconEmoji: "📉",
+      ));
+    }
+
+    double totalGastosParaSaChart =
+        dateFilteredExpenses.fold(0.0, (sum, item) => sum + item.amount);
 
     double natirangBudget = budget - totalGastos;
     String activeWalletName = "Main Wallet";
@@ -4048,8 +6055,18 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     List finalFilteredExpenses = dateFilteredExpenses.where((item) {
       return item.title.toLowerCase().contains(searchQuery.toLowerCase());
     }).toList();
-    finalFilteredExpenses.sort((a, b) => b.date.compareTo(a.date));
+    if (_activeSortFilter == "latest") {
+      finalFilteredExpenses.sort((a, b) => b.date.compareTo(a.date));
+    } else if (_activeSortFilter == "oldest") {
+      finalFilteredExpenses.sort((a, b) => a.date.compareTo(b.date));
+    } else if (_activeSortFilter == "highest") {
+      finalFilteredExpenses.sort((a, b) => b.amount.compareTo(a.amount));
+    } else if (_activeSortFilter == "lowest") {
+      finalFilteredExpenses.sort((a, b) => a.amount.compareTo(b.amount));
+    }
+
     final bool trialExpiredWithNoPremium = _isTrialExpired && !_isPremiumUser;
+
     return Scaffold(
       backgroundColor: _appBgColor,
       appBar: AppBar(
@@ -4113,7 +6130,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
         actions: [
-          // 👑 PINAGSAMA NA EXPORT BUTTON
           PopupMenuButton<String>(
             icon: Icon(
               Icons.ios_share_rounded,
@@ -4122,21 +6138,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   : const Color(0xFFFFD700),
               size: 24,
             ),
-            tooltip: _currentLocale == 'tl'
-                ? 'I-export ang Data'
-                : (_currentLocale == 'id' ? 'Ekspor Data' : 'Export Data'),
-            // 👑 INAYOS DITO: Ginamit ang 'color' sa halip na 'dropdownColor'
+            tooltip:
+                _currentLocale == 'tl' ? 'I-export ang Data' : 'Export Data',
             color: const Color(0xFF1E1E1E),
             onSelected: (String value) {
               if (value == 'csv') {
-                // 🔥 IPINASA ANG VARIABLES SA LOOB NG PARENTHESES
                 _exportWalletToCSV(finalFilteredExpenses);
               } else if (value == 'pdf') {
-                // 🔥 IPINASA ANG VARIABLES SA LOOB NG PARENTHESES
                 _exportWalletToPDF(finalFilteredExpenses);
               }
             },
-
             itemBuilder: (BuildContext context) => [
               PopupMenuItem<String>(
                 value: 'pdf',
@@ -4148,9 +6159,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     Text(
                       _currentLocale == 'tl'
                           ? 'I-export sa PDF'
-                          : (_currentLocale == 'id'
-                              ? 'Ekspor ke PDF'
-                              : 'Export to PDF'),
+                          : 'Export to PDF',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -4166,9 +6175,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     Text(
                       _currentLocale == 'tl'
                           ? 'I-export sa CSV'
-                          : (_currentLocale == 'id'
-                              ? 'Ekspor ke CSV'
-                              : 'Export to CSV'),
+                          : 'Export to CSV',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -4176,7 +6183,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               ),
             ],
           ),
-          // WALLET MANAGER BUTTON
           IconButton(
             icon: Icon(Icons.account_balance_wallet,
                 color: trialExpiredWithNoPremium
@@ -4403,9 +6409,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 subtitle: Text(
                     _currentLocale == 'en'
                         ? 'App configurations & reset'
-                        : (_currentLocale == 'id'
-                            ? 'Konfigurasi aplikasi & reset'
-                            : 'Mga config ng app & reset'),
+                        : 'Mga config ng app & reset',
                     style:
                         const TextStyle(fontSize: 10, color: Colors.white38)),
                 onTap: () {
@@ -4413,7 +6417,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   final TextEditingController newPinCtrl =
                       TextEditingController();
                   String settingsError = "";
-
                   showDialog(
                     context: context,
                     builder: (context) => StatefulBuilder(
@@ -4439,7 +6442,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // SECTION 1: BACKGROUND THEMES
                                 Theme(
                                   data: Theme.of(context).copyWith(
                                     dividerColor: Colors.transparent,
@@ -4447,7 +6449,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                   child: ExpansionTile(
                                     tilePadding: EdgeInsets.zero,
-                                    // 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                     leading: const SizedBox(
                                       width: 28,
                                       child: Align(
@@ -4595,8 +6596,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                 ),
                                 const Divider(color: Colors.white10),
-
-                                // SECTION 2: CHANGE PIN CODE
                                 Theme(
                                   data: Theme.of(context).copyWith(
                                     dividerColor: Colors.transparent,
@@ -4604,7 +6603,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                   child: ExpansionTile(
                                     tilePadding: EdgeInsets.zero,
-                                    // 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                     leading: const SizedBox(
                                       width: 28,
                                       child: Align(
@@ -4692,19 +6690,26 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                           FontWeight.bold)),
                                             ],
                                             const SizedBox(height: 16),
+                                            // 🔥 NAITAMA NA MULTILINGGWAL SAVE PIN BUTTON CONTROL ENGINE
                                             ElevatedButton(
                                               onPressed: () async {
                                                 String pinInput =
                                                     newPinCtrl.text.trim();
                                                 if (pinInput.length < 4) {
                                                   setDialogState(() {
-                                                    settingsError = _currentLocale ==
-                                                            'tl'
-                                                        ? 'Pakilagay ng apat na numero!'
-                                                        : (_currentLocale ==
-                                                                'id'
-                                                            ? 'Masukkan empat angka!'
-                                                            : 'Please input 4 digits!');
+                                                    // Sinasala ang error text base sa tatlong wika ng app
+                                                    if (_currentLocale ==
+                                                        'tl') {
+                                                      settingsError =
+                                                          'Pakilagay ng apat na numero!';
+                                                    } else if (_currentLocale ==
+                                                        'id') {
+                                                      settingsError =
+                                                          'Masukkan 4 digit angka!';
+                                                    } else {
+                                                      settingsError =
+                                                          'Please input 4 digits!';
+                                                    }
                                                   });
                                                   return;
                                                 }
@@ -4713,12 +6718,21 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                         context);
                                                 final navigator =
                                                     Navigator.of(context);
-                                                String successMessage = _currentLocale ==
-                                                        'tl'
-                                                    ? 'Matagumpay na naitakda ang bagong PIN!'
-                                                    : (_currentLocale == 'id'
-                                                        ? 'PIN berhasil diubah!'
-                                                        : 'Pin successfully changed!');
+
+                                                String successMessage = "";
+                                                // Sinasala ang success SnackBar message base sa tatlong wika
+                                                if (_currentLocale == 'tl') {
+                                                  successMessage =
+                                                      'Matagumpay na naitakda ang bagong PIN!';
+                                                } else if (_currentLocale ==
+                                                    'id') {
+                                                  successMessage =
+                                                      'PIN berhasil diubah!';
+                                                } else {
+                                                  successMessage =
+                                                      'PIN successfully changed!';
+                                                }
+
                                                 final prefs =
                                                     await SharedPreferences
                                                         .getInstance();
@@ -4730,14 +6744,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                 });
                                                 if (!mounted) return;
                                                 navigator.pop();
-                                                messenger.showSnackBar(
-                                                  SnackBar(
+                                                messenger.showSnackBar(SnackBar(
                                                     content:
                                                         Text(successMessage),
                                                     backgroundColor:
-                                                        Colors.green,
-                                                  ),
-                                                );
+                                                        Colors.green));
                                               },
                                               style: ElevatedButton.styleFrom(
                                                   backgroundColor:
@@ -4748,15 +6759,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                           BorderRadius.circular(
                                                               8))),
                                               child: Text(
-                                                _currentLocale == 'tl'
-                                                    ? 'I-SAVE'
-                                                    : (_currentLocale == 'id'
-                                                        ? 'SIMPAN'
-                                                        : 'SAVE'),
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
+                                                  _currentLocale == 'tl'
+                                                      ? 'I-SAVE'
+                                                      : (_currentLocale == 'id'
+                                                          ? 'SIMPAN'
+                                                          : 'SAVE'),
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold)),
                                             ),
                                           ],
                                         ),
@@ -4765,10 +6775,54 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                 ),
                                 const Divider(color: Colors.white10),
-// SECTION 3: COMPACT MODE SWITCH
+                                // 🔥 NAITAMA NA MULTILINGGWAL PRIVACY MODE SWITCH
                                 SwitchListTile(
                                   contentPadding: EdgeInsets.zero,
-// 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
+                                  secondary: const SizedBox(
+                                    width: 28,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Icon(Icons.visibility_off_outlined,
+                                          color: Color(0xFFFFD700)),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    _currentLocale == 'en'
+                                        ? 'Hide All Numbers'
+                                        : (_currentLocale == 'id'
+                                            ? 'Sembunyikan Semua Angka'
+                                            : 'Ika-atake ng Privacy'),
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white),
+                                  ),
+                                  subtitle: Text(
+                                    _currentLocale == 'en'
+                                        ? 'Mask balances and costs from the dashboard'
+                                        : (_currentLocale == 'id'
+                                            ? 'Samarkan saldo dan pengeluaran dari dasbor'
+                                            : 'Itago ang mga halaga at badyet sa screen'),
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.white38),
+                                  ),
+                                  value: _isPrivacyHideMode,
+                                  activeColor: const Color(0xFFFFD700),
+                                  onChanged: (bool value) async {
+                                    setState(() {
+                                      _isPrivacyHideMode = value;
+                                    });
+                                    setDialogState(() {});
+                                    final p =
+                                        await SharedPreferences.getInstance();
+                                    await p.setBool(
+                                        'user_privacy_hide_mode', value);
+                                  },
+                                ),
+
+                                // 🔥 NAITAMA NA MULTILINGGWAL COMPACT MODE SWITCH
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
                                   secondary: const SizedBox(
                                     width: 28,
                                     child: Align(
@@ -4778,23 +6832,22 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                     ),
                                   ),
                                   title: Text(
-                                    _currentLocale == 'tl'
+                                    _currentLocale == 'en'
                                         ? 'Compact Mode'
                                         : (_currentLocale == 'id'
                                             ? 'Mode Ringkas'
                                             : 'Compact Mode'),
                                     style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white),
                                   ),
                                   subtitle: Text(
-                                    _currentLocale == 'tl'
-                                        ? 'Paliitin ang listahan ng mga gastos'
+                                    _currentLocale == 'en'
+                                        ? 'Make dashboard layout smaller'
                                         : (_currentLocale == 'id'
-                                            ? 'Perkecil tampilan riwayat'
-                                            : 'Make expense list rows smaller'),
+                                            ? 'Perkecil tampilan tata letak dasbor'
+                                            : 'Paliitin ang dashboard layout'),
                                     style: const TextStyle(
                                         fontSize: 10, color: Colors.white38),
                                   ),
@@ -4803,70 +6856,64 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   onChanged: (bool value) async {
                                     String dialogTitle = "";
                                     String dialogContent = "";
-                                    if (value) {
-                                      dialogTitle = _currentLocale == 'tl'
-                                          ? 'I-on ang Compact Mode?'
-                                          : (_currentLocale == 'id'
-                                              ? 'Aktifkan Mode Ringkas?'
-                                              : 'Enable Compact Mode?');
-                                      dialogContent = _currentLocale == 'tl'
-                                          ? 'Liliit ang view ng iyong main screen para sa mas masikip na listahan. Nais mo bang ituloy?'
-                                          : (_currentLocale == 'id'
-                                              ? 'Tampilan layar utama akan diperkecil untuk daftar yang lebih ringkas. Lanjutkan?'
-                                              : 'The main screen layout will shrink for a tighter list view. Do you want to proceed?');
+                                    String btnConfirmLabel = "";
+
+                                    // Dinamikong pagsasalin ng Pop-up Confirmation Dialog
+                                    if (_currentLocale == 'en') {
+                                      dialogTitle = value
+                                          ? "Enable Compact Mode?"
+                                          : "Disable Compact Mode?";
+                                      dialogContent = value
+                                          ? "The main screen layout will shrink for a tighter list view. Do you want to proceed?"
+                                          : "The main screen layout will return to the normal, larger size. Do you want to proceed?";
+                                      btnConfirmLabel = "PROCEED";
+                                    } else if (_currentLocale == 'id') {
+                                      dialogTitle = value
+                                          ? "Aktifkan Mode Ringkas?"
+                                          : "Nonaktifkan Mode Ringkas?";
+                                      dialogContent = value
+                                          ? "Tata letak layar utama akan diperkecil untuk tampilan daftar yang lebih padat. Lanjutkan?"
+                                          : "Tata letak layar utama akan kembali ke ukuran normal yang lebih besar. Lanjutkan?";
+                                      btnConfirmLabel = "LANJUTKAN";
                                     } else {
-                                      dialogTitle = _currentLocale == 'tl'
-                                          ? 'I-off ang Compact Mode?'
-                                          : (_currentLocale == 'id'
-                                              ? 'Matikan Mode Ringkas?'
-                                              : 'Disable Compact Mode?');
-                                      dialogContent = _currentLocale == 'tl'
-                                          ? 'Babalik sa normal at mas malaking sukat ang layout ng iyong main screen. Nais mo bang ituloy?'
-                                          : (_currentLocale == 'id'
-                                              ? 'Tampilan layar utama akan kembali ke ukuran normal yang lebih besar. Lanjutkan?'
-                                              : 'The main screen layout will return to the normal, larger size. Do you want to proceed?');
+                                      // Default ay Tagalog ('tl')
+                                      dialogTitle = value
+                                          ? "I-on ang Compact Mode?"
+                                          : "I-off ang Compact Mode?";
+                                      dialogContent = value
+                                          ? "Liliit ang view ng iyong main screen para sa mas masikip na listahan. Nais mo bang ituloy?"
+                                          : "Babalik sa normal at mas malaking sukat ang layout ng iyong main screen. Nais mo bang ituloy?";
+                                      btnConfirmLabel = "ITULOY";
                                     }
+
                                     bool? shouldApply = await showDialog(
                                       context: context,
                                       builder: (BuildContext context) =>
                                           AlertDialog(
                                         backgroundColor:
                                             const Color(0xFF1E1E1E),
-                                        title: Text(
-                                          dialogTitle,
-                                          style: const TextStyle(
-                                              color: Color(0xFFFFD700),
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        content: Text(
-                                          dialogContent,
-                                          style: const TextStyle(
-                                              color: Colors.white70),
-                                        ),
+                                        title: Text(dialogTitle,
+                                            style: const TextStyle(
+                                                color: Color(0xFFFFD700),
+                                                fontWeight: FontWeight.bold)),
+                                        content: Text(dialogContent,
+                                            style: const TextStyle(
+                                                color: Colors.white70)),
                                         actions: [
                                           TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: Text(
-                                              _getTxt('btn_cancel'),
-                                              style: const TextStyle(
-                                                  color: Colors.white30),
-                                            ),
-                                          ),
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: Text(_getTxt('btn_cancel'),
+                                                  style: const TextStyle(
+                                                      color: Colors.white30))),
                                           TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            child: Text(
-                                              _currentLocale == 'tl'
-                                                  ? 'ITULOY'
-                                                  : (_currentLocale == 'id'
-                                                      ? 'LANJUTKAN'
-                                                      : 'PROCEED'),
-                                              style: const TextStyle(
-                                                  color: Color(0xFFFFD700),
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: Text(btnConfirmLabel,
+                                                  style: const TextStyle(
+                                                      color: Color(0xFFFFD700),
+                                                      fontWeight:
+                                                          FontWeight.bold))),
                                         ],
                                       ),
                                     );
@@ -4879,10 +6926,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   },
                                 ),
                                 const Divider(color: Colors.white10),
-// SECTION 4: PINAGSAMANG BACKUP AT RESTORE
+
+                                // 🔥 NAITAMA NA MULTILINGGWAL DATA MANAGEMENT LISTTILE
                                 ListTile(
                                   contentPadding: EdgeInsets.zero,
-// 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                   leading: const SizedBox(
                                     width: 28,
                                     child: Align(
@@ -4892,33 +6939,32 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                     ),
                                   ),
                                   title: Text(
-                                    _currentLocale == 'tl'
-                                        ? 'I-manage ang Iyong Data'
+                                    _currentLocale == 'en'
+                                        ? 'Manage Your Data'
                                         : (_currentLocale == 'id'
                                             ? 'Kelola Data Anda'
-                                            : 'Manage Your Data'),
+                                            : 'I-manage ang Iyong Data'),
                                     style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFFFFD700)),
                                   ),
                                   subtitle: Text(
-                                      _currentLocale == 'tl'
-                                          ? 'I-backup o i-restore ang buong app data'
+                                      _currentLocale == 'en'
+                                          ? 'Backup or restore full application data'
                                           : (_currentLocale == 'id'
-                                              ? 'Cadangkan atau pulihkan data aplikasi'
-                                              : 'Backup or restore full application data'),
+                                              ? 'Cadangkan atau pulihkan seluruh data aplikasi'
+                                              : 'I-backup o i-restore ang buong app data'),
                                       style: const TextStyle(
                                           fontSize: 10, color: Colors.white38)),
                                   onTap: () {
                                     _showBackupAndRestoreOptionsDialog();
                                   },
                                 ),
+
                                 const Divider(color: Colors.white10),
-// SECTION 5: RESET APP DATA
                                 ListTile(
                                   contentPadding: EdgeInsets.zero,
-// 🔥 INAYOS GAMIT ANG ALIGN WIDGET PARA SA LIPAT NG ICON
                                   leading: const SizedBox(
                                     width: 28,
                                     child: Align(
@@ -4995,130 +7041,176 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           ),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.wallet,
-                        color: Color(0xFFFFD700), size: 22),
-                    const SizedBox(width: 8),
-                    Text(
-                      activeWalletName.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: _appFontColor,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildSummaryCardDateFilters(),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildSummaryCard(
-                        title: _getTxt('total_budget'),
-                        value: peso(budget),
-                        color: const Color(0xFFFFD700),
-                        icon: Icons.account_balance_wallet,
-                        highlightCard: false,
-                      ),
-                    ),
-                    // 🔥 Ginawang 8 ang agwat ng dalawang card (mula 12) kapag compact mode
-                    SizedBox(width: _isCompactMode ? 8 : 12),
-                    Expanded(
-                      child: _buildSummaryCard(
-                        title: _getTxt('total_expenses'),
-                        value: peso(totalGastos),
-                        color: totalGastos > budget
-                            ? Colors.redAccent
-                            : (totalGastos >= budget * 0.9
-                                ? Colors.orangeAccent
-                                : const Color(0xFF00E676)),
-                        icon: Icons.trending_up,
-                        highlightCard: false,
-                      ),
-                    ),
-                  ],
-                ),
-                // 🔥 Ginawang 8 ang agwat sa ilalim ng dalawang card (mula 12) kapag compact mode
-                SizedBox(height: _isCompactMode ? 8 : 12),
-                _buildSummaryCard(
-                  title: _getTxt('remaining_budget'),
-                  value: peso(natirangBudget),
-                  color: natirangBudget < 0
-                      ? Colors.redAccent
-                      : (totalGastos >= budget * 0.9
-                          ? Colors.orangeAccent
-                          : Colors.greenAccent),
-                  icon: Icons.monetization_on,
-                  isFullWidth: true,
-                  highlightCard: true,
-                ),
-                const SizedBox(height: 24),
-                if (chartData.isNotEmpty) ...[
-                  Text(_getTxt('chart_title'),
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: _appFontColor.withValues(alpha: 0.7))),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: SizedBox(
-                      width: 180,
-                      height: 180,
-                      child: CustomPaint(
-                        painter: PiePainter(
-                          data: chartData,
-                          total: totalGastos,
-                          selectedIndex: selectedIndex,
+                    Row(
+                      children: [
+                        const Icon(Icons.wallet,
+                            color: Color(0xFFFFD700), size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          activeWalletName.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: _appFontColor,
+                            letterSpacing: 0.8,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  runWalletCategoryLegends(chartData),
-                  const SizedBox(height: 24),
-                ],
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_getTxt('history_title'),
+                    const SizedBox(height: 16),
+                    _buildSummaryCardDateFilters(),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            title: _getTxt('total_budget'),
+                            value: peso(budget),
+                            color: const Color(0xFFFFD700),
+                            icon: Icons.account_balance_wallet,
+                            highlightCard: false,
+                          ),
+                        ),
+                        SizedBox(width: _isCompactMode ? 8 : 12),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            title: _getTxt('total_expenses'),
+                            value: peso(totalGastos),
+                            color: totalGastos > budget
+                                ? Colors.redAccent
+                                : (totalGastos >= budget * 0.9
+                                    ? Colors.orangeAccent
+                                    : const Color(0xFF00E676)),
+                            icon: Icons.trending_up,
+                            highlightCard: false,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: _isCompactMode ? 8 : 12),
+                    _buildSummaryCard(
+                      title: _getTxt('remaining_budget'),
+                      value: peso(natirangBudget),
+                      color: natirangBudget < 0
+                          ? Colors.redAccent
+                          : (totalGastos >= budget * 0.9
+                              ? Colors.orangeAccent
+                              : Colors.greenAccent),
+                      icon: Icons.monetization_on,
+                      isFullWidth: true,
+                      highlightCard: true,
+                    ),
+                    const SizedBox(height: 24),
+// 🔥 BINAGONG BAHAGI: Tinanggal ang if(chartData.isNotEmpty) restriction para laging ipapakita ang Graph space
+                    Text(_getTxt('chart_title'),
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: _appFontColor.withValues(alpha: 0.7))),
-                    Text('${finalFilteredExpenses.length} items',
-                        style: const TextStyle(color: Colors.white38)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (all.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: TextField(
-                      controller: _searchController,
-                      enabled: !trialExpiredWithNoPremium,
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: trialExpiredWithNoPremium
-                            ? _getTxt('search_disabled_hint')
-                            : _getTxt('search_hint'),
-                        hintStyle: const TextStyle(
-                            color: Colors.white38, fontSize: 13),
-                        prefixIcon: const Icon(Icons.search,
-                            color: Color(0xFFFFD700), size: 20),
-                        suffixIcon:
-                            searchQuery.isNotEmpty && !trialExpiredWithNoPremium
+                    const SizedBox(height: 16),
+                    Center(
+                      child: SizedBox(
+                        width: 180,
+                        height: 180,
+                        child: CustomPaint(
+                          painter: PiePainter(
+                            data: chartData,
+                            total: totalGastosParaSaChart,
+                            selectedIndex: selectedIndex,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+// Laging naka-on ang grid at analytics box gamit ang visible data module engine
+                    runWalletCategoryLegends(visibleChartDataForLayout),
+                    const SizedBox(height: 16),
+                    _buildFinancialTrendsAndGoalsCard(
+                        totalGastos, natirangBudget),
+                    const SizedBox(height: 24),
+                    _buildInteractiveBarChartReport(visibleChartDataForLayout),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(_getTxt('history_title'),
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _appFontColor.withValues(alpha: 0.7))),
+                        Text('${finalFilteredExpenses.length} items',
+                            style: const TextStyle(
+                                color: Colors.white38, fontSize: 13)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.start,
+                      children: [
+                        _buildSortChip(
+                            filterValue: "latest",
+                            icon: Icons.access_time_rounded,
+                            label: _currentLocale == 'tl'
+                                ? 'Pinakabago'
+                                : (_currentLocale == 'id'
+                                    ? 'Terbaru'
+                                    : 'Latest')),
+                        _buildSortChip(
+                            filterValue: "oldest",
+                            icon: Icons.history_rounded,
+                            label: _currentLocale == 'tl'
+                                ? 'Pinakaluma'
+                                : (_currentLocale == 'id'
+                                    ? 'Terlama'
+                                    : 'Oldest')),
+                        _buildSortChip(
+                            filterValue: "highest",
+                            icon: Icons.arrow_upward_rounded,
+                            label: _currentLocale == 'tl'
+                                ? 'Pinakamataas'
+                                : (_currentLocale == 'id'
+                                    ? 'Tertinggi'
+                                    : 'Highest')),
+                        _buildSortChip(
+                            filterValue: "lowest",
+                            icon: Icons.arrow_downward_rounded,
+                            label: _currentLocale == 'tl'
+                                ? 'Pinakamababa'
+                                : (_currentLocale == 'id'
+                                    ? 'Terendah'
+                                    : 'Lowest')),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (all.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: TextField(
+                          controller: _searchController,
+                          enabled: !trialExpiredWithNoPremium,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: trialExpiredWithNoPremium
+                                ? _getTxt('search_disabled_hint')
+                                : _getTxt('search_hint'),
+                            hintStyle: const TextStyle(
+                                color: Colors.white38, fontSize: 13),
+                            prefixIcon: const Icon(Icons.search,
+                                color: Color(0xFFFFD700), size: 20),
+                            suffixIcon: searchQuery.isNotEmpty &&
+                                    !trialExpiredWithNoPremium
                                 ? IconButton(
                                     icon: const Icon(Icons.clear,
                                         size: 18, color: Colors.white54),
@@ -5130,303 +7222,325 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                     },
                                   )
                                 : null,
-                        filled: true,
-                        fillColor: _boxBgColor,
-                        contentPadding: const EdgeInsets.symmetric(
-                            vertical: 0, horizontal: 16),
-                        disabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: Color(0xFFFFD700), width: 1),
+                            filled: true,
+                            fillColor: _boxBgColor,
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 0, horizontal: 16),
+                            disabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.white10)),
+                            enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.white10)),
+                            focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFFFD700), width: 1)),
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              searchQuery = val.trim();
+                            });
+                          },
                         ),
                       ),
-                      onChanged: (val) {
-                        setState(() {
-                          searchQuery = val.trim();
-                        });
-                      },
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                if (finalFilteredExpenses.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Text(
-                          searchQuery.isNotEmpty
-                              ? _getTxt('no_match')
-                              : _getTxt('no_items'),
-                          style: const TextStyle(
-                              color: Colors.white38,
-                              fontStyle: FontStyle.italic)),
-                    ),
-                  )
-                else
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: finalFilteredExpenses.length,
-                    itemBuilder: (context, index) {
-                      // 🚀 TAMA: Diretsong index na dahil naka-sort na ang listahan sa itaas
-                      final item = finalFilteredExpenses[index];
-                      return Card(
-                        color: _boxBgColor,
-                        margin: EdgeInsets.symmetric(
-                            vertical: _isCompactMode ? 2 : 6),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: ListTile(
-                          contentPadding: _isCompactMode
-                              ? const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4)
-                              : const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                          leading: CircleAvatar(
-                            radius: _isCompactMode ? 16 : 20,
-                            backgroundColor: item.color,
-                            child: Icon(Icons.payments,
-                                color: Colors.black87,
-                                size: _isCompactMode ? 16 : 20),
-                          ),
-                          title: _isCompactMode
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(item.title,
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: _appFontColor,
-                                            fontSize: 13)),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                        DateFormat('MMM dd, yyyy - hh:mm a')
-                                            .format(item.date),
-                                        style: const TextStyle(
-                                            color: Colors.white38,
-                                            fontSize: 10)),
-                                  ],
-                                )
-                              : Text(item.title,
+                    const SizedBox(height: 4),
+                    if (finalFilteredExpenses.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                            child: Text(
+                                searchQuery.isNotEmpty
+                                    ? _getTxt('no_match')
+                                    : _getTxt('no_items'),
+                                style: const TextStyle(
+                                    color: Colors.white38,
+                                    fontStyle: FontStyle.italic))),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: finalFilteredExpenses.length,
+                        itemBuilder: (context, index) {
+                          final item = finalFilteredExpenses[index];
+                          return Card(
+                            color: _boxBgColor,
+                            margin: EdgeInsets.symmetric(
+                                vertical: _isCompactMode ? 2 : 6),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            child: ListTile(
+                              contentPadding: _isCompactMode
+                                  ? const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4)
+                                  : const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 4),
+                              leading: CircleAvatar(
+                                radius: _isCompactMode ? 16 : 20,
+                                backgroundColor: item.color,
+                                // 🔥 NAITAMA: Idinagdag ang TextStyle na walang kulay o may malinis na rendering para hindi ito maging puting silhouette
+                                child: Text(
+                                  item.iconEmoji,
                                   style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: _appFontColor,
-                                      fontSize: 14)),
-                          subtitle: _isCompactMode
-                              ? null
-                              : Text(
-                                  DateFormat('MMM dd, yyyy - hh:mm a')
-                                      .format(item.date),
-                                  style: const TextStyle(
-                                      color: Colors.white38, fontSize: 12)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(peso(item.amount),
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: _appFontColor,
-                                      fontSize: _isCompactMode ? 13 : 14)),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: Icon(Icons.edit,
-                                    color: trialExpiredWithNoPremium
-                                        ? Colors.white10
-                                        : const Color(0xFFFFD700),
-                                    size: 20),
-                                tooltip: _getTxt('edit_entry_tooltip'),
-                                onPressed: trialExpiredWithNoPremium
-                                    ? null
-                                    : () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) =>
-                                              AlertDialog(
-                                            backgroundColor:
-                                                const Color(0xFF1E1E1E),
-                                            title: Text(
-                                              _currentLocale == 'tl'
-                                                  ? 'I-edit ang Entry?'
-                                                  : (_currentLocale == 'id'
-                                                      ? 'Ubah Catatan?'
-                                                      : 'Edit Entry?'),
-                                              style: const TextStyle(
-                                                  color: Color(0xFFFFD700),
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            content: Text(
-                                              _currentLocale == 'tl'
-                                                  ? 'Gusto mo bang baguhin ang mga detalye ng "${item.title}"?'
-                                                  : (_currentLocale == 'id'
-                                                      ? 'Apakah Anda ingin mengubah detail untuk "${item.title}"?'
-                                                      : 'Do you want to modify the details for "${item.title}"?'),
-                                              style: const TextStyle(
-                                                  color: Colors.white70),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: Text(
-                                                  _getTxt('btn_cancel'),
-                                                  style: const TextStyle(
-                                                      color: Colors.white30),
-                                                ),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                  _showEditExpenseDialog(item);
-                                                },
-                                                child: Text(
+                                    fontSize: _isCompactMode ? 16 : 20,
+                                    color:
+                                        null, // 🚀 TAMA: Pinipigilan nitong sumunod sa puting global font color ng theme!
+                                  ),
+                                ),
+                              ),
+                              title: _isCompactMode
+                                  ? Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // 🔥 NAITAMA: Ginamit ang item.color sa halip na _appFontColor para manatiling makulay pagka-reload
+                                        Text(item.title,
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: item.color,
+                                                fontSize: 13)),
+                                        const SizedBox(height: 1),
+                                        Text(
+                                            DateFormat('MMM dd, yyyy - hh:mm a')
+                                                .format(item.date),
+                                            style: const TextStyle(
+                                                color: Colors.white38,
+                                                fontSize: 10)),
+                                      ],
+                                    )
+                                  // 🔥 NAITAMA: Ginamit din ang item.color dito para sa normal display mode
+                                  : Text(item.title,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: item.color,
+                                          fontSize: 14)),
+                              subtitle: _isCompactMode
+                                  ? null
+                                  : Text(
+                                      DateFormat('MMM dd, yyyy - hh:mm a')
+                                          .format(item.date),
+                                      style: const TextStyle(
+                                          color: Colors.white38, fontSize: 12)),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(peso(item.amount),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: _appFontColor,
+                                          fontSize: _isCompactMode ? 13 : 14)),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: Icon(Icons.edit,
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors.white10
+                                            : const Color(0xFFFFD700),
+                                        size: 20),
+                                    tooltip: _getTxt('edit_entry_tooltip'),
+                                    onPressed: trialExpiredWithNoPremium
+                                        ? null
+                                        : () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) =>
+                                                  AlertDialog(
+                                                backgroundColor:
+                                                    const Color(0xFF1E1E1E),
+                                                title: Text(
                                                   _currentLocale == 'tl'
-                                                      ? 'ITULOY'
+                                                      ? 'I-edit ang Entry?'
                                                       : (_currentLocale == 'id'
-                                                          ? 'LANJUTKAN'
-                                                          : 'PROCEED'),
+                                                          ? 'Ubah Catatan?'
+                                                          : 'Edit Entry?'),
                                                   style: const TextStyle(
                                                       color: Color(0xFFFFD700),
                                                       fontWeight:
                                                           FontWeight.bold),
                                                 ),
+                                                content: Text(
+                                                  _currentLocale == 'tl'
+                                                      ? 'Gusto mo bang baguhin ang mga detalye ng "${item.title}"?'
+                                                      : (_currentLocale == 'id'
+                                                          ? 'Apakah Anda ingin mengubah detail untuk "${item.title}"?'
+                                                          : 'Do you want to modify the details for "${item.title}"?'),
+                                                  style: const TextStyle(
+                                                      color: Colors.white70),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                    child: Text(
+                                                      _getTxt('btn_cancel'),
+                                                      style: const TextStyle(
+                                                          color:
+                                                              Colors.white30),
+                                                    ),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                      _showEditExpenseDialog(
+                                                          item);
+                                                    },
+                                                    child: Text(
+                                                      _currentLocale == 'tl'
+                                                          ? 'ITULOY'
+                                                          : (_currentLocale ==
+                                                                  'id'
+                                                              ? 'LANJUTKAN'
+                                                              : 'PROCEED'),
+                                                      style: const TextStyle(
+                                                          color:
+                                                              Color(0xFFFFD700),
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete_outline,
-                                    color: trialExpiredWithNoPremium
-                                        ? Colors.white10
-                                        : Colors.redAccent,
-                                    size: 20),
-                                tooltip: _getTxt('del_entry_tooltip'),
-                                onPressed: trialExpiredWithNoPremium
-                                    ? null
-                                    : () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) =>
-                                              AlertDialog(
-                                            backgroundColor:
-                                                const Color(0xFF1E1E1E),
-                                            title: Text(
-                                              _currentLocale == 'tl'
-                                                  ? 'Burahin ang Entry?'
-                                                  : (_currentLocale == 'id'
-                                                      ? 'Hapus Catatan?'
-                                                      : 'Delete Entry?'),
-                                              style: const TextStyle(
-                                                  color: Colors.redAccent,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            content: Text(
-                                              _currentLocale == 'tl'
-                                                  ? 'Sigurado ka bang gusto mong burahin ang "${item.title}" na nagkakahalagang ${peso(item.amount)}?'
-                                                  : (_currentLocale == 'id'
-                                                      ? 'Apakah Anda yakin ingin menghapus "${item.title}" senilai ${peso(item.amount)}?'
-                                                      : 'Are you sure you want to delete "${item.title}" worth ${peso(item.amount)}?'),
-                                              style: const TextStyle(
-                                                  color: Colors.white70),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: Text(
-                                                    _getTxt('btn_cancel'),
+                                            );
+                                          },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete_outline,
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors.white10
+                                            : Colors.redAccent,
+                                        size: 20),
+                                    tooltip: _getTxt('del_entry_tooltip'),
+                                    onPressed: trialExpiredWithNoPremium
+                                        ? null
+                                        : () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) =>
+                                                  AlertDialog(
+                                                backgroundColor:
+                                                    const Color(0xFF1E1E1E),
+                                                title: Text(
+                                                    _currentLocale == 'tl'
+                                                        ? 'Burahin ang Entry?'
+                                                        : (_currentLocale ==
+                                                                'id'
+                                                            ? 'Hapus Catatan?'
+                                                            : 'Delete Entry?'),
                                                     style: const TextStyle(
-                                                        color: Colors.white30)),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  String deletedItemTitle =
-                                                      item.title;
-                                                  setState(() {
-                                                    all.remove(item);
-                                                    saveData();
-                                                  });
-                                                  Navigator.pop(context);
-                                                  if (mounted) {
-                                                    String deleteSuccessMsg =
+                                                        color: Colors.redAccent,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                content: Text(
+                                                  _currentLocale == 'tl'
+                                                      ? 'Sigurado ka bang gusto mong burahin ang "${item.title}" na nagkakahalagang ${peso(item.amount)}?'
+                                                      : (_currentLocale == 'id'
+                                                          ? 'Apakah Anda yakin ingin menghapus "${item.title}" seharga ${peso(item.amount)}?'
+                                                          : 'Are you sure you want to delete "${item.title}" worth ${peso(item.amount)}?'),
+                                                  style: const TextStyle(
+                                                      color: Colors.white70),
+                                                ), // 🔥 NAITAMA: Narito ang tamang parenthesis at kuwit upang isara ang Text widget!
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, false),
+                                                    child: Text(
+                                                        _getTxt('btn_cancel'),
+                                                        style: const TextStyle(
+                                                            color: Colors
+                                                                .white30)),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      String deletedItemTitle =
+                                                          item.title;
+                                                      setState(() {
+                                                        all.remove(item);
+                                                        saveData();
+                                                      });
+                                                      Navigator.pop(context);
+                                                      if (mounted) {
+                                                        String
+                                                            deleteSuccessMsg =
+                                                            "";
+                                                        if (_currentLocale ==
+                                                            'tl') {
+                                                          deleteSuccessMsg =
+                                                              'Matagumpay na nabura ang "$deletedItemTitle"!';
+                                                        } else if (_currentLocale ==
+                                                            'id') {
+                                                          deleteSuccessMsg =
+                                                              '"$deletedItemTitle" berhasil dihapus!';
+                                                        } else {
+                                                          deleteSuccessMsg =
+                                                              '"$deletedItemTitle" successfully deleted!';
+                                                        }
+
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                                deleteSuccessMsg,
+                                                                style: const TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold)),
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .redAccent,
+                                                            behavior:
+                                                                SnackBarBehavior
+                                                                    .floating,
+                                                          ),
+                                                        );
+                                                      }
+                                                    },
+                                                    child: Text(
                                                         _currentLocale == 'tl'
-                                                            ? 'Matagumpay na nabura ang "$deletedItemTitle"!'
+                                                            ? 'BURAHIN'
                                                             : (_currentLocale ==
                                                                     'id'
-                                                                ? 'Berhasil menghapus "$deletedItemTitle"!'
-                                                                : '"$deletedItemTitle" successfully deleted!');
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          deleteSuccessMsg,
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white),
-                                                        ),
-                                                        backgroundColor:
-                                                            Colors.redAccent,
-                                                        behavior:
-                                                            SnackBarBehavior
-                                                                .floating,
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                                child: Text(
-                                                  _currentLocale == 'tl'
-                                                      ? 'BURAHIN'
-                                                      : (_currentLocale == 'id'
-                                                          ? 'HAPUS'
-                                                          : 'DELETE'),
-                                                  style: const TextStyle(
-                                                      color: Colors.redAccent,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
+                                                                ? 'HAPUS'
+                                                                : 'DELETE'),
+                                                        style: const TextStyle(
+                                                            color: Colors
+                                                                .redAccent,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold)),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                              )
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                const SizedBox(height: 70),
-              ],
+                                            );
+                                          },
+                                  )
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    const SizedBox(height: 70),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          _buildTourOverlayOverlay(),
+        ],
       ),
       floatingActionButton: SizedBox(
-        width:
-            38, // 🔥 MULA SA DEFAULT NA 56, GINAWA NATING 48 PARA MALIITAN NANG KAUNTI
-        height: 38, // 🔥 PAREHAS NA 48 PARA PANATILIHING PERFECT CIRCLE
+        width: 38,
+        height: 38,
         child: FloatingActionButton(
           backgroundColor:
               trialExpiredWithNoPremium ? Colors.grey : const Color(0xFFFFD700),
           shape: const CircleBorder(),
-          child: const Icon(
-            Icons.add,
-            color: Colors.black,
-            size:
-                24, // 🔥 BINABAAN MULA 30 PATUNGONG 24 PARA BUMAGAY SA MAS MALIIT NA BILOG
-          ),
+          child: const Icon(Icons.add, color: Colors.black, size: 24),
           onPressed: () {
             if (trialExpiredWithNoPremium) {
               _showUpgradeOptionsBottomSheet();
@@ -5440,65 +7554,98 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   Widget runWalletCategoryLegends(List chartData) {
-    return Wrap(
-      // 🔥 Matalinong spacing base sa kung naka-compact mode ang app
-      spacing: _isCompactMode ? 6 : 10,
-      runSpacing: _isCompactMode ? 6 : 10,
-      alignment: WrapAlignment.center,
-      children: List.generate(chartData.length, (index) {
-        final item = chartData[index];
-        final bool isSelected = selectedIndex == index;
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              selectedIndex = isSelected ? null : index;
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            // 🔥 Ginawang mas maliit ang padding kapag compact mode (horizontal 8, vertical 4)
-            padding: EdgeInsets.symmetric(
-                horizontal: _isCompactMode ? 8 : 12,
-                vertical: _isCompactMode ? 4 : 6),
-            decoration: BoxDecoration(
-              color:
-                  isSelected ? item.color.withValues(alpha: 0.25) : _boxBgColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? item.color : Colors.white10,
-                width: isSelected ? 1.5 : 1.0,
-              ),
-            ),
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: _isCompactMode
-                  ? 4
-                  : 6, // 🔥 Mas maliit na agwat sa pagitan ng bilog at text
-              children: [
-                Container(
-                  // 🔥 Pinalitang sukat mula 10 patungong 8 para sa kulay na bilog
-                  width: _isCompactMode ? 8 : 10,
-                  height: _isCompactMode ? 8 : 10,
-                  decoration:
-                      BoxDecoration(color: item.color, shape: BoxShape.circle),
-                ),
-                Text(
-                  "${item.title}: ${peso(item.total)}",
-                  style: TextStyle(
-                    // 🔥 Ginawang fontSize 10 (mula 12) para mas pino at compact tingnan
-                    fontSize: _isCompactMode ? 10 : 12,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected
-                        ? item.color
-                        : _appFontColor.withValues(alpha: 0.7),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 🔥 BAGONG LOGIC: Kapag naka-compact mode, laging 3 columns. Kapag normal, 2 o 3 depende sa laki ng screen.
+        int crossAxisCount =
+            _isCompactMode ? 3 : (constraints.maxWidth > 400 ? 3 : 2);
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: chartData.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 6, // Bahagyang pinalapit para mas compact
+            crossAxisSpacing: 6,
+            mainAxisExtent: _isCompactMode
+                ? 32
+                : 40, // Mas manipis na taas kapag compact mode
+          ),
+          itemBuilder: (context, index) {
+            final item = chartData[index];
+            final bool isSelected = selectedIndex == index;
+
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  selectedIndex = isSelected ? null : index;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding:
+                    EdgeInsets.symmetric(horizontal: _isCompactMode ? 6 : 10),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? item.color.withValues(alpha: 0.25)
+                      : _boxBgColor,
+                  borderRadius: BorderRadius.circular(_isCompactMode
+                      ? 8
+                      : 12), // Mas maliit na kanto kapag compact
+                  border: Border.all(
+                    color: isSelected ? item.color : Colors.white10,
+                    width: isSelected ? 1.5 : 1.0,
                   ),
                 ),
-              ],
-            ),
-          ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Maliit na kulay na bar sa gilid
+                    Container(
+                      width: _isCompactMode ? 4 : 5,
+                      height: _isCompactMode ? 12 : 16,
+                      decoration: BoxDecoration(
+                        color: item.color,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    SizedBox(width: _isCompactMode ? 4 : 8),
+                    // Emoji Icon
+                    Text(
+                      item.iconEmoji,
+                      style: TextStyle(
+                        fontSize: _isCompactMode ? 11 : 15,
+                        color:
+                            null, // 🚀 TAMA: Pinipigilan ding maging puti ang emoji dito pagka-reload!
+                      ),
+                    ),
+                    SizedBox(width: _isCompactMode ? 4 : 6),
+                    // Pangalan at Halaga ng Kategorya
+                    // HANAPIN ANG BAHAGING ITO:
+                    Expanded(
+                      child: Text(
+                        "${item.title}: ${peso(item.total)}",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: _isCompactMode ? 9 : 12,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          // 🔥 Laging gagamitin ang item.color para sumunod ito sa kulay ng indicator bar sa gilid mula unang load
+                          color: item.color,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
-      }),
+      },
     );
   }
 
@@ -5537,9 +7684,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           });
           setDialogState(() {});
           final p = await SharedPreferences.getInstance();
-          await p.setInt('app_background_color_value', bg.value);
-          await p.setInt('app_font_color_value', font.value);
-          await p.setInt('app_box_color_value', box.value);
+          await p.setInt('app_background_color_value', bg.toARGB32());
+          await p.setInt('app_font_color_value', font.toARGB32());
+          await p.setInt('app_box_color_value', box.toARGB32());
         },
       ),
     );
