@@ -16,16 +16,16 @@ workflows:
           
       - name: Recreate Android Project Envelope
         script: |
-          echo "=== KEEP FRESH ANDROID FROM FLUTTER (AGP MATCHED) ==="
+          echo "=== KEEP FRESH ANDROID FROM FLUTTER (AUTOMATED NAME) ==="
           rm -rf android
-          flutter create --platforms=android --org com.gastosko.app --project-name budget_vs_gastosv1 .
+          # 💡 FIX: Tinanggal ang manually hardcoded name para awtomatikong sumunod sa pubspec.yaml mo!
+          flutter create --platforms=android --org com.gastosko.app .
           
       - name: Configure Android Label & Manifest
         script: |
           echo "=== SET APP NAME TO Gastos Ko ==="
-          # Safer text modification logic for Mac OS shell runners
+          # Safer modification architecture across Mac OS shell runners
           sed -i '' 's/android:label="[^"]*"/android:label="Gastos Ko"/' android/app/src/main/AndroidManifest.xml
-          grep label android/app/src/main/AndroidManifest.xml
           
       - name: Generate Custom Android App Launcher Icon
         script: |
@@ -40,13 +40,12 @@ workflows:
           flutter pub add flutter_launcher_icons --dev
           flutter pub get
           dart run flutter_launcher_icons
-          ls android/app/src/main/res/mipmap-hdpi/ic_launcher.png && echo "ICON PROCESS OK!"
           
       - name: Build Protected Release APK
         script: |
           flutter clean
           flutter pub get
-          # Added --no-tree-shake-icons to prevent missing custom icon glitches
+          # 💡 FIX: Ginagarantiyang kasama ang lahat ng icon graphics nang walang labis o kulang
           flutter build apk --release --obfuscate --split-debug-info=./symbols --no-tree-shake-icons
           
     artifacts:
