@@ -9349,6 +9349,49 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
     return fil;
   }
 
+  void _showGlobalSuccessPopup(
+      {required String title, required String message, required String emoji}) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 48)),
+            const SizedBox(height: 16),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white54, fontSize: 12, height: 1.4)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              ),
+              child: const Text('OKAY',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // 1. EDIT PAYMENT DIALOG PIPELINE VALIDATION
 
   // 2. DELETE PAYMENT CONFIRMATION PIPELINE
@@ -9358,41 +9401,55 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         title: Text(
-            widget.currentLocale == 'en'
-                ? "Delete Entry?"
-                : (widget.currentLocale == 'id'
-                    ? "Hapus Catatan?"
-                    : "Burahin ang Entry?"),
+            _translate("Delete Entry?", "Hapus Catatan?", "Burahin ang Entry?"),
             style: const TextStyle(color: Colors.redAccent)),
-        content: Text(widget.currentLocale == 'en'
-            ? "Are you sure you want to remove this payment entry?"
-            : (widget.currentLocale == 'id'
-                ? "Apakah Anda yakin?"
-                : "Sigurado ka bang burahin ang tala ng bayad na ito?")),
+        content: Text(_translate(
+            "Are you sure you want to remove this payment entry?",
+            "Apakah Anda yakin?",
+            "Sigurado ka bang burahin ang tala ng bayad na ito?")),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(
-                  widget.currentLocale == 'en'
-                      ? "Cancel"
-                      : (widget.currentLocale == 'id' ? "Batal" : "Kanselahin"),
+              child: Text(_translate("Cancel", "Batal", "Kanselahin"),
                   style: const TextStyle(color: Colors.white38))),
           TextButton(
             onPressed: () {
+              double removedAmount = payment.amount;
+              String sym = widget.debt.currencySymbol.isNotEmpty
+                  ? widget.debt.currencySymbol
+                  : "₱";
+
               setState(() {
-                widget.debt.paidAmount -= payment.amount;
+                widget.debt.paidAmount -= removedAmount;
                 if (widget.debt.paidAmount < 0) widget.debt.paidAmount = 0.0;
-                widget.debt.payments.remove(
-                    payment); // Tinatanggal sa local sequential dynamic arrays list
+                widget.debt.payments.remove(payment);
               });
+
               Navigator.pop(context);
-              widget
-                  .onPaymentAdded(); // Pinupwersa ang auto-saving feature cache database system execution
+              _recalculateDebtPaidAmount();
+
+              // 🏆 INTERACTIVE SUCCESS PROMPT FOR DELETE
+              String popupTitle = "";
+              String popupMessage = "";
+
+              if (widget.currentLocale == 'en') {
+                popupTitle = "Payment Deleted! 🗑️";
+                popupMessage =
+                    "The payment entry of $sym${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} has been removed from history.";
+              } else if (widget.currentLocale == 'id') {
+                popupTitle = "Pembayaran Dihapus! 🗑️";
+                popupMessage =
+                    "Catatan pembayaran sebesar $sym${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} berhasil dihapus dari riwayat.";
+              } else {
+                popupTitle = "Bayad Nabura! 🗑️";
+                popupMessage =
+                    "Ang nakatalang hulog na nagkakahalagang $sym${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} ay matagumpay nang tinanggal sa kasaysayan.";
+              }
+
+              _showGlobalSuccessPopup(
+                  title: popupTitle, message: popupMessage, emoji: '🗑️');
             },
-            child: Text(
-                widget.currentLocale == 'en'
-                    ? "Delete"
-                    : (widget.currentLocale == 'id' ? "Hapus" : "Burahin"),
+            child: Text(_translate("Delete", "Hapus", "Burahin"),
                 style: const TextStyle(
                     color: Colors.redAccent, fontWeight: FontWeight.bold)),
           )
@@ -9463,8 +9520,9 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                               : "Halaga ng Bayad"),
                       labelStyle: const TextStyle(color: Colors.white54),
                       // 🌟 LIVE DYNAMIC TEXT PANEL LABEL DISPLAYER
+                      // 🛠️ ISANG TUTULDOK NA LANG ANG LALABAS DITO:
                       helperText:
-                          '${widget.currentLocale == 'en' ? "Remaining balance:" : (widget.currentLocale == 'id' ? "Sisa utang:" : "Natitirang utang:")}: $sym${NumberFormat('#,##0', 'en_US').format(liveRemaining.toInt())}',
+                          '${widget.currentLocale == 'en' ? "Remaining balance" : (widget.currentLocale == 'id' ? "Sisa utang" : "Natitirang utang")}: $sym${NumberFormat('#,##0', 'en_US').format(liveRemaining.toInt())}',
                       helperStyle: const TextStyle(
                           color: Colors.white38,
                           fontSize: 11,
@@ -9603,15 +9661,12 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
   // 🎯 GANAP NANG NAITAMA NA EDIT PAYMENT DIALOG (WITH COMMA & LIVE DYNAMIC REMAINING)
   // ====================================================
   void _showEditPaymentDialog(dynamic payment) {
-    // 🌟 SULUSYON: Nilagyan agad ng NumberFormat para may kuwit na agad sa pagbuka pa lang!
     final TextEditingController editCtrl = TextEditingController(
       text: NumberFormat('#,##0', 'en_US').format(payment.amount.toInt()),
     );
     String sym = widget.debt.currencySymbol.isNotEmpty
         ? widget.debt.currencySymbol
         : "₱";
-
-    // Kunin ang kasalukuyang totoong natitirang utang bago galawin ang payment entry na ito
     double kasalukuyangNatitirangUtang =
         widget.debt.totalAmount - widget.debt.paidAmount;
 
@@ -9627,11 +9682,9 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
             String btnCancel = _translate("CANCEL", "BATAL", "KANSELAHIN");
             String btnSave = _translate("SAVE", "SIMPAN", "I-SAVE");
 
-            // Linisin ang input string upang makuha ang double data value para sa live math calculations
             final String cleanText = editCtrl.text.replaceAll(',', '').trim();
             final double typedAmt = double.tryParse(cleanText) ?? 0.0;
 
-            // 🌟 LIVE BALANCING LOGIC: Ibabangga ang diprenya sa orihinal na bayad laban sa tinatype ngayon
             double liveRemainingLimit =
                 kasalukuyangNatitirangUtang + payment.amount - typedAmt;
             if (liveRemainingLimit < 0) liveRemainingLimit = 0.0;
@@ -9652,7 +9705,6 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                 keyboardType: TextInputType.number,
                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold),
-                // 🌟 AUTOMATIC COMMA FORMATTER: Dito pinupwersa ang live separator application habang nag-e-edit
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   CommaFormatter(),
@@ -9664,10 +9716,8 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                   labelText: labelTxt,
                   labelStyle:
                       const TextStyle(color: Colors.white54, fontSize: 12),
-                  // 🌟 AUTOMATIC LIVE DISPLAY UPDATE REBALANCING
-                  // 🛠️ GAWING ISANG TUTULDOK LANG ANG DALAWANG COLONS DITO:
                   helperText:
-                      '${widget.currentLocale == 'en' ? "Remaining balance:" : (widget.currentLocale == 'id' ? "Sisa utang:" : "Natitirang utang:")} $sym${NumberFormat('#,##0', 'en_US').format(liveRemainingLimit.toInt())}',
+                      '${_translate("Remaining balance", "Sisa utang", "Natitirang utang")}: $sym${NumberFormat('#,##0', 'en_US').format(liveRemainingLimit.toInt())}',
                   helperStyle: const TextStyle(
                       color: Colors.white38,
                       fontSize: 11,
@@ -9678,7 +9728,6 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                       borderSide: BorderSide(color: Color(0xFFFFD700))),
                 ),
                 onChanged: (value) {
-                  // Pinupwersa ang dialog window render tree na mag-refresh ng real-time sa screen
                   setDialogState(() {});
                 },
               ),
@@ -9695,13 +9744,11 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                     final double? newAmt = double.tryParse(rawText);
                     if (newAmt == null || newAmt <= 0) return;
 
-                    // Kunin ang kabuuang naibayad maliban sa kasalukuyang binabago ngayon
                     double otherPaymentsTotal = 0.0;
                     for (var p in widget.debt.payments) {
                       if (p != payment) otherPaymentsTotal += p.amount;
                     }
 
-                    // Pagsisiyasat kung ang bagong halaga ay magpapasobra sa orihinal na utang
                     if ((otherPaymentsTotal + newAmt) >
                         widget.debt.totalAmount) {
                       double maxAllowed =
@@ -9713,15 +9760,33 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                     }
 
                     setState(() {
-                      // 1. Ayusin ang kabuuang data sa top panel box widget interface system
                       widget.debt.paidAmount = otherPaymentsTotal + newAmt;
-                      // 2. I-commit ang bagong value sa mismong payment transaction list history entry array card item
                       payment.amount = newAmt;
                     });
 
                     Navigator.pop(context);
-                    widget
-                        .onPaymentAdded(); // Auto-save update sa SharedPreferences storage data cache registry disk file
+                    widget.onPaymentAdded();
+
+                    // 🏆 INTERACTIVE SUCCESS PROMPT FOR EDIT
+                    String popupTitle = "";
+                    String popupMessage = "";
+
+                    if (widget.currentLocale == 'en') {
+                      popupTitle = "Payment Updated! 💰";
+                      popupMessage =
+                          "The installment amount has been successfully changed to $sym${NumberFormat('#,##0', 'en_US').format(newAmt.toInt())}.";
+                    } else if (widget.currentLocale == 'id') {
+                      popupTitle = "Pembayaran Diperbarui! 💰";
+                      popupMessage =
+                          "Jumlah cicilan pembayaran berhasil diubah menjadi $sym${NumberFormat('#,##0', 'en_US').format(newAmt.toInt())}.";
+                    } else {
+                      popupTitle = "Bayad Na-update! 💰";
+                      popupMessage =
+                          "Ang halaga ng hulog ay matagumpay nang nailipat patungong $sym${NumberFormat('#,##0', 'en_US').format(newAmt.toInt())}.";
+                    }
+
+                    _showGlobalSuccessPopup(
+                        title: popupTitle, message: popupMessage, emoji: '✅');
                   },
                   child: Text(btnSave,
                       style: const TextStyle(
