@@ -1860,7 +1860,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text("🎯✨", style: TextStyle(fontSize: 48)),
+                            const Text("🎯", style: TextStyle(fontSize: 48)),
                             const SizedBox(height: 16),
                             Text(
                               _currentLocale == 'en'
@@ -2155,7 +2155,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text("📝✨", style: TextStyle(fontSize: 48)),
+                          const Text("📝", style: TextStyle(fontSize: 48)),
                           const SizedBox(height: 16),
                           Text(
                             _currentLocale == 'en'
@@ -2277,7 +2277,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text("🗑️✨", style: TextStyle(fontSize: 48)),
+                        const Text("🗑️", style: TextStyle(fontSize: 48)),
                         const SizedBox(height: 16),
                         Text(
                           _currentLocale == 'en'
@@ -10220,7 +10220,7 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                             Text(
                                 bagongNaipon >= goal.targetAmount
                                     ? "🎉🏆"
-                                    : "💰✨",
+                                    : "💰",
                                 style: const TextStyle(fontSize: 48)),
                             const SizedBox(height: 16),
                             Text(
@@ -10340,7 +10340,7 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text("📝✨", style: TextStyle(fontSize: 48)),
+                        const Text("📝", style: TextStyle(fontSize: 48)),
                         const SizedBox(height: 16),
                         Text(
                           _translate("NAME UPDATED!", "NAMA DIPERBARUI!",
@@ -10460,7 +10460,7 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text("💰✨", style: TextStyle(fontSize: 48)),
+                          const Text("💰", style: TextStyle(fontSize: 48)),
                           const SizedBox(height: 16),
                           Text(
                             _translate("AMOUNT UPDATED!", "JUMLAH DIPERBARUI!",
@@ -10952,7 +10952,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(lunasNa ? "🎉🏆" : "💰✨",
+                            Text(lunasNa ? "🎉🏆" : "💰",
                                 style: const TextStyle(fontSize: 48)),
                             const SizedBox(height: 16),
                             Text(
@@ -11139,6 +11139,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
 // Dynamic Loop List View for Goal Deposits Log
+            // Dynamic Loop List View for Goal Deposits Log
             Expanded(
               child: widget.goal.deposits.isEmpty
                   ? Center(
@@ -11164,35 +11165,208 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        "${_translate('Deposit', 'Setoran', 'Hulog')} #${idx + 1}",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: Color(0xFFFFD700))),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                        DateFormat('yyyy-MM-dd - hh:mm a')
+                                            .format(dep.date),
+                                        style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 10)),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                      "${_translate('Deposit', 'Setoran', 'Hulog')} #${idx + 1}",
+                                      "+ ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(dep.amount.toInt())}",
                                       style: const TextStyle(
+                                          color: Color(0xFF00E676),
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFFFFD700))),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      DateFormat('yyyy-MM-dd - hh:mm a')
-                                          .format(dep.date),
-                                      style: const TextStyle(
-                                          color: Colors.white38, fontSize: 10)),
+                                          fontSize: 14)),
+                                  const SizedBox(width: 8),
+                                  // 🔥 AKTIBONG DELETE ACTION HUB WITH SUCCESS PROMPT WINDOW
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.redAccent, size: 20),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          backgroundColor:
+                                              const Color(0xFF1E1E1E),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16)),
+                                          title: Text(_translate(
+                                              "Delete Deposit?",
+                                              "Hapus Setoran?",
+                                              "Burahin ang Hulog?")),
+                                          content: Text(_translate(
+                                              "Are you sure you want to permanently remove this deposit entry?",
+                                              "Apakah Anda yakin ingin menghapus catatan setoran ini secara permanen?",
+                                              "Sigurado ka bang gusto mong burahin nang tuluyan ang hulog na ito?")),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: Text(
+                                                  _translate("Cancel", "Batal",
+                                                      "Kanselahin"),
+                                                  style: const TextStyle(
+                                                      color: Colors.white38)),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                // 1. Kumuha ng kopya ng halaga para sa success display label registry tracker
+                                                double removedAmount =
+                                                    dep.amount;
+
+                                                setState(() {
+                                                  // 2. Ibawas ang halaga sa kabuuang naipon ng goal matrix profile
+                                                  widget.goal.savedAmount -=
+                                                      removedAmount;
+                                                  if (widget.goal.savedAmount <
+                                                      0)
+                                                    widget.goal.savedAmount =
+                                                        0.0;
+
+                                                  // 3. Alisin ang entry sa local list array list loop
+                                                  widget.goal.deposits
+                                                      .removeAt(idx);
+                                                });
+
+                                                // 4. I-save agad sa SharedPreferences database preferences disk file registry
+                                                widget.onDataChanged();
+                                                Navigator.pop(
+                                                    context); // Isasara ang Confirmation Dialog box checker
+
+                                                // 🎉 5. THE MULTILINGUAL SUCCESS PROMPT DIALOG CARD POPUP
+                                                showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext subCtx) =>
+                                                          AlertDialog(
+                                                    backgroundColor:
+                                                        const Color(0xFF1E1E1E),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        16)),
+                                                    content: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        const Text("🗑️",
+                                                            style: TextStyle(
+                                                                fontSize: 48)),
+                                                        const SizedBox(
+                                                            height: 16),
+                                                        Text(
+                                                          _translate(
+                                                              "DEPOSIT DELETED!",
+                                                              "SETORAN DIHAPUS!",
+                                                              "NABURA ANG HULOG!"),
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: const TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 8),
+                                                        Text(
+                                                          _translate(
+                                                              "Successfully removed the deposit of ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} from history.",
+                                                              "Berhasil menghapus setoran sebesar ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} dari riwayat.",
+                                                              "Matagumpay na nabura ang hulog na ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} sa kasaysayan."),
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style:
+                                                              const TextStyle(
+                                                                  color: Colors
+                                                                      .white54,
+                                                                  fontSize: 12,
+                                                                  height: 1.4),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 20),
+                                                        ElevatedButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  subCtx),
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                                const Color(
+                                                                    0xFFFFD700),
+                                                            foregroundColor:
+                                                                Colors.black,
+                                                            shape: RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            20)),
+                                                            padding:
+                                                                const EdgeInsets
+                                                                        .symmetric(
+                                                                    horizontal:
+                                                                        24,
+                                                                    vertical:
+                                                                        10),
+                                                          ),
+                                                          child: Text(
+                                                            _translate("OKAY",
+                                                                "OK", "SIGE"),
+                                                            style: const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Text(
+                                                  _translate("Delete", "Hapus",
+                                                      "Burahin"),
+                                                  style: const TextStyle(
+                                                      color: Colors.redAccent,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
-                              Text(
-                                  "+ ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(dep.amount.toInt())}",
-                                  style: const TextStyle(
-                                      color: Color(0xFF00E676),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14)),
                             ],
                           ),
                         );
                       },
                     ),
             ),
+
             const SizedBox(height: 8),
             ElevatedButton.icon(
               // 🔥 TAMA AT AKTIBO (FIX): Kung hindi pa 100% complete, papayagan nating magbukas ang input form dialog panel
@@ -11616,23 +11790,155 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                   final double? amt = double.tryParse(cleanText);
                   if (amt == null || amt <= 0) return;
 
+                  // 🛑 COGNITIVE PROTECTION FILTER: Kung sumobra ang ibinabayad sa natitirang balanse
                   if ((widget.debt.paidAmount + amt) >
                       widget.debt.totalAmount) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(_translate(
-                            "Excess payment amount!",
-                            "Jumlah pembayaran berlebih!",
-                            "Sobra ang iyong ibinayad!"))));
-                    return;
+                    Navigator.pop(
+                        context); // Isasara ang input table form view muna
+
+                    // 🎉 THE EXCESS PAYMENT WARNING PROMPT DIALOG SCREEN (Parehong style sa fully paid!)
+                    if (mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext warningCtx) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text("🛑⚠️",
+                                  style: TextStyle(fontSize: 48)),
+                              const SizedBox(height: 16),
+                              Text(
+                                _translate(
+                                    "EXCESS PAYMENT AMOUNT!",
+                                    "JUMLAH PEMBAYARAN BERLEBIH!",
+                                    "SOBRA ANG IYONG IBINAYAD!"),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _translate(
+                                    "The amount entered exceeds the outstanding balance. The maximum allowed remaining is $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}.",
+                                    "Jumlah yang dimasukkan melebihi sisa utang Anda. Sisa maksimum yang diperbolehkan adalah $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}.",
+                                    "Ang halagang inilagay mo ay lumampas sa natitirang balanse ng utang. Ang pinakamataas na pinapayagang i-hulog na lang ay $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}."),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                    height: 1.4),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(warningCtx),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFFD700),
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 10),
+                                ),
+                                child: Text(
+                                  _translate(
+                                      "TRY AGAIN", "COBA LAGI", "SUBUKAN ULIT"),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return; // Haharangin ang pagsusulat sa database file registry stream
                   }
+
+                  double bagongPaidTotal = widget.debt.paidAmount + amt;
 
                   setState(() {
                     widget.debt.payments
                         .add(DebtPayment(amount: amt, date: DateTime.now()));
-                    widget.debt.paidAmount += amt;
+                    widget.debt.paidAmount = bagongPaidTotal;
                   });
+
                   widget.onPaymentAdded();
                   Navigator.pop(context);
+
+                  if (mounted) {
+                    bool lunasNa = bagongPaidTotal >= widget.debt.totalAmount;
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        backgroundColor: const Color(0xFF1E1E1E),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(lunasNa ? "🎉🏆" : "🟢",
+                                style: const TextStyle(fontSize: 48)),
+                            const SizedBox(height: 16),
+                            Text(
+                              lunasNa
+                                  ? _translate(
+                                      "DEBT FULLY PAID! 🥳",
+                                      "UTANG LUNAS! 🥳",
+                                      "UTANG AY LUNAS NA! 🥳")
+                                  : _translate(
+                                      "PAYMENT ADDED!",
+                                      "PEMBAYARAN DICATAT!",
+                                      "NAITALA ANG BAYAD!"),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              lunasNa
+                                  ? _translate(
+                                      "Congratulations! You have settled the record for ${widget.debt.name.toUpperCase()}.",
+                                      "Selamat! Anda telah melunasi catatan untuk ${widget.debt.name.toUpperCase()}.",
+                                      "Salamat sa Diyos! Matagumpay mong nailunsad at nabayaran si ${widget.debt.name.toUpperCase()}.")
+                                  : _translate(
+                                      "Successfully added a payment of $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
+                                      "Berhasil mencatat pembayaran sebesar $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
+                                      "Matagumpay na naidagdag ang bayad na $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}."),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                  height: 1.4),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFD700),
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 10),
+                              ),
+                              child: Text(
+                                _translate("OKAY", "OK", "SIGE"),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
                 },
                 child: Text(_translate("Pay", "Bayar", "Ibayad"),
                     style: const TextStyle(
@@ -11750,6 +12056,8 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
 // Payments List View dynamic container loop
+
+            // Payments List View dynamic container loop
             Expanded(
               child: widget.debt.payments.isEmpty
                   ? Center(
@@ -11775,35 +12083,208 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        "${_translate('Payment', 'Pembayaran', 'Hulog')} #${idx + 1}",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: Color(0xFFFFD700))),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                        DateFormat('yyyy-MM-dd - hh:mm a')
+                                            .format(payment.date),
+                                        style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 10)),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                      "${_translate('Payment', 'Pembayaran', 'Hulog')} #${idx + 1}",
+                                      "+ ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(payment.amount.toInt())}",
                                       style: const TextStyle(
+                                          color: Color(0xFF00E676),
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFFFFD700))),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      DateFormat('yyyy-MM-dd - hh:mm a')
-                                          .format(payment.date),
-                                      style: const TextStyle(
-                                          color: Colors.white38, fontSize: 10)),
+                                          fontSize: 14)),
+                                  const SizedBox(width: 8),
+                                  // 🔥 AKTIBONG DELETE ACTION SA UTANG PAGE WITH SUCCESS DIALOG
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.redAccent, size: 20),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          backgroundColor:
+                                              const Color(0xFF1E1E1E),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16)),
+                                          title: Text(_translate(
+                                              "Delete Payment?",
+                                              "Hapus Pembayaran?",
+                                              "Burahin ang Bayad?")),
+                                          content: Text(_translate(
+                                              "Are you sure you want to permanently remove this payment entry?",
+                                              "Apakah Anda yakin ingin menghapus catatan pembayaran ini secara permanen?",
+                                              "Sigurado ka bang gusto mong burahin nang tuluyan ang tala ng bayad na ito?")),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: Text(
+                                                  _translate("Cancel", "Batal",
+                                                      "Kanselahin"),
+                                                  style: const TextStyle(
+                                                      color: Colors.white38)),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                // 1. Kumuha ng kopya ng halaga para sa history tracking display
+                                                double removedPaymentAmount =
+                                                    payment.amount;
+
+                                                setState(() {
+                                                  // 2. Ibawas ang halaga sa kabuuang naibayad na (paidAmount) ng utang
+                                                  widget.debt.paidAmount -=
+                                                      removedPaymentAmount;
+                                                  if (widget.debt.paidAmount <
+                                                      0)
+                                                    widget.debt.paidAmount =
+                                                        0.0;
+
+                                                  // 3. Alisin ang payment log sa array list
+                                                  widget.debt.payments
+                                                      .removeAt(idx);
+                                                });
+
+                                                // 4. I-save agad sa SharedPreferences database disk module
+                                                widget.onPaymentAdded();
+                                                Navigator.pop(
+                                                    context); // Isasara ang Confirmation Box
+
+                                                // 🎉 5. THE MULTILINGUAL SUCCESS PROMPT DIALOG CARD POPUP
+                                                showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext subCtx) =>
+                                                          AlertDialog(
+                                                    backgroundColor:
+                                                        const Color(0xFF1E1E1E),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        16)),
+                                                    content: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        const Text("🗑️",
+                                                            style: TextStyle(
+                                                                fontSize: 48)),
+                                                        const SizedBox(
+                                                            height: 16),
+                                                        Text(
+                                                          _translate(
+                                                              "PAYMENT DELETED!",
+                                                              "PEMBAYARAN DIHAPUS!",
+                                                              "NABURA ANG BAYAD!"),
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: const TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 8),
+                                                        Text(
+                                                          _translate(
+                                                              "Successfully removed the payment of ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} from history.",
+                                                              "Berhasil menghapus catatan pembayaran sebesar ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} dari riwayat.",
+                                                              "Matagumpay na nabura ang bayad na ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} sa kasaysayan."),
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style:
+                                                              const TextStyle(
+                                                                  color: Colors
+                                                                      .white54,
+                                                                  fontSize: 12,
+                                                                  height: 1.4),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 20),
+                                                        ElevatedButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  subCtx),
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                                const Color(
+                                                                    0xFFFFD700),
+                                                            foregroundColor:
+                                                                Colors.black,
+                                                            shape: RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            20)),
+                                                            padding:
+                                                                const EdgeInsets
+                                                                        .symmetric(
+                                                                    horizontal:
+                                                                        24,
+                                                                    vertical:
+                                                                        10),
+                                                          ),
+                                                          child: Text(
+                                                            _translate("OKAY",
+                                                                "OK", "SIGE"),
+                                                            style: const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Text(
+                                                  _translate("Delete", "Hapus",
+                                                      "Burahin"),
+                                                  style: const TextStyle(
+                                                      color: Colors.redAccent,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
-                              Text(
-                                  "+ ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(payment.amount.toInt())}",
-                                  style: const TextStyle(
-                                      color: Color(0xFF00E676),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14)),
                             ],
                           ),
                         );
                       },
                     ),
             ),
+
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: isFullyPaid ? null : _addPaymentEntryDialog,
@@ -11926,18 +12407,75 @@ class _DebtsPageState extends State<DebtsPage> {
               final double? newBeginningTotal = double.tryParse(cleanText);
               if (newBeginningTotal == null || newBeginningTotal <= 0) return;
 
+              // 🛑 ERROR DETECTION MATRIX WITH POPUP PROMPT DIALOG SCREEN
               if (newBeginningTotal < debt.paidAmount) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(widget.currentLocale == 'en'
-                        ? "Amount cannot be lower than the already paid amount!"
-                        : (widget.currentLocale == 'id'
-                            ? "Jumlah tidak boleh lebih rendah dari yang sudah dibayar!"
-                            : "Hindi pwedeng mas mababa sa naibayad na!")),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-                return;
+                Navigator.pop(
+                    context); // Isasara ang kasalukuyang input editing window panel muna
+
+                if (mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext errorCtx) => AlertDialog(
+                      backgroundColor: const Color(0xFF1E1E1E),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text("⚠️", style: TextStyle(fontSize: 48)),
+                          const SizedBox(height: 16),
+                          Text(
+                            widget.currentLocale == 'en'
+                                ? "INVALID DEBT AMOUNT!"
+                                : (widget.currentLocale == 'id'
+                                    ? "JUMLAH UTANG TIDAK VALID!"
+                                    : "MALI ANG HALAGA NG UTANG!"),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.currentLocale == 'en'
+                                ? "The new total debt cannot be lower than the payments already recorded ($sym${NumberFormat('#,##0', 'en_US').format(debt.paidAmount.toInt())})."
+                                : (widget.currentLocale == 'id'
+                                    ? "Jumlah utang baru tidak boleh lebih rendah dari pembayaran yang sudah dicatat ($sym${NumberFormat('#,##0', 'en_US').format(debt.paidAmount.toInt())})."
+                                    : "Ang bagong kabuuang utang ay hindi maaaring mas mababa sa naibayad na pondo sa kasalukuyan ($sym${NumberFormat('#,##0', 'en_US').format(debt.paidAmount.toInt())})."),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                                height: 1.4),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(errorCtx),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFD700),
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 10),
+                            ),
+                            child: Text(
+                              widget.currentLocale == 'en'
+                                  ? "TRY AGAIN"
+                                  : (widget.currentLocale == 'id'
+                                      ? "COBA LAGI"
+                                      : "SUBUKAN ULIT"),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return; // Pinipigilan ang maling pag-save sa database settings file
               }
 
               setState(() {
@@ -11956,7 +12494,7 @@ class _DebtsPageState extends State<DebtsPage> {
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("💰✨", style: TextStyle(fontSize: 48)),
+                      const Text("💰", style: TextStyle(fontSize: 48)),
                       const SizedBox(height: 16),
                       Text(
                         widget.currentLocale == 'en'
@@ -12200,8 +12738,79 @@ class _DebtsPageState extends State<DebtsPage> {
                       payments: [],
                     ));
                   });
-                  Navigator.pop(context);
+
                   widget.onDataChanged();
+                  Navigator.pop(
+                      context); // Isasara ang lagayan ng input box dialog matrix form view
+
+                  // 🎉 MULTILINGUAL SUCCESS PROMPT CARD DIALOG WINDOW: Lalabas pagkatapos ma-save ang bagong record ng utang
+                  if (mounted) {
+                    String cleanName = name.toUpperCase();
+                    String formattedAmount =
+                        "$selectedDebtCurrencySymbol${NumberFormat('#,##0', 'en_US').format(total.toInt())}";
+
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext successCtx) => AlertDialog(
+                        backgroundColor: const Color(0xFF1E1E1E),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text("📝", style: TextStyle(fontSize: 48)),
+                            const SizedBox(height: 16),
+                            Text(
+                              widget.currentLocale == 'en'
+                                  ? "RECORD SAVED!"
+                                  : (widget.currentLocale == 'id'
+                                      ? "CATATAN DISIMPAN!"
+                                      : "NAITALA ANG UTANG!"),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              widget.currentLocale == 'en'
+                                  ? "Successfully added a new debt transaction of $formattedAmount for $cleanName."
+                                  : (widget.currentLocale == 'id'
+                                      ? "Berhasil menambahkan transaksi utang baru sebesar $formattedAmount untuk $cleanName."
+                                      : "Matagumpay na naidagdag ang bagong utang na nagkakahalagang $formattedAmount para kay $cleanName."),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                  height: 1.4),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(successCtx),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFD700),
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 10),
+                              ),
+                              child: Text(
+                                widget.currentLocale == 'en'
+                                    ? "OKAY"
+                                    : (widget.currentLocale == 'id'
+                                        ? "OK"
+                                        : "SIGE"),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
                 },
                 child: Text(
                   widget.currentLocale == 'en'
@@ -12266,7 +12875,7 @@ class _DebtsPageState extends State<DebtsPage> {
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("📝✨", style: TextStyle(fontSize: 48)),
+                      const Text("📝", style: TextStyle(fontSize: 48)),
                       const SizedBox(height: 16),
                       Text(
                         widget.currentLocale == 'en'
@@ -12379,7 +12988,7 @@ class _DebtsPageState extends State<DebtsPage> {
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("🗑️✨", style: TextStyle(fontSize: 48)),
+                      const Text("🗑️", style: TextStyle(fontSize: 48)),
                       const SizedBox(height: 16),
                       Text(
                         widget.currentLocale == 'en'
@@ -12842,7 +13451,12 @@ class _DebtsPageState extends State<DebtsPage> {
                                       children: [
                                         Text(
                                             isFullyPaid
-                                                ? "LUNAS"
+                                                ? (widget.currentLocale == 'en'
+                                                    ? "SETTLED"
+                                                    : (widget.currentLocale ==
+                                                            'id'
+                                                        ? "LUNAS"
+                                                        : "LUNAS"))
                                                 : "${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(remaining.toInt())}",
                                             style: TextStyle(
                                                 color: isFullyPaid
@@ -13194,7 +13808,7 @@ class _DebtsPageState extends State<DebtsPage> {
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(lunasNa ? "🎉🏆" : "🟢✨",
+                            Text(lunasNa ? "🎉🏆" : "🟢",
                                 style: const TextStyle(fontSize: 48)),
                             const SizedBox(height: 16),
                             Text(
