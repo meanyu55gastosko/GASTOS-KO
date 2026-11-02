@@ -10799,223 +10799,226 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     String sym = widget.goal.currencySymbol.isNotEmpty
         ? widget.goal.currencySymbol
         : "₱";
+
+    double natitirangKailangan =
+        widget.goal.targetAmount - widget.goal.savedAmount;
+    if (natitirangKailangan < 0) natitirangKailangan = 0.0;
     double kasalukuyangKulang =
         widget.goal.targetAmount - widget.goal.savedAmount;
     if (kasalukuyangKulang < 0) kasalukuyangKulang = 0.0;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          // 🔥 IDINAGDAG: Local variable para sa live text verification layout display tracking control
-          String internalDepositErrorText = "";
-
-          return AlertDialog(
-            backgroundColor: const Color(0xFF1E1E24),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text(
-              _translate("Add Deposit", "Tambah Setoran", "Maghulog sa Ipon"),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16),
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          _translate("Add Deposit", "Tambah Setoran", "Magtala ng Hulog"),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: amountCtrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  CommaFormatter()
+                ],
+                decoration: InputDecoration(
+                  prefixText: '$sym ',
+                  prefixStyle: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+                  labelText: _translate(
+                      "Deposit Amount", "Jumlah Setoran", "Halaga ng Hulog"),
+                  labelStyle:
+                      const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${_translate("Remaining needed:", "Sisa yang dibutuhkan:", "Natitirang kailangan:")} $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}',
+                style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              _translate("Cancel", "Batal", "Kanselahin"),
+              style: const TextStyle(color: Colors.white38),
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: amountCtrl,
-                    keyboardType: TextInputType.number,
-                    autofocus: true,
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      CommaFormatter()
-                    ],
-                    decoration: InputDecoration(
-                      prefixText: '$sym ',
-                      prefixStyle: const TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontWeight: FontWeight.bold),
-                      labelText: _translate("Deposit Amount", "Jumlah Setoran",
-                          "Halaga ng Ihuhulog"),
-                      labelStyle:
-                          const TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${_translate("Remaining needed:", "Sisa yang dibutuhkan:", "Natitirang kulang:")} $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}',
-                    style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold),
-                  ),
+          ),
+          TextButton(
+            onPressed: () {
+              final String cleanText =
+                  amountCtrl.text.replaceAll(',', '').trim();
+              final double? amt = double.tryParse(cleanText);
+              if (amt == null || amt <= 0) return;
 
-                  // 🛑 LIVE VALIDATION DISPLAY AREA: Dito lalabas ang pulang error card sa harap mismo ng diálogo
-                  if (internalDepositErrorText.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: Colors.redAccent.withValues(alpha: 0.5),
-                            width: 1),
-                      ),
-                      child: Row(
+              // 🛑 EXCESS PROTECTION BLOCK: Kung sumobra ang ihuhulog sa natitirang kailangan
+              if (amt > natitirangKailangan) {
+                Navigator.pop(context); // Isasara ang input form window muna
+
+                // 🎉 THE EXCESS DEPOSIT WARNING PROMPT DIALOG SCREEN
+                if (mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext warningCtx) => AlertDialog(
+                      backgroundColor: const Color(0xFF1E1E1E),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.error_outline,
-                              color: Colors.redAccent, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
+                          const Text("🛑", style: TextStyle(fontSize: 48)),
+                          const SizedBox(height: 16),
+                          Text(
+                            _translate(
+                                "EXCESS DEPOSIT AMOUNT!",
+                                "JUMLAH SETORAN BERLEBIH!",
+                                "SOBRA ANG IYONG HULOG!"),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _translate(
+                                "The amount entered exceeds the remaining balance needed to reach your goal. The maximum allowed is $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}.",
+                                "Jumlah yang dimasukkan melebihi sisa yang dibutuhkan para mencapai target. Sisa maksimum yang diperbolehkan adalah $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}.",
+                                "Ang halagang inilagay mo ay lumampas sa natitirang kailangan para maabot ang iyong target. Ang pinakamataas na pinapayagang i-hulog na lang ay $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}."),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                                height: 1.4),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(warningCtx),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFD700),
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 10),
+                            ),
                             child: Text(
-                              internalDepositErrorText,
-                              style: const TextStyle(
-                                  color: Colors.redAccent,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.bold),
+                              _translate(
+                                  "TRY AGAIN", "COBA LAGI", "SUBUKAN ULIT"),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(_translate("Cancel", "Batal", "Kanselahin"),
-                    style: const TextStyle(color: Colors.white38)),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final String cleanText =
-                      amountCtrl.text.replaceAll(',', '').trim();
-                  final double? amt = double.tryParse(cleanText);
-                  if (amt == null || amt <= 0) return;
+                  );
+                }
+                return; // Pipigilan ang maling mathematical tracking
+              }
 
-                  // 🛑 VALIDATION 1: Kung kompleto na ang 100% target line
-                  if (widget.goal.savedAmount >= widget.goal.targetAmount) {
-                    setDialogState(() {
-                      internalDepositErrorText = _translate(
-                          "Cannot add deposit because this goal is already 100% completed! 🛑",
-                          "Tidak maaari menambah setoran karena target sudah tercapai 100%! 🛑",
-                          "Bawal na maghulog dahil nakamit na ang 100% ng iyong target! 🛑");
-                    });
-                    return;
-                  }
+              // Normal flow kung sakaling tama o sakto ang halaga
+              double bagongSavedTotal = widget.goal.savedAmount + amt;
 
-                  // 🛑 VALIDATION 2: Kung sumobra ang ihuhulog sa natitirang kulang sa ipon
-                  if ((widget.goal.savedAmount + amt) >
-                      widget.goal.targetAmount) {
-                    setDialogState(() {
-                      internalDepositErrorText = _translate(
-                          "Excess deposit amount! Remaining allowed is $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}",
-                          "Jumlah setoran berlebih! Sisa yang diperbolehkan adalah $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}",
-                          "Sobra ang iyong ihuhulog! Ang natitirang kulang na lang ay $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}");
-                    });
-                    return;
-                  }
+              setState(() {
+                widget.goal.deposits
+                    .add(GoalDeposit(amount: amt, date: DateTime.now()));
+                widget.goal.savedAmount = bagongSavedTotal;
+              });
 
-                  // Matagumpay na pagpoproseso at pag-update sa disk registry array data stream
-                  double bagongNaipon = widget.goal.savedAmount + amt;
+              widget.onDataChanged();
+              Navigator.pop(context); // Isasara ang input entry card
 
-                  setState(() {
-                    widget.goal.deposits
-                        .add(GoalDeposit(amount: amt, date: DateTime.now()));
-                    widget.goal.savedAmount = bagongNaipon;
-                  });
-
-                  widget
-                      .onDataChanged(); // I-trigger ang shared preferences file storage data dispatcher save script
-                  Navigator.pop(
-                      context); // Isasara ang input dialogue box panel frame
-
-                  // 🎉 KUMPIRMASYON PROMPT CARD WINDOW (KATULAD SA MAIN SCREEN AT UTANG PAGE)
-                  if (mounted) {
-                    bool lunasNa = bagongNaipon >= widget.goal.targetAmount;
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) => AlertDialog(
-                        backgroundColor: const Color(0xFF1E1E1E),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(lunasNa ? "🎉🏆" : "💰",
-                                style: const TextStyle(fontSize: 48)),
-                            const SizedBox(height: 16),
-                            Text(
-                              lunasNa
-                                  ? _translate(
-                                      "TARGET ACHIEVED! 🥳",
-                                      "TARGET TERCAPAI! 🥳",
-                                      "CONGRATULATIONS! 🥳")
-                                  : _translate(
-                                      "DEPOSIT ADDED!",
-                                      "SETORAN DITAMBAHKAN!",
-                                      "NAIHULOG NA MAAYOS!"),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              lunasNa
-                                  ? _translate(
-                                      "You have successfully saved the full amount for ${widget.goal.name.toUpperCase()}!",
-                                      "Anda telah berhasil menabung seluruh dana untuk ${widget.goal.name.toUpperCase()}!",
-                                      "Matagumpay mong naipon ang buong pondo para sa ${widget.goal.name.toUpperCase()}!")
-                                  : _translate(
-                                      "Successfully added $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())} to your savings!",
-                                      "Berhasil menambahkan $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())} ke tabungan Anda!",
-                                      "Matagumpay na naidagdag ang $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())} sa iyong ipon!"),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 12,
-                                  height: 1.4),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFD700),
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20)),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 10),
-                              ),
-                              child: Text(_translate("OKAY", "OK", "SIGE"),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                            ),
-                          ],
+              // 🎉 KUMPIRMASYON SUCCESS PROMPT WINDOW PAGKATAPOS MAGHULOG
+              if (mounted) {
+                bool goalNaabot = bagongSavedTotal >= widget.goal.targetAmount;
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) => AlertDialog(
+                    backgroundColor: const Color(0xFF1E1E1E),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(goalNaabot ? "🎉🏆" : "🟢✨",
+                            style: const TextStyle(fontSize: 48)),
+                        const SizedBox(height: 16),
+                        Text(
+                          goalNaabot
+                              ? _translate(
+                                  "GOAL TARGET ACHIEVED! 🥳",
+                                  "TARGET COAL TERCAPAI! 🥳",
+                                  "NAABOT ANG TARGET GOAL! 🥳")
+                              : _translate("DEPOSIT ADDED!", "SETORAN DICATAT!",
+                                  "NAITALA ANG HULOG!"),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
                         ),
-                      ),
-                    );
-                  }
-                },
-                child: Text(_translate("Deposit", "Setor", "Ihulog"),
-                    style: const TextStyle(
-                        color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
-              )
-            ],
-          );
-        },
+                        const SizedBox(height: 8),
+                        Text(
+                          goalNaabot
+                              ? _translate(
+                                  "Congratulations! You have fully reached your savings goal for ${widget.goal.name.toUpperCase()}.",
+                                  "Selamat! Anda telah sepenuhnya mencapai target tabungan untuk ${widget.goal.name.toUpperCase()}.",
+                                  "Salamat sa Diyos! Matagumpay mong naipon at naabot ang target pondo para sa ${widget.goal.name.toUpperCase()}.")
+                              : _translate(
+                                  "Successfully added a deposit of $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
+                                  "Berhasil mencatat setoran sebesar $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
+                                  "Matagumpay na naidagdag ang hulog na $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}."),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12, height: 1.4),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFD700),
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 10),
+                          ),
+                          child: Text(
+                            _translate("OKAY", "OK", "SIGE"),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Text(
+              _translate("Deposit", "Setor", "Ihulog"),
+              style: const TextStyle(
+                  color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+            ),
+          )
+        ],
       ),
     );
   }
@@ -11807,8 +11810,7 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text("🛑⚠️",
-                                  style: TextStyle(fontSize: 48)),
+                              const Text("🛑", style: TextStyle(fontSize: 48)),
                               const SizedBox(height: 16),
                               Text(
                                 _translate(
