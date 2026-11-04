@@ -411,6 +411,7 @@ class _SplashState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scale, _glow;
+
   @override
   void initState() {
     super.initState();
@@ -422,16 +423,16 @@ class _SplashState extends State<SplashScreen>
     _glow = Tween<double>(begin: 25, end: 70)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
 
-    _navigateToNext();
+    _navigateToNext(); // 🔥 Tinatawag ang naitamang method sa ilalim
   }
 
+  // 🚀 PRODUCTION SECURE ROUTINE: Laging dadaan sa Login PIN Code Screen
   Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(milliseconds: 2500));
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
 
-    // 🔥 TIGNAN KUNG BAGONG INSTALL PARA SA QUICK TOUR
     bool isTourDone = prefs.getBool('is_app_quick_tour_done') ?? false;
     if (!isTourDone) {
       Navigator.pushReplacement(
@@ -439,32 +440,33 @@ class _SplashState extends State<SplashScreen>
       return;
     }
 
+    if (prefs.getString('app_install_date') == null) {
+      await prefs.setString(
+          'app_install_date', DateTime.now().toIso8601String());
+    }
+
+    // Alamin ang eksaktong lifecycle parameters para sa background setup
     String? installDateStr = prefs.getString('app_install_date');
-    DateTime now = DateTime.now();
     bool isExpired = false;
-
-    if (installDateStr == null) {
-      await prefs.setString('app_install_date', now.toIso8601String());
-    } else {
+    if (installDateStr != null) {
       DateTime installDate = DateTime.parse(installDateStr);
-      int daysUsed = now.difference(installDate).inDays;
+      int daysUsed = DateTime.now().difference(installDate).inDays;
       bool isPremium = prefs.getBool('is_premium_user') ?? false;
-
       if (daysUsed >= 30 && !isPremium) {
         isExpired = true;
       }
     }
 
     final savedPin = prefs.getString('user_pincode');
-
     if (savedPin == null || savedPin.isEmpty) {
       Navigator.pushReplacement(context,
           MaterialPageRoute(builder: (_) => const RegistrationScreen()));
     } else {
+      // 🔒 PRO PRODUCTION GATEWAY: Sapilitang hihingiin ang PIN tuwing bubuksan ang app!
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-              builder: (context) => PinCodeScreen(
+              builder: (_) => PinCodeScreen(
                     isRegistration: false,
                     isTrialExpiredMode: isExpired,
                   )));
@@ -560,7 +562,7 @@ class _PinCodeScreenState extends State<PinCodeScreen> {
     'en': {
       'set_pin': 'SET YOUR PINCODE',
       'enter_pin': 'ENTER YOUR PINCODE',
-      'trial_expired_title': '🔒 TRIAL EXPIRED LOCK',
+      'trial_expired_title': 'FREE TRIAL EXPIRED LOCK',
       'trial_expired_info':
           'Your 30-day free trial has expired. Enter PIN to view limited historical data.',
       'pin_len_err': 'PIN code must be 4 digits.',
@@ -1228,6 +1230,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   bool _isCompactMode = false;
   bool _isPrivacyHideMode = false;
   bool _isInteractiveTourActive = false;
+  bool trialExpiredWithNoPremium = false;
   int _currentTourStep = 0;
   int _trialDaysLeft = 30;
   int _currentTabIndex = 0;
@@ -1409,9 +1412,80 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   color: _appFontColor.withValues(alpha: 0.7)),
             ),
             IconButton(
-              icon: const Icon(Icons.add_circle,
-                  color: Color(0xFFFFD700), size: 24),
-              onPressed: _showCreateNewGoalDialog,
+              // 🔥 SULUSYON: Awtomatikong magiging kulay Gray ang icon kapag limitado na ang account para mukhang disabled
+              icon: Icon(
+                Icons.add_circle,
+                color: (!_isPremiumUser && savingsGoals.length >= 2)
+                    ? Colors
+                        .white24 // Kulay gray/transparent kapag naka-lock na
+                    : const Color(
+                        0xFFFFD700), // Orihinal na kulay Gold kapag active
+                size: 24,
+              ),
+              onPressed: () {
+                if (!_isPremiumUser && savingsGoals.length >= 2) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      duration: const Duration(seconds: 4),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.only(
+                        top: MediaQuery.of(context).padding.top + 10,
+                        left: 16,
+                        right: 16,
+                      ),
+                      dismissDirection: DismissDirection.up,
+                      content: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _currentLocale ==
+                                      'en' // 🔥 Naitama ang pagkakasunod ng English fallback validation grid
+                                  ? '🛑 Limited to 2 free goals!'
+                                  : (_currentLocale == 'id'
+                                      ? '🛑 Terbatas 2 target tabungan!'
+                                      : '🛑 Limitado sa 2 libreng layunin!'),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Colors.white),
+                            ),
+                          ),
+                          // 🔥 CLICKABLE UPGRADE LINK BUTTON
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              backgroundColor: const Color(0xFFFFD700),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6)),
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context)
+                                  .hideCurrentSnackBar();
+                              _showUpgradeOptionsBottomSheet(); // 🚀 REDIRECT SA PLAN CHOOSE PAGE
+                            },
+                            child: Text(
+                              _currentLocale == 'tl'
+                                  ? 'MAG-UPGRADE' // 🔥 Isinalin sa Tagalog
+                                  : (_currentLocale == 'id'
+                                      ? 'UPGRADE' // Standard na ginagamit sa Bahasa Indonesia para sa tech/apps
+                                      : 'UPGRADE'), // Default para sa English
+                              style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                _showCreateNewGoalDialog();
+              },
             )
           ],
         ),
@@ -1661,6 +1735,62 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   // Idagdag ang argument na ito sa function definition mo:
   // Idagdag ang argument na ito sa function definition mo:
   void _showCreateNewGoalDialog({VoidCallback? onSaveSuccess}) {
+    if (!_isPremiumUser && savingsGoals.length >= 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+          ),
+          dismissDirection: DismissDirection.up,
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  _currentLocale == 'en'
+                      ? '🛑 Limited to 2 free goals!'
+                      : (_currentLocale == 'id'
+                          ? '🛑 Terbatas 2 target tabungan!'
+                          : '🛑 Limitado sa 2 libreng layunin!'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.white),
+                ),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  backgroundColor: const Color(0xFFFFD700),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  _showUpgradeOptionsBottomSheet();
+                },
+                child: Text(
+                  _currentLocale == 'tl'
+                      ? 'MAG-UPGRADE'
+                      : (_currentLocale == 'id' ? 'UPGRADE' : 'UPGRADE'),
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return; // 🔥 MAHALAGA: Puputulin nito ang function para hindi na bumukas ang dialog!
+    }
     final TextEditingController nameController = TextEditingController();
     final TextEditingController amountController = TextEditingController();
     DateTime selectedDate = DateTime.now().add(const Duration(days: 30));
@@ -3467,7 +3597,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       'history_title': 'Expense Entry History',
       'no_items': 'No encoded expenses. Tap + below!',
       'search_hint': 'Search category (e.g., Food)...',
-      'search_disabled_hint': 'Search disabled (Trial Expired)',
+      'search_disabled_hint': 'Search disabled (Free Trial Expired)',
       'no_match': 'No matching category found.',
       'add_expense': 'Add Expense',
       'edit_expense': 'Edit Entry',
@@ -3945,10 +4075,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   Future<void> _exportWalletToCSV(List filteredList) async {
+    // 🛑 PRO UPGRADE BLOCKER: Haharangin ang pag-export kapag expired na ang trial
     if (_isTrialExpired && !_isPremiumUser) {
-      _showUpgradeOptionsBottomSheet();
+      _showExpiredPaywallPromptDialog();
       return;
     }
+
     if (filteredList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_getTxt('no_exp_err'))),
@@ -3956,7 +4088,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       return;
     }
 
-    // Prompt Box
+    // Prompt Box Confirmation
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -4021,7 +4153,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         }
       }
 
-      // 🛠️ KALKULASYON NG KABUUANG GASTOS AT NATITIRANG BADYET
       final double totalExpenses =
           filteredList.fold(0.0, (sum, item) => sum + item.amount);
       final double remainingBudget = activeWalletBudget - totalExpenses;
@@ -4034,7 +4165,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               : (_currentLocale == 'id'
                   ? 'Anggaran Dompet ($_currentCurrency)'
                   : 'Wallet Budget ($_currentCurrency)'),
-          // 🔥 IDINAGDAG ANG HEADER NG REMAINING BUDGET SA CSV
           _currentLocale == 'tl'
               ? 'Natitirang Budget ($_currentCurrency)'
               : (_currentLocale == 'id'
@@ -4055,7 +4185,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         csvRows.add([
           activeWalletName,
           activeWalletBudget,
-          remainingBudget, // 🔥 IDINAGDAG ANG DATA NG REMAINING BUDGET SA ROW
+          remainingBudget,
           expense.id,
           expense.title,
           expense.amount,
@@ -4083,11 +4213,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   Future<void> _exportWalletToPDF(List filteredList) async {
-    final bool trialExpiredWithNoPremium = _isTrialExpired && !_isPremiumUser;
-    if (trialExpiredWithNoPremium) {
-      _showUpgradeOptionsBottomSheet();
+    // 🛑 PRO UPGRADE BLOCKER: Haharangin ang pag-export kapag expired na ang trial
+    if (_isTrialExpired && !_isPremiumUser) {
+      _showExpiredPaywallPromptDialog();
       return;
     }
+
     if (filteredList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -4174,15 +4305,13 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       String formatPdfCurrency(double value) {
         String originalFormatted = peso(value);
         if (_currentCurrency == 'PHP' || _currentCurrency == '₱') {
-          final rawNumbers = originalFormatted
-              .replaceAll(RegExp(r'[^\d.,-]'), '')
-              .trim(); // Pinapayagan ang negative sign kung lumampas sa budget
+          final rawNumbers =
+              originalFormatted.replaceAll(RegExp(r'[^\d.,-]'), '').trim();
           return 'P$rawNumbers';
         }
         return originalFormatted;
       }
 
-      // 🛠️ KALKULASYON NG MGA DETALYE NG BUDGET
       final double totalExpenses =
           filteredList.fold(0.0, (sum, item) => sum + item.amount);
       final double remainingBudget = budget - totalExpenses;
@@ -4207,7 +4336,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 ),
               ),
               pw.SizedBox(height: 10),
-              // 🔥 BINAGONG BAHAGI: Naka-Row at Column para malinis tingnan ang tatlong detalye
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -4220,7 +4348,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                           '${_currentLocale == 'tl' ? 'Kabuuang Gastos' : (_currentLocale == 'id' ? 'Total Pengeluaran' : 'Total Expenses')}: ${formatPdfCurrency(totalExpenses)}'),
                     ],
                   ),
-                  // 🔥 IDINAGDAG NA NATITERANG BADYET
                   pw.Text(
                     '${_currentLocale == 'tl' ? 'Natitirang Budget' : (_currentLocale == 'id' ? 'Sisa Anggaran' : 'Remaining Budget')}: ${formatPdfCurrency(remainingBudget)}',
                     style: pw.TextStyle(
@@ -4311,37 +4438,60 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   void _buyPlan(String productId) {
+    // 1. Safe Guard: Kung walang internet o hindi pa na-load ang Play Store products
     if (_products.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_getTxt('google_store_err'))),
       );
       return;
     }
-    ProductDetails product = _products.firstWhere(
-      (element) => element.id == productId,
-      orElse: () => _products.first,
-    );
-    final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+
+    try {
+      // 2. Hanapin ang tugmang plano, kung wala ay kunin ang unang produkto nang ligtas
+      ProductDetails product = _products.firstWhere(
+        (element) => element.id == productId,
+        orElse: () => _products.first,
+      );
+
+      final PurchaseParam purchaseParam =
+          PurchaseParam(productDetails: product);
+      _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+    } catch (e) {
+      // 3. Fallback catch para sa mga devices na walang Google Play Services (tulad ng Huawei)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_getTxt('google_store_err'))),
+      );
+    }
   }
 
   Future _checkPremiumAndTrialState() async {
     final p = await SharedPreferences.getInstance();
     String? installDateStr = p.getString('app_install_date');
-    int calculatedLeft = 30;
+
+    // Safe boundary recovery: Kung sakaling walang install date, lumikha ngayon
+    if (installDateStr == null) {
+      installDateStr = DateTime.now().toIso8601String();
+      await p.setString('app_install_date', installDateStr);
+    }
+
+    DateTime installDate = DateTime.parse(installDateStr);
+
+    // 🟢 PRODUCTION TRACK: Babasahin ang totoong oras ng device para sa tamang araw na lumipas
+    DateTime kasalukuyangOras = DateTime.now();
+    int daysUsed = kasalukuyangOras.difference(installDate).inDays;
+
+    int calculatedLeft = 30 - daysUsed;
     bool expired = false;
     bool isPremium = kIsWeb ? false : (p.getBool('is_premium_user') ?? false);
-    if (installDateStr != null) {
-      DateTime installDate = DateTime.parse(installDateStr);
-      int daysUsed = DateTime.now().difference(installDate).inDays;
-      calculatedLeft = 30 - daysUsed;
-      if (calculatedLeft <= 0) {
-        calculatedLeft = 0;
-        if (!isPremium) {
-          expired = true;
-        }
+
+    if (calculatedLeft <= 0) {
+      calculatedLeft = 0;
+      if (!isPremium) {
+        expired =
+            true; // 🔥 MAG-TI-TRIGGER SA PRODUKSYON KAPAG LUMAMPAS NA SA 30 DAYS!
       }
     }
+
     String deviceLanguage =
         PlatformDispatcher.instance.locale.languageCode.toLowerCase();
     String defaultLocale = 'en';
@@ -4350,17 +4500,24 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     } else if (deviceLanguage == 'id') {
       defaultLocale = 'id';
     }
+
     setState(() {
+      // 🟢 GENUINE LIVE STATE INTERFACES: Binabasa ang totoong kalkulasyon nang walang test overrides
       _isPremiumUser = isPremium;
+      _trialDaysLeft = calculatedLeft;
+      _isTrialExpired = expired;
+      trialExpiredWithNoPremium = expired && !isPremium;
+
       String tempLocale = p.getString('app_lang_locale') ?? defaultLocale;
       if (tempLocale != 'en' && tempLocale != 'tl' && tempLocale != 'id') {
         _currentLocale = defaultLocale;
       } else {
         _currentLocale = tempLocale;
       }
-      _trialDaysLeft = calculatedLeft;
-      _isTrialExpired = expired;
-      _purchasedPlanTitle = p.getString('purchased_plan_title') ?? "Pro Plan";
+
+      // 👑 NAITAMA: Purong PRO lamang at tinanggal ang katagang "Plan" o "Pro Plan" sa memory system
+      _purchasedPlanTitle = p.getString('purchased_plan_title') ?? "PRO";
+
       int? savedBgColorValue = p.getInt('app_background_color_value');
       _appBgColor = savedBgColorValue != null
           ? Color(savedBgColorValue)
@@ -4373,11 +4530,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       _boxBgColor = savedBoxColorValue != null
           ? Color(savedBoxColorValue)
           : const Color(0xFF1E1E1E);
-      if (expired) {
+
+      if (_isTrialExpired && !_isPremiumUser) {
         activeWalletId = "default";
       }
     });
-    if (expired) {
+
+    print(
+        "🚀 [PRODUCTION GUARD] Days Left: $calculatedLeft | Expired Status: $_isTrialExpired | Premium Active: $isPremium | App Restricted: $trialExpiredWithNoPremium");
+
+    if (_isTrialExpired) {
       loadData();
     }
   }
@@ -4419,8 +4581,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       // 2. I-load ang wallets data
       String? wData = p.getString('app_wallets');
       if (wData != null) {
-        List l = jsonDecode(wData);
-        wallets = l.map((e) => AppWallet.fromJson(e)).toList();
+        List<dynamic> l = jsonDecode(wData) as List<dynamic>;
+        wallets = l
+            .map((e) => AppWallet.fromJson(e as Map<String, dynamic>))
+            .toList();
       } else {
         wallets = [
           AppWallet(
@@ -6097,6 +6261,66 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   void _checkBudgetBeforeAdding() {
+    if (!_isPremiumUser && all.length >= 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+          ),
+          dismissDirection: DismissDirection.up,
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  _currentLocale == 'tl'
+                      ? '🛑 Limitado sa 10 libreng gastos!'
+                      : (_currentLocale == 'id'
+                          ? '🛑 Terbatas 10 pengeluaran!'
+                          : '🛑 Limited to 10 free expenses!'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.white),
+                ),
+              ),
+              // 🔥 CLICKABLE UPGRADE LINK BUTTON
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  backgroundColor: const Color(0xFFFFD700),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  _showUpgradeOptionsBottomSheet(); // 🚀 REDIRECT SA PLAN CHOOSE PAGE
+                },
+                child: Text(
+                  _currentLocale == 'tl'
+                      ? 'MAG-UPGRADE' // 🔥 Isinalin sa Tagalog
+                      : (_currentLocale == 'id'
+                          ? 'UPGRADE' // Ginagamit sa Bahasa Indonesia para sa apps/tech
+                          : 'UPGRADE'), // Default para sa English
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
     if (budget <= 0) {
       showDialog(
         context: context,
@@ -7413,6 +7637,85 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     );
   }
 
+  void _showExpiredPaywallPromptDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("🔒✨", style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 16),
+            Text(
+              _currentLocale == 'en'
+                  ? "TRIAL PERIOD EXPIRED!"
+                  : (_currentLocale == 'id'
+                      ? "MASA UJI COBA BERAKHIR!"
+                      : "TAPOS NA ANG TRIAL PERIOD!"),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _currentLocale == 'en'
+                  ? "Data export features are restricted in the free tier after 30 days. Please upgrade to PRO to unlock advanced reporting tools."
+                  : (_currentLocale == 'id'
+                      ? "Fitur ekspor laporan dibatasi setelah masa uji coba 30 hari. Silakan upgrade ke versi PRO untuk membuka seluruh fitur."
+                      : "Ang pag-export ng CSV at PDF ay naka-lock dahil tapos na ang iyong 30-day free trial. Mag-upgrade sa PRO bersyon upang ma-unlock ito."),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: Colors.white54, fontSize: 12, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      _currentLocale == 'en'
+                          ? "CLOSE"
+                          : (_currentLocale == 'id' ? "TUTUP" : "ISARA"),
+                      style: const TextStyle(
+                          color: Colors.white38, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showUpgradeOptionsBottomSheet(); // Bubuksan ang Play Console secure pricing sheet
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFD700),
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    child: Text(
+                      _currentLocale == 'en'
+                          ? "GO PRO"
+                          : (_currentLocale == 'id' ? "UPGRADE" : "MAG-PRO"),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showUpgradeOptionsBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -7871,67 +8174,23 @@ class HomeScreenState extends State with WidgetsBindingObserver {
 
     return Scaffold(
       backgroundColor: _appBgColor,
+      // ── PALITAN ANG IYONG KASALUKUYANG APPBAR TITLE BLOCK ──
       appBar: AppBar(
         centerTitle: true,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('GASTOS KO',
-                style: TextStyle(
-                    color: Color(0xFFFFD700),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    letterSpacing: 0.5)),
-            const SizedBox(height: 2),
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 5,
-              runSpacing: 2,
-              children: [
-                Text(
-                    _isPremiumUser
-                        ? 'Pro Active'
-                        : (trialExpiredWithNoPremium
-                            ? 'Trial Expired'
-                            : 'Free Trial Version'),
-                    style: TextStyle(
-                        color: trialExpiredWithNoPremium
-                            ? Colors.redAccent
-                            : Colors.white38,
-                        fontSize: 10,
-                        fontWeight: FontWeight.normal,
-                        letterSpacing: 0.3)),
-                Icon(
-                  Icons.fiber_manual_record,
-                  size: 6,
-                  color: trialExpiredWithNoPremium
-                      ? Colors.redAccent
-                      : const Color(0xFF00E676),
-                ),
-                Text(
-                  _isPremiumUser
-                      ? _purchasedPlanTitle
-                      : (trialExpiredWithNoPremium
-                          ? 'Locked'
-                          : '$_trialDaysLeft days left'),
-                  style: TextStyle(
-                      color: trialExpiredWithNoPremium
-                          ? Colors.redAccent
-                          : const Color(0xFF00E676),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.3),
-                ),
-              ],
-            ),
-          ],
+        title: const Text(
+          'GASTOS KO',
+          style: TextStyle(
+            color: Color(0xFFFFD700),
+            fontWeight: FontWeight.bold,
+            fontSize:
+                18, // Pinalaki nang konti para mas maging lutang ang brand name
+            letterSpacing: 0.8,
+          ),
         ),
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
       ),
+
       drawer: Drawer(
         child: Container(
           color: const Color(0xFF121212),
@@ -7965,19 +8224,46 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16)),
                                   const SizedBox(height: 2),
+                                  // ── COMPACT 1-LINE DRAWER SUBSCRIPTION SUBTITLE ──
+                                  // ── COMPACT MULTILINGUAL DRAWER SUBSCRIPTION SUBTITLE (1-LINE ONLY) ──
                                   Text(
                                     _isPremiumUser
-                                        ? "Pro Active ($_purchasedPlanTitle)"
+                                        ? "PRO - $_purchasedPlanTitle" // 🔥 Lalabas: PRO - Annual, PRO - Monthly, o PRO - PRO (1 line lang)
                                         : (trialExpiredWithNoPremium
-                                            ? 'Trial Expired'
-                                            : "Free Trial ($_trialDaysLeft days left)"),
+                                            ? (_currentLocale == 'tl'
+                                                ? 'Expired na ang Trial'
+                                                : (_currentLocale == 'id'
+                                                    ? 'Masa Uji Coba Berakhir'
+                                                    : 'Trial Expired'))
+                                            : (_currentLocale == 'tl'
+                                                ? 'Libreng Subok na Bersyon'
+                                                : (_currentLocale == 'id'
+                                                    ? 'Versi Uji Coba Gratis'
+                                                    : 'Free Trial Version'))),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: trialExpiredWithNoPremium
                                           ? Colors.redAccent
-                                          : Colors.white38,
-                                      fontSize: 10,
+                                          : Colors.white70,
+                                      fontSize: 11,
                                     ),
                                   ),
+
+                                  if (_isPremiumUser) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _currentLocale == 'tl'
+                                          ? "🔄 Awtomatikong magre-renew sa Google Play"
+                                          : (_currentLocale == 'id'
+                                              ? "🔄 Otomatis diperbarui sa Google Play"
+                                              : "🔄 Auto-renews via Google Play"),
+                                      style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
                                 ],
                               ),
                             )
@@ -8180,159 +8466,168 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Theme(
-                                  data: Theme.of(context).copyWith(
-                                    dividerColor: Colors.transparent,
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  child: ExpansionTile(
-                                    tilePadding: EdgeInsets.zero,
-                                    leading: const SizedBox(
-                                      width: 28,
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Icon(Icons.palette_outlined,
-                                            color: Color(0xFFFFD700)),
+                                // 🔥 HARD LOCK AT GREYED OUT SA PAGPAPALIT NG BACKGROUND KULAY
+                                AbsorbPointer(
+                                  absorbing:
+                                      _isTrialExpired, // 🛑 Haharangin ang pag-click/pagbukas kapag expired
+                                  child: Opacity(
+                                    opacity: _isTrialExpired
+                                        ? 0.35
+                                        : 1.0, // 👤 Magdidilim at mag-ge-grey out kapag locked
+                                    child: Theme(
+                                      data: Theme.of(context).copyWith(
+                                        dividerColor: Colors.transparent,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      child: ExpansionTile(
+                                        tilePadding: EdgeInsets.zero,
+                                        leading: const SizedBox(
+                                          width: 28,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Icon(Icons.palette_outlined,
+                                                color: Color(0xFFFFD700)),
+                                          ),
+                                        ),
+                                        title: Text(
+                                          _currentLocale == 'tl'
+                                              ? 'Baguhin ang Kulay ng Background'
+                                              : (_currentLocale == 'id'
+                                                  ? 'Ubah Warna Latar Belakang'
+                                                  : 'Change Background Color'),
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white),
+                                        ),
+                                        // 🔥 Nagpapakita ng PRO Label kapag naka-lock para alam ng user kung bakit hindi mabuksan
+                                        subtitle: trialExpiredWithNoPremium
+                                            ? Text(
+                                                _currentLocale == 'en'
+                                                    ? "🔒 PRO Feature Only"
+                                                    : (_currentLocale == 'id'
+                                                        ? "🔒 Hanya Fitur PRO"
+                                                        : "🔒 Tampok sa PRO Lamang"),
+                                                style: const TextStyle(
+                                                    color: Color(0xFFFFD700),
+                                                    fontSize: 9,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              )
+                                            : null,
+                                        iconColor: const Color(0xFFFFD700),
+                                        collapsedIconColor: Colors.white54,
+                                        children: [
+                                          const SizedBox(height: 8),
+                                          _buildPresetRowItem(
+                                              "Classic Dark 🕶️",
+                                              const Color(0xFF121212),
+                                              Colors.white,
+                                              const Color(0xFF1E1E1E),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Golden Pro 💼",
+                                              Colors.black,
+                                              const Color(0xFFFFD700),
+                                              const Color(0xFF1A1916),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Midnight Neon 👾",
+                                              const Color(0xFF0A001F),
+                                              const Color(0xFF00FFCC),
+                                              const Color(0xFF1A0B36),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Rose Gold 👑",
+                                              const Color(0xFF1A1216),
+                                              const Color(0xFFFFB7CE),
+                                              const Color(0xFF2E1F27),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Deep Ocean ⚓",
+                                              const Color(0xFF0B132B),
+                                              const Color(0xFF48CAE4),
+                                              const Color(0xFF1C2541),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Matte Commando 🎖️",
+                                              const Color(0xFF1B221B),
+                                              const Color(0xFFD4AF37),
+                                              const Color(0xFF2A342A),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Sakura Pink 🌸",
+                                              const Color(0xFF1F1619),
+                                              const Color(0xFFFFC0CB),
+                                              const Color(0xFF332025),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Lavender Dreams 🔮",
+                                              const Color(0xFF120E2E),
+                                              const Color(0xFFE0B0FF),
+                                              const Color(0xFF241B4B),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Crimson Stealth 🚗",
+                                              const Color(0xFF140D0D),
+                                              const Color(0xFFFF4D4D),
+                                              const Color(0xFF241717),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Mint Fresh 🍃",
+                                              const Color(0xFF0F171A),
+                                              const Color(0xFFB9F6CA),
+                                              const Color(0xFF1C282C),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Barbie Dream 💅",
+                                              const Color(0xFF2B0A1A),
+                                              const Color(0xFFFF69B4),
+                                              const Color(0xFF4A1530),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Cyberpunk ⚡",
+                                              const Color(0xFF1A0033),
+                                              const Color(0xFFFFF000),
+                                              const Color(0xFF330066),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Emerald Luxury 💎",
+                                              const Color(0xFF06140E),
+                                              const Color(0xFF50C878),
+                                              const Color(0xFF0D281C),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Ice Princess ❄️",
+                                              const Color(0xFF0F1C2E),
+                                              const Color(0xFFE0F7FA),
+                                              const Color(0xFF1F3A60),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Chocolate Mocha ☕",
+                                              const Color(0xFF1A110B),
+                                              const Color(0xFFD7CCC8),
+                                              const Color(0xFF2D1E15),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Cotton Candy 🍧",
+                                              const Color(0xFF141724),
+                                              const Color(0xFFFBB6CE),
+                                              const Color(0xFF23293F),
+                                              setDialogState),
+                                          _buildPresetRowItem(
+                                              "Sunset Vibe 🌅",
+                                              const Color(0xFF1F0D0D),
+                                              const Color(0xFFFF9E79),
+                                              const Color(
+                                                  0xFF3D1B1B), // Kompleto ang huling kulay
+                                              setDialogState),
+                                        ],
                                       ),
                                     ),
-                                    title: Text(
-                                      _currentLocale == 'tl'
-                                          ? 'Baguhin ang Kulay ng Background'
-                                          : (_currentLocale == 'id'
-                                              ? 'Ubah Warna Latar Belakang'
-                                              : 'Change Background Color'),
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white),
-                                    ),
-                                    iconColor: const Color(0xFFFFD700),
-                                    collapsedIconColor: Colors.white54,
-                                    children: [
-                                      const SizedBox(height: 8),
-                                      _buildPresetRowItem(
-                                          "Classic Dark 🕶️",
-                                          const Color(0xFF121212),
-                                          Colors.white,
-                                          const Color(0xFF1E1E1E),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Golden Pro 💼",
-                                          Colors.black,
-                                          const Color(0xFFFFD700),
-                                          const Color(0xFF1A1916),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Midnight Neon 👾",
-                                          const Color(0xFF0A001F),
-                                          const Color(0xFF00FFCC),
-                                          const Color(0xFF1A0B36),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Rose Gold 👑",
-                                          const Color(0xFF1A1216),
-                                          const Color(0xFFFFB7CE),
-                                          const Color(0xFF2E1F27),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Deep Ocean ⚓",
-                                          const Color(0xFF0B132B),
-                                          const Color(0xFF48CAE4),
-                                          const Color(0xFF1C2541),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Matte Commando 🎖️",
-                                          const Color(0xFF1B221B),
-                                          const Color(0xFFD4AF37),
-                                          const Color(0xFF2A342A),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Sakura Pink 🌸",
-                                          const Color(0xFF1F1619),
-                                          const Color(0xFFFFC0CB),
-                                          const Color(0xFF332025),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Lavender Dreams 🔮",
-                                          const Color(0xFF120E2E),
-                                          const Color(0xFFE0B0FF),
-                                          const Color(0xFF241B4B),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Crimson Stealth 🚗",
-                                          const Color(0xFF140D0D),
-                                          const Color(0xFFFF4D4D),
-                                          const Color(0xFF241717),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Mint Fresh 🍃",
-                                          const Color(0xFF0F171A),
-                                          const Color(0xFFB9F6CA),
-                                          const Color(0xFF1C282C),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Barbie Dream 💅",
-                                          const Color(0xFF2B0A1A),
-                                          const Color(0xFFFF69B4),
-                                          const Color(0xFF4A1530),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Cyberpunk ⚡",
-                                          const Color(0xFF1A0033),
-                                          const Color(0xFFFFF000),
-                                          const Color(0xFF330066),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Emerald Luxury 💎",
-                                          const Color(0xFF06140E),
-                                          const Color(0xFF50C878),
-                                          const Color(0xFF0D281C),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Ice Princess ❄️",
-                                          const Color(0xFF0F1C2E),
-                                          const Color(0xFFE0F7FA),
-                                          const Color(0xFF1F3A60),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Chocolate Mocha ☕",
-                                          const Color(0xFF1A110B),
-                                          const Color(0xFFD7CCC8),
-                                          const Color(0xFF2D1E15),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Cotton Candy 🍧",
-                                          const Color(0xFF141724),
-                                          const Color(0xFFFBB6CE),
-                                          const Color(0xFF23293F),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Sunset Vibe 🌅",
-                                          const Color(0xFF1F0D0D),
-                                          const Color(0xFFFF9E79),
-                                          const Color(0xFF3D1919),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Orchid Glam 💄",
-                                          const Color(0xFF180A22),
-                                          const Color(0xFFDA70D6),
-                                          const Color(0xFF2E1542),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Stealth Carbon 🛹",
-                                          const Color(0xFF0F0F0F),
-                                          const Color(0xFF90A4AE),
-                                          const Color(0xFF212121),
-                                          setDialogState),
-                                      _buildPresetRowItem(
-                                          "Vintage Autumn 🍂",
-                                          const Color(0xFF1B140E),
-                                          const Color(0xFFFFB300),
-                                          const Color(0xFF2E2216),
-                                          setDialogState),
-                                    ],
                                   ),
                                 ),
+
                                 const Divider(color: Colors.white10),
                                 Theme(
                                   data: Theme.of(context).copyWith(
@@ -8514,14 +8809,20 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                 ),
                                 const Divider(color: Colors.white10),
                                 // 🔥 NAITAMA NA MULTILINGGWAL PRIVACY MODE SWITCH
+                                // 🔥 NAITAMA: Disabled, faded out, at may PRO Only tag na rin ang Privacy Mode kapag expired ang trial
                                 SwitchListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  secondary: const SizedBox(
+                                  secondary: SizedBox(
                                     width: 28,
                                     child: Align(
                                       alignment: Alignment.centerLeft,
-                                      child: Icon(Icons.visibility_off_outlined,
-                                          color: Color(0xFFFFD700)),
+                                      child: Icon(
+                                        Icons.visibility_off_outlined,
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors
+                                                .white24 // Naka-gray ang icon kapag expired
+                                            : const Color(0xFFFFD700),
+                                      ),
                                     ),
                                   ),
                                   title: Text(
@@ -8530,43 +8831,84 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         : (_currentLocale == 'id'
                                             ? 'Sembunyikan Semua Angka'
                                             : 'Itago ang mga Numero'),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.white),
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors
+                                                .white24 // Naka-gray ang pamagat kapag expired
+                                            : Colors.white),
                                   ),
-                                  subtitle: Text(
-                                    _currentLocale == 'en'
-                                        ? 'Mask balances and costs from the dashboard'
-                                        : (_currentLocale == 'id'
-                                            ? 'Samarkan saldo dan pengeluaran dari dasbor'
-                                            : 'Itago ang mga halaga at badyet sa screen'),
-                                    style: const TextStyle(
-                                        fontSize: 10, color: Colors.white38),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _currentLocale == 'en'
+                                            ? 'Mask balances and costs from the dashboard'
+                                            : (_currentLocale == 'id'
+                                                ? 'Samarkan saldo dan pengeluaran dari dasbor'
+                                                : 'Itago ang mga halaga at badyet sa screen'),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: trialExpiredWithNoPremium
+                                                ? Colors.white12
+                                                : Colors.white38),
+                                      ),
+                                      // 🔥 IPINAKIKITA ANG BOLD FADED GOLD TAG PARA SA UNIFIED UI DESIGN
+                                      if (trialExpiredWithNoPremium) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _currentLocale == 'en'
+                                              ? '🔒 PRO Feature Only'
+                                              : (_currentLocale == 'id'
+                                                  ? '🔒 Khusus Fitur PRO'
+                                                  : '🔒 Tampok sa PRO Lamang'),
+                                          style: const TextStyle(
+                                            color: Color(
+                                                0xFF6E5D00), // Solid Faded Gold
+                                            fontSize: 9,
+                                            fontWeight:
+                                                FontWeight.bold, // Naka-Bold
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   value: _isPrivacyHideMode,
                                   activeColor: const Color(0xFFFFD700),
-                                  onChanged: (bool value) async {
-                                    setState(() {
-                                      _isPrivacyHideMode = value;
-                                    });
-                                    setDialogState(() {});
-                                    final p =
-                                        await SharedPreferences.getInstance();
-                                    await p.setBool(
-                                        'user_privacy_hide_mode', value);
-                                  },
+                                  // 🔥 SULUSYON: Ginagawang null ang onChanged kapag expired para ma-freeze at ma-disable ang switch handle
+                                  onChanged: trialExpiredWithNoPremium
+                                      ? null
+                                      : (bool value) async {
+                                          setState(() {
+                                            _isPrivacyHideMode = value;
+                                          });
+                                          setDialogState(() {});
+                                          final p = await SharedPreferences
+                                              .getInstance();
+                                          await p.setBool(
+                                              'user_privacy_hide_mode', value);
+                                        },
                                 ),
 
                                 // 🔥 NAITAMA NA MULTILINGGWAL COMPACT MODE SWITCH
+                                // 🔥 NAITAMA: Disabled at faded out na ang Compact Mode kapag expired ang trial
                                 SwitchListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  secondary: const SizedBox(
+                                  secondary: SizedBox(
                                     width: 28,
                                     child: Align(
                                       alignment: Alignment.centerLeft,
-                                      child: Icon(Icons.view_headline_rounded,
-                                          color: Color(0xFFFFD700)),
+                                      child: Icon(
+                                        Icons.view_headline_rounded,
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors
+                                                .white24 // Naka-gray ang icon kapag expired
+                                            : const Color(0xFFFFD700),
+                                      ),
                                     ),
                                   ),
                                   title: Text(
@@ -8575,105 +8917,155 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         : (_currentLocale == 'id'
                                             ? 'Mode Ringkas'
                                             : 'Compact Mode'),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.white),
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors
+                                                .white24 // Naka-gray ang pamagat kapag expired
+                                            : Colors.white),
                                   ),
-                                  subtitle: Text(
-                                    _currentLocale == 'en'
-                                        ? 'Make dashboard layout smaller'
-                                        : (_currentLocale == 'id'
-                                            ? 'Perkecil tampilan tata letak dasbor'
-                                            : 'Paliitin ang dashboard layout'),
-                                    style: const TextStyle(
-                                        fontSize: 10, color: Colors.white38),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _currentLocale == 'en'
+                                            ? 'Make dashboard layout smaller'
+                                            : (_currentLocale == 'id'
+                                                ? 'Perkecil tampilan tata letak dasbor'
+                                                : 'Paliitin ang dashboard layout'),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: trialExpiredWithNoPremium
+                                                ? Colors.white12
+                                                : Colors.white38),
+                                      ),
+                                      // 🔥 IPINAKIKITA ANG BOLD FADED GOLD TAG KATULAD NG SA DATA AT BACKGROUND COLOR
+                                      if (trialExpiredWithNoPremium) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _currentLocale == 'en'
+                                              ? '🔒 PRO Feature Only'
+                                              : (_currentLocale == 'id'
+                                                  ? '🔒 Khusus Fitur PRO'
+                                                  : '🔒 Tampok sa PRO Lamang'),
+                                          style: const TextStyle(
+                                            color: Color(
+                                                0xFF6E5D00), // Solid Faded Gold
+                                            fontSize: 9,
+                                            fontWeight:
+                                                FontWeight.bold, // Naka-Bold
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  value: _isCompactMode,
+                                  value: _isPrivacyHideMode
+                                      ? false
+                                      : _isCompactMode, // Default to false kung locked
                                   activeColor: const Color(0xFFFFD700),
-                                  onChanged: (bool value) async {
-                                    String dialogTitle = "";
-                                    String dialogContent = "";
-                                    String btnConfirmLabel = "";
+                                  // 🔥 SULUSYON: Ginagawang null ang onChanged kapag expired para ma-disable ang interaksyon ng switch button
+                                  onChanged: trialExpiredWithNoPremium
+                                      ? null
+                                      : (bool value) async {
+                                          String dialogTitle = "";
+                                          String dialogContent = "";
+                                          String btnConfirmLabel = "";
 
-                                    // Dinamikong pagsasalin ng Pop-up Confirmation Dialog
-                                    if (_currentLocale == 'en') {
-                                      dialogTitle = value
-                                          ? "Enable Compact Mode?"
-                                          : "Disable Compact Mode?";
-                                      dialogContent = value
-                                          ? "The main screen layout will shrink for a tighter list view. Do you want to proceed?"
-                                          : "The main screen layout will return to the normal, larger size. Do you want to proceed?";
-                                      btnConfirmLabel = "PROCEED";
-                                    } else if (_currentLocale == 'id') {
-                                      dialogTitle = value
-                                          ? "Aktifkan Mode Ringkas?"
-                                          : "Nonaktifkan Mode Ringkas?";
-                                      dialogContent = value
-                                          ? "Tata letak layar utama akan diperkecil untuk tampilan daftar yang lebih padat. Lanjutkan?"
-                                          : "Tata letak layar utama akan kembali ke ukuran normal yang lebih besar. Lanjutkan?";
-                                      btnConfirmLabel = "LANJUTKAN";
-                                    } else {
-                                      // Default ay Tagalog ('tl')
-                                      dialogTitle = value
-                                          ? "I-on ang Compact Mode?"
-                                          : "I-off ang Compact Mode?";
-                                      dialogContent = value
-                                          ? "Liliit ang view ng iyong main screen para sa mas masikip na listahan. Nais mo bang ituloy?"
-                                          : "Babalik sa normal at mas malaking sukat ang layout ng iyong main screen. Nais mo bang ituloy?";
-                                      btnConfirmLabel = "ITULOY";
-                                    }
+                                          if (_currentLocale == 'en') {
+                                            dialogTitle = value
+                                                ? "Enable Compact Mode?"
+                                                : "Disable Compact Mode?";
+                                            dialogContent = value
+                                                ? "The main screen layout will shrink for a tighter list view. Do you want to proceed?"
+                                                : "The main screen layout will return to the normal, larger size. Do you want to proceed?";
+                                            btnConfirmLabel = "PROCEED";
+                                          } else if (_currentLocale == 'id') {
+                                            dialogTitle = value
+                                                ? "Aktifkan Mode Ringkas?"
+                                                : "Nonaktifkan Mode Ringkas?";
+                                            dialogContent = value
+                                                ? "Tata letak layar utama akan diperkecil untuk tampilan daftar yang lebih padat. Lanjutkan?"
+                                                : "Tata letak layar utama akan kembali ke ukuran normal yang lebih besar. Lanjutkan?";
+                                            btnConfirmLabel = "LANJUTKAN";
+                                          } else {
+                                            dialogTitle = value
+                                                ? "I-on ang Compact Mode?"
+                                                : "I-off ang Compact Mode?";
+                                            dialogContent = value
+                                                ? "Liliit ang view ng iyong main screen para sa mas masikip na listahan. Nais mo bang ituloy?"
+                                                : "Babalik sa normal at mas malaking sukat ang layout ng iyong main screen. Nais mo bang ituloy?";
+                                            btnConfirmLabel = "ITULOY";
+                                          }
 
-                                    bool? shouldApply = await showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) =>
-                                          AlertDialog(
-                                        backgroundColor:
-                                            const Color(0xFF1E1E1E),
-                                        title: Text(dialogTitle,
-                                            style: const TextStyle(
-                                                color: Color(0xFFFFD700),
-                                                fontWeight: FontWeight.bold)),
-                                        content: Text(dialogContent,
-                                            style: const TextStyle(
-                                                color: Colors.white70)),
-                                        actions: [
-                                          TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, false),
-                                              child: Text(_getTxt('btn_cancel'),
-                                                  style: const TextStyle(
-                                                      color: Colors.white30))),
-                                          TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, true),
-                                              child: Text(btnConfirmLabel,
+                                          bool? shouldApply = await showDialog(
+                                            context: context,
+                                            builder: (BuildContext context) =>
+                                                AlertDialog(
+                                              backgroundColor:
+                                                  const Color(0xFF1E1E1E),
+                                              title: Text(dialogTitle,
                                                   style: const TextStyle(
                                                       color: Color(0xFFFFD700),
                                                       fontWeight:
-                                                          FontWeight.bold))),
-                                        ],
-                                      ),
-                                    );
-                                    if (shouldApply == true) {
-                                      setState(() {
-                                        _isCompactMode = value;
-                                      });
-                                      setDialogState(() {});
-                                    }
-                                  },
+                                                          FontWeight.bold)),
+                                              content: Text(dialogContent,
+                                                  style: const TextStyle(
+                                                      color: Colors.white70)),
+                                              actions: [
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, false),
+                                                    child: Text(
+                                                        _getTxt('btn_cancel'),
+                                                        style: const TextStyle(
+                                                            color: Colors
+                                                                .white30))),
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, true),
+                                                    child: Text(btnConfirmLabel,
+                                                        style: const TextStyle(
+                                                            color: Color(
+                                                                0xFFFFD700),
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold))),
+                                              ],
+                                            ),
+                                          );
+                                          if (shouldApply == true) {
+                                            setState(() {
+                                              _isCompactMode = value;
+                                            });
+                                            setDialogState(() {});
+                                          }
+                                        },
                                 ),
+
                                 const Divider(color: Colors.white10),
 
                                 // 🔥 NAITAMA NA MULTILINGGWAL DATA MANAGEMENT LISTTILE
+                                // 🔥 KONDISYON: Grayed out at hindi clickable kapag expired na ang free trial
+                                // 🔥 KONDISYON: Naka-disable na may kasamang PRO ONLY visual tag kapag expired ang trial
                                 ListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  leading: const SizedBox(
+                                  leading: SizedBox(
                                     width: 28,
                                     child: Align(
                                       alignment: Alignment.centerLeft,
-                                      child: Icon(Icons.cloud_sync_outlined,
-                                          color: Color(0xFFFFD700)),
+                                      child: Icon(
+                                        Icons.cloud_sync_outlined,
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors
+                                                .white24 // Nakagray kapag expired
+                                            : const Color(0xFFFFD700),
+                                      ),
                                     ),
                                   ),
                                   title: Text(
@@ -8682,22 +9074,55 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         : (_currentLocale == 'id'
                                             ? 'Kelola Data Anda'
                                             : 'I-manage ang Iyong Data'),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFFFFD700)),
+                                        color: trialExpiredWithNoPremium
+                                            ? Colors
+                                                .white24 // Nakagray kapag expired
+                                            : const Color(0xFFFFD700)),
                                   ),
-                                  subtitle: Text(
-                                      _currentLocale == 'en'
-                                          ? 'Backup or restore full application data'
-                                          : (_currentLocale == 'id'
-                                              ? 'Cadangkan atau pulihkan seluruh data aplikasi'
-                                              : 'I-backup o i-restore ang buong app data'),
-                                      style: const TextStyle(
-                                          fontSize: 10, color: Colors.white38)),
-                                  onTap: () {
-                                    _showBackupAndRestoreOptionsDialog();
-                                  },
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                          _currentLocale == 'en'
+                                              ? 'Backup or restore full application data'
+                                              : (_currentLocale == 'id'
+                                                  ? 'Cadangkan atau pulihkan seluruh data aplikasi'
+                                                  : 'I-backup o i-restore ang buong app data'),
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              color: trialExpiredWithNoPremium
+                                                  ? Colors.white12
+                                                  : Colors.white38)),
+                                      // 🔥 ANG PAGDADAGDAG NG PRO ONLY TAG:
+                                      if (trialExpiredWithNoPremium) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _currentLocale == 'en'
+                                              ? '🔒 PRO Feature Only'
+                                              : (_currentLocale == 'id'
+                                                  ? '🔒 Khusus Fitur PRO'
+                                                  : '🔒 Tampok sa PRO Lamang'),
+                                          style: const TextStyle(
+                                            color: Color(
+                                                0xFF6E5D00), // Mananatiling Gold/Dilaw, hindi magiging gray
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  onTap: trialExpiredWithNoPremium
+                                      ? null // Ginagawang unclickable kapag expired na ang trial
+                                      : () {
+                                          _showBackupAndRestoreOptionsDialog();
+                                        },
                                 ),
 
                                 const Divider(color: Colors.white10),
@@ -8880,6 +9305,171 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                           ],
                         ),
                         const SizedBox(height: 16),
+                        // ── DASHBOARD HOME LAYER BLOCK FRAME (Inside Tab index 0) ──
+                        // ── COMPACT PRODUCTION TRIAL NOTIFICATION CARD BANNER ──
+                        // ── COMPACT PRODUCTION TRIAL NOTIFICATION CARD BANNER WITH CLICK HINT ──
+                        if (!_isPremiumUser)
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TrialDetailsPage(
+                                    currentLocale: _currentLocale,
+                                    boxBgColor: _boxBgColor,
+                                    fontColor: _appFontColor,
+                                    onUpgradeTriggered:
+                                        _showUpgradeOptionsBottomSheet,
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _isTrialExpired
+                                    ? Colors.redAccent.withValues(alpha: 0.12)
+                                    : const Color(0xFFFFD700)
+                                        .withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _isTrialExpired
+                                      ? Colors.redAccent
+                                      : const Color(0xFFFFD700),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _isTrialExpired
+                                        ? Icons.lock_clock_rounded
+                                        : Icons.hourglass_top_rounded,
+                                    color: _isTrialExpired
+                                        ? Colors.redAccent
+                                        : const Color(0xFFFFD700),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          _isTrialExpired
+                                              ? (_currentLocale == 'tl'
+                                                  ? "TAPOS NA ANG LIBRENG SUBOK"
+                                                  : (_currentLocale == 'id'
+                                                      ? "MASA UJI COBA BERAKHIR"
+                                                      : "FREE TRIAL EXPIRED"))
+                                              : (_currentLocale == 'tl'
+                                                  ? "LIBRENG TRIAL VERSION"
+                                                  : (_currentLocale == 'id'
+                                                      ? "VERSI UJI COBA GRATIS"
+                                                      : "FREE TRIAL VERSION")),
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: _isTrialExpired
+                                                  ? Colors.redAccent
+                                                  : const Color(0xFFFFD700)),
+                                        ),
+                                        const SizedBox(height: 1),
+                                        // ── 🔥 UNIFIED RICH TEXT BLOCK FOR 1-ROW CONTINUOUS PARAGRAPH LAYOUT ──
+                                        RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: _appFontColor.withValues(
+                                                  alpha: 0.65),
+                                              height: 1.3,
+                                              fontFamily:
+                                                  'sans-serif', // O kahit anong font profile asset mo
+                                            ),
+                                            children: [
+                                              // 1. ANG MAIN DESCRIPTION TEXT (Depende sa Expiry at Locale)
+                                              TextSpan(
+                                                text: _isTrialExpired
+                                                    ? (_currentLocale == 'tl'
+                                                        ? "Limitado na ang pag-add ng pondo, pag-sort, at pag-export ng PDF/CSV. Mag-upgrade upang ma-unlock. "
+                                                        : (_currentLocale ==
+                                                                'id'
+                                                            ? "Fitur tambah dana, pengurutan, dan ekspor PDF/CSV dibatasi. Silakan upgrade untuk membuka kunci. "
+                                                            : "Advanced reporting, filters, and limit expansions are currently locked. Upgrade to unlock. "))
+                                                    : (_currentLocale == 'tl'
+                                                        ? "Mayroon ka na lang $_trialDaysLeft araw para subukan ang lahat ng premium feature ng Gastos Ko. "
+                                                        : (_currentLocale ==
+                                                                'id'
+                                                            ? "Tersisa $_trialDaysLeft hari lagi bagi Anda untuk mencoba seluruh fitur premium Gastos Ko. "
+                                                            : "You have $_trialDaysLeft days left remaining to evaluate premium features and analytics tools. ")),
+                                              ),
+                                              // 2. ANG CLICKABLE HINT LABEL NA DIREKTANG KADUGTONG SA IISANG TALATA
+                                              TextSpan(
+                                                text: _currentLocale == 'tl'
+                                                    ? "\n👉 I-click para sa mga detalye"
+                                                    : (_currentLocale == 'id'
+                                                        ? "\n👉 Ketuk para detail lebih lanjut"
+                                                        : "\n👉 Click for more details"),
+                                                style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _isTrialExpired
+                                                      ? Colors.redAccent
+                                                          .withValues(
+                                                              alpha: 0.9)
+                                                      : const Color(0xFFFFD700)
+                                                          .withValues(
+                                                              alpha: 0.9),
+                                                  decoration: TextDecoration
+                                                      .underline, // May salungguhit para mukhang link link tool profile
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    height: 28,
+                                    child: TextButton(
+                                      style: TextButton.styleFrom(
+                                        backgroundColor: _isTrialExpired
+                                            ? Colors.redAccent
+                                            : const Color(0xFFFFD700),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 0),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(6)),
+                                      ),
+                                      onPressed: () {
+                                        _showUpgradeOptionsBottomSheet();
+                                      },
+                                      child: Text(
+                                        _currentLocale == 'tl'
+                                            ? "MAG-PRO"
+                                            : "GO PRO",
+                                        style: TextStyle(
+                                            color: _isTrialExpired
+                                                ? Colors.white
+                                                : Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 10),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
                         _buildSummaryCardDateFilters(),
                         const SizedBox(height: 4),
                         Row(
@@ -9187,9 +9777,15 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           SavingsGoalsPage(
             currentLocale: _currentLocale,
             savingsGoals: savingsGoals,
-            pesoFormatter: (amount) => peso(amount),
             boxBgColor: _boxBgColor,
             fontColor: _appFontColor,
+            pesoFormatter: (amount) => peso(amount),
+            isPremiumUser: _isPremiumUser,
+            isTrialExpiredMode: trialExpiredWithNoPremium,
+            isCompactMode: _isCompactMode,
+            onUpgradeTriggered: () {
+              _showUpgradeOptionsBottomSheet();
+            },
             onCreateNewGoal: () {
               _showCreateNewGoalDialog(
                 onSaveSuccess: () {
@@ -9204,6 +9800,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               _showDeleteGoalConfirm(goal);
             },
           ),
+
 // ----------------------------------------------------
 // TAB index 2: DEBT TRACKER SCREEN PLACEHOLDER
 // ----------------------------------------------------
@@ -9216,6 +9813,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             openCurrencySearchPicker: _openCurrencySearchPicker,
             boxBgColor: _boxBgColor,
             fontColor: _appFontColor,
+            isPremiumUser: _isPremiumUser,
+            isTrialExpiredMode:
+                trialExpiredWithNoPremium, // 🔥 IDINAGDAG: Argument para sa required parameter
+            isCompactMode:
+                _isCompactMode, // 🔥 IDINAGDAG: Argument para sa required parameter
+            onUpgradeTriggered: () {
+              _showUpgradeOptionsBottomSheet();
+            },
             onDataChanged: () {
               _saveDebtsData();
               setState(() {});
@@ -9557,6 +10162,10 @@ class SavingsGoalsPage extends StatefulWidget {
   final String Function(double) pesoFormatter;
   final Color boxBgColor;
   final Color fontColor;
+  final VoidCallback onUpgradeTriggered;
+  final bool isTrialExpiredMode;
+  final bool isCompactMode;
+  final bool isPremiumUser;
 
   const SavingsGoalsPage({
     super.key,
@@ -9568,6 +10177,10 @@ class SavingsGoalsPage extends StatefulWidget {
     required this.pesoFormatter,
     required this.boxBgColor,
     required this.fontColor,
+    required this.onUpgradeTriggered,
+    required this.isPremiumUser,
+    this.isTrialExpiredMode = false,
+    this.isCompactMode = false,
   });
 
   @override
@@ -9627,406 +10240,556 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // INTERACTIVE INPUT SEARCH BAR FIELD WIDGET
-            TextField(
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: _translate('Search savings goals...',
-                    'Cari target...', 'Maghanap ng layunin sa ipon...'),
-                hintStyle: TextStyle(
-                    color: widget.fontColor.withValues(alpha: 0.35),
-                    fontSize: 13),
-                prefixIcon: const Icon(Icons.search,
-                    color: Color(0xFFFFD700), size: 20),
-                suffixIcon: searchGoalQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear,
-                            size: 18,
-                            color: widget.fontColor.withValues(alpha: 0.5)),
-                        onPressed: () {
-                          setState(() {
-                            searchGoalQuery = "";
-                          });
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: widget.boxBgColor,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white10)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Color(0xFFFFD700), width: 1)),
-              ),
-              controller: TextEditingController.fromValue(
-                TextEditingValue(
-                  text: searchGoalQuery,
-                  selection:
-                      TextSelection.collapsed(offset: searchGoalQuery.length),
-                ),
-              ),
-              onChanged: (val) {
-                setState(() {
-                  searchGoalQuery = val.trim();
-                });
-              },
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // INTERACTIVE INPUT SEARCH BAR FIELD WIDGET
+          // INTERACTIVE INPUT SEARCH BAR FIELD WIDGET
+          // INTERACTIVE INPUT SEARCH BAR FIELD WIDGET
+          TextField(
+            key: const Key('goals_search_field'),
+            enabled: !widget.isTrialExpiredMode,
+            style: const TextStyle(fontSize: 14, color: Colors.white),
+            decoration: InputDecoration(
+              hintText: widget.isTrialExpiredMode
+                  ? _translate(
+                      'Search disabled (Free Trial Expired)',
+                      'Pencarian dinonaktifkan',
+                      'Bawal maghanap (Expired na ang Trial)')
+                  : _translate('Search savings goals...', 'Cari target...',
+                      'Maghanap ng layunin sa ipon...'),
+              hintStyle: TextStyle(
+                  color: widget.fontColor.withValues(alpha: 0.35),
+                  fontSize: 13),
+              prefixIcon:
+                  const Icon(Icons.search, color: Color(0xFFFFD700), size: 20),
+              suffixIcon:
+                  searchGoalQuery.isNotEmpty && !widget.isTrialExpiredMode
+                      ? IconButton(
+                          icon: Icon(Icons.clear,
+                              size: 18,
+                              color: widget.fontColor.withValues(alpha: 0.5)),
+                          onPressed: () {
+                            setState(() {
+                              searchGoalQuery = "";
+                            });
+                          },
+                        )
+                      : null,
+              filled: true,
+              fillColor: widget.boxBgColor,
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white10)),
+              disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white12)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFFFD700), width: 1)),
             ),
-
-            // 🔥 IDINAGDAG: THE INTERACTIVE DROPDOWN SORTING CONTROL ROW (Eksaktong disenyo mula sa Utang Screen)
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Icon(Icons.sort_rounded,
-                    color: widget.fontColor.withValues(alpha: 0.7), size: 16),
-                const SizedBox(width: 6),
-                Text(txtSortLabel,
-                    style: TextStyle(
-                        color: widget.fontColor.withValues(alpha: 0.5),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                      color: widget.boxBgColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white10)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _currentGoalSortCriteria,
-                      dropdownColor: widget.boxBgColor,
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: Color(0xFFFFD700), size: 18),
-                      style: TextStyle(
-                          color: widget.fontColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            _currentGoalSortCriteria = newValue;
-                          });
-                        }
-                      },
-                      items: [
-                        DropdownMenuItem(
-                            value: 'latest',
-                            child: Text(
-                                _translate("Latest", "Terbaru", "Pinakabago"))),
-                        DropdownMenuItem(
-                            value: 'oldest',
-                            child: Text(
-                                _translate("Oldest", "Terlama", "Pinakaluma"))),
-                        DropdownMenuItem(
-                            value: 'highest',
-                            child: Text(_translate(
-                                "Highest", "Tertinggi", "Pinakamataas"))),
-                        DropdownMenuItem(
-                            value: 'lowest',
-                            child: Text(_translate(
-                                "Lowest", "Terendah", "Pinakamababa"))),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            controller: TextEditingController.fromValue(
+              TextEditingValue(
+                text: searchGoalQuery,
+                selection:
+                    TextSelection.collapsed(offset: searchGoalQuery.length),
+              ),
             ),
-            const SizedBox(height: 10),
+            onChanged: (val) {
+              setState(() {
+                searchGoalQuery = val.trim();
+              });
+            },
+          ),
 
-            // SINKRONAYS DETECTION SYSTEM LAYER
-            if (processedGoals.isEmpty)
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.track_changes,
-                          size: 60, color: Colors.white12),
-                      const SizedBox(height: 16),
-                      Text(
-                        searchGoalQuery.isNotEmpty
-                            ? (_translate(
-                                "No matching goals found.",
-                                "Target tidak ditemukan.",
-                                "Walang nahanap na tugmang layunin."))
-                            : _translate(
-                                "No active goals. Tap (+) to create one!",
-                                "Belum ada target aktif. Ketuk (+) para menambahkan!",
-                                "Walang aktibong layunin. I-click ang (+) para magdagdag!"),
-                        textAlign: TextAlign.center,
+          // 🔥 IDINAGDAG: THE INTERACTIVE DROPDOWN SORTING CONTROL ROW (Eksaktong disenyo mula sa Utang Screen)
+          // ── SAVINGS GOALS SORTING LAYER ──
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Opacity(
+                opacity: widget.isTrialExpiredMode ? 0.3 : 1.0,
+                child: Row(
+                  children: [
+                    Icon(Icons.sort_rounded,
+                        color: widget.fontColor.withValues(alpha: 0.7),
+                        size: 16),
+                    const SizedBox(width: 6),
+                    Text(_translate("Sort by:", "Urutkan:", "I-sort ayon sa:"),
                         style: TextStyle(
-                            color: widget.fontColor.withValues(alpha: 0.4),
-                            fontSize: 14,
-                            fontStyle: FontStyle.italic),
-                      ),
+                            color: widget.fontColor.withValues(alpha: 0.5),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                    color: widget.isTrialExpiredMode
+                        ? widget.boxBgColor.withValues(alpha: 0.5)
+                        : widget.boxBgColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white10)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _currentGoalSortCriteria, // 🔥 NAGAMIT NANG TAMA
+                    dropdownColor: widget.boxBgColor,
+                    onChanged: widget.isTrialExpiredMode
+                        ? null
+                        : (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _currentGoalSortCriteria = newValue;
+                              });
+                            }
+                          },
+                    icon: Icon(Icons.arrow_drop_down,
+                        color: widget.isTrialExpiredMode
+                            ? Colors.white12
+                            : const Color(0xFFFFD700),
+                        size: 18),
+                    style: TextStyle(
+                        color: widget.isTrialExpiredMode
+                            ? widget.fontColor.withValues(alpha: 0.2)
+                            : widget.fontColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
+                    items: [
+                      DropdownMenuItem(
+                          value: 'latest',
+                          child: Text(
+                              _translate("Latest", "Terbaru", "Pinakabago"))),
+                      DropdownMenuItem(
+                          value: 'oldest',
+                          child: Text(
+                              _translate("Oldest", "Terlama", "Pinakaluma"))),
+                      DropdownMenuItem(
+                          value: 'highest',
+                          child: Text(_translate(
+                              "Highest", "Tertinggi", "Pinakamataas"))),
+                      DropdownMenuItem(
+                          value: 'lowest',
+                          child: Text(_translate(
+                              "Lowest", "Terendah", "Pinakamababa"))),
                     ],
                   ),
                 ),
-              )
-            else
-              Expanded(
-                child: ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: processedGoals.length,
-                  itemBuilder: (context, index) {
-                    final goal = processedGoals[index];
-                    int daysRemaining =
-                        goal.deadline.difference(DateTime.now()).inDays;
-                    if (daysRemaining < 0) daysRemaining = 0;
+              ),
+            ],
+          ),
 
-                    double progress = goal.targetAmount > 0
-                        ? (goal.savedAmount / goal.targetAmount) * 100
-                        : 0.0;
-                    if (progress > 100) progress = 100;
-
-                    int displayProgressPercentage = progress.floor();
-                    if (goal.savedAmount >= goal.targetAmount) {
-                      displayProgressPercentage = 100;
-                    }
-
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () {
-                        _navigateToDetailsPage(goal);
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: widget.boxBgColor,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: const Color(0xFFFFD700)
-                                  .withValues(alpha: 0.15),
-                              width: 1),
+          const SizedBox(height: 10),
+          // SINKRONAYS DETECTION SYSTEM LAYER
+          processedGoals.isEmpty
+              ? Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.track_changes,
+                            size: 60, color: Colors.white12),
+                        const SizedBox(height: 16),
+                        Text(
+                          searchGoalQuery.isNotEmpty
+                              ? _translate(
+                                  "No matching goals found.",
+                                  "Target tidak ditemukan.",
+                                  "Walang nahanap na tugmang layunin.")
+                              : _translate(
+                                  "No active goals. Tap (+) to create one!",
+                                  "Belum ada target aktif. Ketuk (+) para menambahkan!",
+                                  "Walang aktibong layunin. I-click ang (+) para magdagdag!"),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: widget.fontColor.withValues(alpha: 0.4),
+                              fontSize: 14,
+                              fontStyle: FontStyle.italic),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(goal.name.toUpperCase(),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: Color(0xFFFFD700))),
-                                PopupMenuButton<String>(
-                                  icon: Icon(Icons.more_vert,
-                                      color: widget.fontColor
-                                          .withValues(alpha: 0.5),
-                                      size: 20),
-                                  color: const Color(0xFF252525),
-                                  onSelected: (String action) {
-                                    if (action == 'deposit') {
-                                      // 🔥 NAITAMA: Sa halip na tawagin ang popup dialog, direkta na nitong bubuksan ang Details Page/Add Funds page!
-                                      _navigateToDetailsPage(goal);
-                                    } else if (action == 'edit_name') {
-                                      _showEditGoalNameDialog(goal);
-                                    } else if (action == 'edit_amount') {
-                                      _showEditGoalAmountDialog(goal);
-                                    } else if (action == 'delete') {
-                                      widget.onDeleteGoal(goal);
-                                    }
-                                  },
-                                  itemBuilder: (ctx) {
-                                    final bool isGoalCompleted =
-                                        goal.savedAmount >= goal.targetAmount;
-                                    return [
-                                      PopupMenuItem<String>(
-                                        value:
-                                            isGoalCompleted ? null : 'deposit',
-                                        enabled: !isGoalCompleted,
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.add_circle_outline,
-                                                color: isGoalCompleted
-                                                    ? Colors.white24
-                                                    : const Color(0xFF00E676),
-                                                size: 16),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              _translate(
-                                                  "Add Deposit",
-                                                  "Tambah Setoran",
-                                                  "Maghulog sa Ipon"),
-                                              style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: isGoalCompleted
-                                                      ? Colors.white24
-                                                      : Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      // 🔥 PINAGHIWALAY NA ITEM 1: EDIT NAME
-                                      PopupMenuItem<String>(
-                                        value: 'edit_name',
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.edit_note,
-                                                color: Color(0xFFFFD700),
-                                                size: 16),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              _translate(
-                                                  "Edit Name",
-                                                  "Ubah Nama",
-                                                  "I-edit ang Pangalan"),
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      // 🔥 PINAGHIWALAY NA ITEM 2: EDIT AMOUNT
-                                      PopupMenuItem<String>(
-                                        value: 'edit_amount',
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                                Icons.monetization_on_outlined,
-                                                color: Color(0xFFFFD700),
-                                                size: 16),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              _translate(
-                                                  "Edit Amount",
-                                                  "Ubah Jumlah",
-                                                  "I-edit ang Halaga"),
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      PopupMenuItem<String>(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.delete_outline,
-                                                color: Colors.redAccent,
-                                                size: 16),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              _translate(
-                                                  "Delete", "Hapus", "Burahin"),
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ];
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "${_translate('Saved: ', 'Terkumpul: ', 'Naipon: ')}${goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(goal.savedAmount.toInt())}",
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF00E676)),
-                                ),
-                                Text(
-                                  "${_translate('Target: ', 'Target: ', 'Target: ')}${goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(goal.targetAmount.toInt())}",
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: widget.fontColor
-                                          .withValues(alpha: 0.6)),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                    "Deadline: ${DateFormat('yyyy-MM-dd').format(goal.deadline)}",
-                                    style: TextStyle(
-                                        fontSize: 10,
+                      ],
+                    ),
+                  ),
+                )
+              : Expanded(
+                  child: ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: processedGoals.length,
+                    itemBuilder: (context, index) {
+                      final goal = processedGoals[index];
+                      int daysRemaining =
+                          goal.deadline.difference(DateTime.now()).inDays;
+                      if (daysRemaining < 0) daysRemaining = 0;
+
+                      double progress = goal.targetAmount > 0
+                          ? (goal.savedAmount / goal.targetAmount) * 100
+                          : 0.0;
+                      if (progress > 100) progress = 100;
+
+                      int displayProgressPercentage = progress.floor();
+                      if (goal.savedAmount >= goal.targetAmount) {
+                        displayProgressPercentage = 100;
+                      }
+
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () {
+                          _navigateToDetailsPage(goal);
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(
+                              bottom: widget.isCompactMode
+                                  ? 6
+                                  : 12), // 🔥 Mas maliit na gap kapag compact
+                          padding: EdgeInsets.all(widget.isCompactMode
+                              ? 10
+                              : 14), // 🔥 Mas manipis na padding kapag compact
+                          decoration: BoxDecoration(
+                            color: widget.boxBgColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: const Color(0xFFFFD700)
+                                    .withValues(alpha: 0.15),
+                                width: 1),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(goal.name.toUpperCase(),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: widget.isCompactMode
+                                              ? 11
+                                              : 13, // 🔥 Dynamic text size
+                                          color: const Color(0xFFFFD700))),
+                                  PopupMenuButton<String>(
+                                    icon: Icon(Icons.more_vert,
                                         color: widget.fontColor
-                                            .withValues(alpha: 0.38))),
-                                Text(
-                                    _translate(
-                                        "$daysRemaining days left",
-                                        "$daysRemaining hari lagi",
-                                        "$daysRemaining araw na lang"),
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.orangeAccent,
-                                        fontWeight: FontWeight.bold)),
-                              ],
+                                            .withValues(alpha: 0.5),
+                                        size: widget.isCompactMode
+                                            ? 16
+                                            : 20), // 🔥 Dynamic icon size
+                                    color: const Color(0xFF252525),
+                                    onSelected: (String action) {
+                                      if (action == 'deposit') {
+                                        _navigateToDetailsPage(goal);
+                                      } else if (action == 'edit_name') {
+                                        _showEditGoalNameDialog(goal);
+                                      } else if (action == 'edit_amount') {
+                                        _showEditGoalAmountDialog(goal);
+                                      } else if (action == 'delete') {
+                                        widget.onDeleteGoal(goal);
+                                      }
+                                    },
+                                    itemBuilder: (ctx) {
+                                      final bool isGoalCompleted =
+                                          goal.savedAmount >= goal.targetAmount;
+                                      final bool isLocked =
+                                          widget.isTrialExpiredMode;
+                                      return [
+                                        PopupMenuItem<String>(
+                                          value: (isGoalCompleted || isLocked)
+                                              ? null
+                                              : 'deposit',
+                                          enabled:
+                                              !isGoalCompleted && !isLocked,
+                                          child: Opacity(
+                                            opacity:
+                                                (isGoalCompleted || isLocked)
+                                                    ? 0.30
+                                                    : 1.0,
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.add_circle_outline,
+                                                    color: isGoalCompleted
+                                                        ? Colors.white24
+                                                        : const Color(
+                                                            0xFF00E676),
+                                                    size: 16),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  _translate(
+                                                      "Add Deposit",
+                                                      "Tambah Setoran",
+                                                      "Maghulog sa Ipon"),
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: isGoalCompleted
+                                                          ? Colors.white24
+                                                          : Colors.white),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: isLocked ? null : 'edit_name',
+                                          enabled: !isLocked,
+                                          child: Opacity(
+                                            opacity: isLocked ? 0.30 : 1.0,
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.edit_note,
+                                                    color: Color(0xFFFFD700),
+                                                    size: 16),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                    _translate(
+                                                        "Edit Name",
+                                                        "Ubah Nama",
+                                                        "I-edit ang Pangalan"),
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.white)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value:
+                                              isLocked ? null : 'edit_amount',
+                                          enabled: !isLocked,
+                                          child: Opacity(
+                                            opacity: isLocked ? 0.30 : 1.0,
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                    Icons
+                                                        .monetization_on_outlined,
+                                                    color: Color(0xFFFFD700),
+                                                    size: 16),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                    _translate(
+                                                        "Edit Amount",
+                                                        "Ubah Jumlah",
+                                                        "I-edit ang Halaga"),
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.white)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: isLocked ? null : 'delete',
+                                          enabled: !isLocked,
+                                          child: Opacity(
+                                            opacity: isLocked ? 0.30 : 1.0,
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.delete_outline,
+                                                    color: Colors.redAccent,
+                                                    size: 16),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                    _translate("Delete",
+                                                        "Hapus", "Burahin"),
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.white)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ];
+                                    },
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                  height: widget.isCompactMode
+                                      ? 4
+                                      : 8), // 🔥 Bawas espasyo
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "${_translate('Saved: ', 'Terkumpul: ', 'Naipon: ')}${goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(goal.savedAmount.toInt())}",
+                                    style: TextStyle(
+                                        fontSize:
+                                            widget.isCompactMode ? 11 : 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF00E676)),
+                                  ),
+                                  Text(
+                                    "${_translate('Target: ', 'Target: ', 'Target: ')}${goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(goal.targetAmount.toInt())}",
+                                    style: TextStyle(
+                                        fontSize:
+                                            widget.isCompactMode ? 10 : 12,
+                                        color: widget.fontColor
+                                            .withValues(alpha: 0.6)),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: widget.isCompactMode ? 4 : 8),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                      "Deadline: ${DateFormat('yyyy-MM-dd').format(goal.deadline)}",
+                                      style: TextStyle(
+                                          fontSize:
+                                              widget.isCompactMode ? 9 : 10,
+                                          color: widget.fontColor
+                                              .withValues(alpha: 0.38))),
+                                  Text(
+                                      _translate(
+                                          "$daysRemaining days left",
+                                          "$daysRemaining hari lagi",
+                                          "$daysRemaining araw na lang"),
+                                      style: TextStyle(
+                                          fontSize:
+                                              widget.isCompactMode ? 9 : 10,
+                                          color: Colors.orangeAccent,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              // 🔥 ITAGO ANG PROGRESS BAR KAPAG COMPACT MODE PARA MAKATIPID SA SPACING
+                              if (!widget.isCompactMode) ...[
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value: progress / 100,
+                                          backgroundColor: widget.fontColor
+                                              .withValues(alpha: 0.1),
+                                          valueColor:
+                                              const AlwaysStoppedAnimation(
+                                                  Color(0xFFFFD700)),
+                                          minHeight: 5,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text("$displayProgressPercentage%",
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFFFFD700))),
+                                  ],
+                                )
+                              ]
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+          const SizedBox(height: 10),
+
+          ElevatedButton.icon(
+            // 🛑 LOCK GATEWAY ENGINE: Harangin ang click action module at magpakita ng Top Alert kapag naabot na ang limitasyon
+            onPressed:
+                (!widget.isPremiumUser && widget.savingsGoals.length >= 2)
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            duration: const Duration(seconds: 4),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                            margin: EdgeInsets.only(
+                              top: MediaQuery.of(context).padding.top + 10,
+                              left: 16,
+                              right: 16,
                             ),
-                            const SizedBox(height: 6),
-                            Row(
+                            dismissDirection: DismissDirection.up,
+                            content: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: progress / 100,
-                                      backgroundColor: widget.fontColor
-                                          .withValues(alpha: 0.1),
-                                      valueColor: const AlwaysStoppedAnimation(
-                                          Color(0xFFFFD700)),
-                                      minHeight: 5,
-                                    ),
+                                  child: Text(
+                                    widget.currentLocale == 'en'
+                                        ? '🛑 Limited to 2 free goals!'
+                                        : (widget.currentLocale == 'id'
+                                            ? '🛑 Terbatas 2 target tabungan!'
+                                            : '🛑 Limitado sa 2 libreng layunin!'),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: Colors.white),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Text("$displayProgressPercentage%",
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    backgroundColor: const Color(0xFFFFD700),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context)
+                                        .hideCurrentSnackBar();
+                                    widget.onUpgradeTriggered();
+                                  },
+                                  child: Text(
+                                    widget.currentLocale == 'tl'
+                                        ? 'MAG-UPGRADE'
+                                        : (widget.currentLocale == 'id'
+                                            ? 'UPGRADE'
+                                            : 'UPGRADE'),
                                     style: const TextStyle(
-                                        fontSize: 11,
+                                        color: Colors.black,
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFFFFD700))),
+                                        fontSize: 11),
+                                  ),
+                                ),
                               ],
-                            )
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: widget.onCreateNewGoal,
-              icon: const Icon(Icons.add, size: 20),
-              label: Text(
-                _translate(
-                    "CREATE NEW SAVINGS GOAL",
-                    "BUAT TARGET TABUNGAN BARU",
-                    "MAGDAGDAG NG LAYUNIN SA IPON"),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
-                foregroundColor: Colors.black,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 4,
+                            ),
+                          ),
+                        );
+                      }
+                    : widget.onCreateNewGoal,
+            icon: Icon(
+              Icons.add,
+              size: 20,
+              color: (!widget.isPremiumUser && widget.savingsGoals.length >= 2)
+                  ? Colors.white24 // 🔥 Faded icon kapag locked
+                  : Colors.black,
+            ),
+            label: Text(
+              _translate("CREATE NEW SAVINGS GOAL", "BUAT TARGET TABUNGAN BARU",
+                  "MAGDAGDAG NG LAYUNIN SA IPON"),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color:
+                    (!widget.isPremiumUser && widget.savingsGoals.length >= 2)
+                        ? Colors.white24 // 🔥 Faded text kapag locked
+                        : Colors.black,
               ),
             ),
-          ],
-        ),
+            style: ElevatedButton.styleFrom(
+              // 🔥 CRITICAL OVERRIDE: Pilit na magiging SOLID GRAY kapag 2 entries na at walang active premium token
+              backgroundColor:
+                  (!widget.isPremiumUser && widget.savingsGoals.length >= 2)
+                      ? const Color(
+                          0xFF424242) // Dark Gray katulad ng sa Utang View mo
+                      : const Color(0xFFFFD700),
+              foregroundColor: Colors.black,
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation:
+                  (!widget.isPremiumUser && widget.savingsGoals.length >= 2)
+                      ? 0
+                      : 4,
+            ),
+          ),
+        ]),
       ),
     );
   }
@@ -10042,6 +10805,12 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
           pesoFormatter: widget.pesoFormatter,
           fontColor: widget.fontColor,
           boxBgColor: widget.boxBgColor,
+          isPremiumUser: widget.isPremiumUser,
+          isTrialExpiredMode:
+              false, // 🔥 O kahit anong boolean state fallback value kung kinakailangan
+          onUpgradeTriggered: () {
+            widget.onUpgradeTriggered();
+          },
           showSuccessPopup: (
               {required String title,
               required String message,
@@ -10493,32 +11262,44 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
   }
 }
 
+// ====================================================
+// 🎯 ANG GOAL DETAILS PAGE (Top-Level Class Definition)
+// ====================================================
 class GoalDetailsPage extends StatefulWidget {
   final SavingsGoal goal;
   final String currentLocale;
   final String Function(double) pesoFormatter;
   final VoidCallback onDataChanged;
+  final VoidCallback onUpgradeTriggered;
   final Function(
       {required String title,
       required String message,
       required String emoji}) showSuccessPopup;
   final Color boxBgColor;
   final Color fontColor;
+  final bool isTrialExpiredMode;
+  final bool isPremiumUser;
 
-  const GoalDetailsPage(
-      {super.key,
-      required this.goal,
-      required this.currentLocale,
-      required this.pesoFormatter,
-      required this.onDataChanged,
-      required this.showSuccessPopup,
-      required this.boxBgColor,
-      required this.fontColor});
+  // 🔥 NAITAMA: Kompleto ang class definition sa itaas bago ang constructor na ito
+  GoalDetailsPage({
+    super.key,
+    required this.goal,
+    required this.currentLocale,
+    required this.pesoFormatter,
+    required this.onDataChanged,
+    required this.showSuccessPopup,
+    required this.onUpgradeTriggered, // 🔥 IDINAGDAG
+    required this.boxBgColor,
+    required this.fontColor,
+    required this.isTrialExpiredMode,
+    required this.isPremiumUser,
+  });
 
   @override
   State<GoalDetailsPage> createState() => _GoalDetailsPageState();
 }
 
+// 🔥 SIGURADUHIN NA GANITO ANG SIMULA NG KASUNOD NA LINYA:
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
   String _translate(String en, String id, String fil) {
     if (widget.currentLocale == 'en') return en;
@@ -10763,7 +11544,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("🛑❌", style: TextStyle(fontSize: 48)),
+                const Text("❌", style: TextStyle(fontSize: 48)),
                 const SizedBox(height: 16),
                 Text(
                     _translate(
@@ -10795,6 +11576,27 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   }
 
   void _addFundsDialog() {
+    if (!widget.isPremiumUser && widget.goal.deposits.length >= 10) {
+      Navigator.pop(context); // Isasara ang input dialog panel kung nakabukas
+
+      // Magpakita ng alert gamit ang orihinal na context scaffold manager ng sub-page
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.currentLocale == 'tl'
+                ? '🛑 Hanggang 10 libreng hulog sa ipon lamang ang pinapayagan!'
+                : (widget.currentLocale == 'id'
+                    ? '🛑 Maksimal 10 kali setoran gratis saja!'
+                    : '🛑 Maximum of 10 free deposit logs only!'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final TextEditingController amountCtrl = TextEditingController();
     String sym = widget.goal.currencySymbol.isNotEmpty
         ? widget.goal.currencySymbol
@@ -10958,7 +11760,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(goalNaabot ? "🎉🏆" : "🟢✨",
+                        Text(goalNaabot ? "🎉🏆" : "💵",
                             style: const TextStyle(fontSize: 48)),
                         const SizedBox(height: 16),
                         Text(
@@ -11044,14 +11846,28 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
 // 🔥 IDINAGDAG: PDF icon button actions sa AppBar ng Mag Ipon sub-details screen
         actions: [
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf_rounded,
-                color: Color(0xFFFFD700), size: 22),
-            tooltip: _translate(
-                "Export Report", "Ekspor Laporan", "I-export ang Report"),
-            onPressed:
-                _generateAndShareGoalPDF, // 🚀 Tinatawag ang bagong PDF Document script generator
+            // 🛑 Magbabago ang opacity at kulay kapag expired na ang trial period
+            icon: Icon(
+              Icons.picture_as_pdf_rounded,
+              color: widget.isTrialExpiredMode
+                  ? widget.fontColor
+                      .withValues(alpha: 0.15) // 🔥 Magiging malabo/greyed out
+                  : const Color(0xFFFFD700),
+              size: 22,
+            ),
+            // 🛑 LOCK ENGINE: Haharangin ang click action kapag expired
+            onPressed: widget.isTrialExpiredMode
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            "🔒 Premium Feature Only! Upgrade to PRO to export data."),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                : _generateAndShareGoalPDF, // Dito yung pormal na method mo ng PDF function
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Padding(
@@ -11372,11 +12188,70 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
 
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              // 🔥 TAMA AT AKTIBO (FIX): Kung hindi pa 100% complete, papayagan nating magbukas ang input form dialog panel
-              onPressed: isComplete
-                  ? null
+              // 🔥 SULUSYON: Kapag expired na ang trial (higit sa 10 entries) at hindi PRO, magiging null (disabled) ang button trigger array hook
+              onPressed: (isComplete ||
+                      (!widget.isPremiumUser &&
+                          widget.goal.deposits.length >= 10))
+                  ? () {
+                      // Ipinapakita pa rin ang top dropdown alert notification para gabayan ang user sa plan menu
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          duration: const Duration(seconds: 4),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                          margin: EdgeInsets.only(
+                            top: MediaQuery.of(context).padding.top + 10,
+                            left: 16,
+                            right: 16,
+                          ),
+                          dismissDirection: DismissDirection.up,
+                          content: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  widget.currentLocale == 'en'
+                                      ? '🛑 Maximum of 10 free deposits per goal!'
+                                      : (widget.currentLocale == 'id'
+                                          ? '🛑 Maksimal 10 kali setoran per target!'
+                                          : '🛑 Limitado sa 10 libreng hulog bawat layunin!'),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: Colors.white),
+                                ),
+                              ),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  backgroundColor: const Color(0xFFFFD700),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6)),
+                                ),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context)
+                                      .hideCurrentSnackBar();
+                                  Navigator.pop(
+                                      context); // Isasara ang page para makabalik sa main screen kung nasaan ang Upgrade plan choices
+                                },
+                                child: Text(
+                                  widget.currentLocale == 'tl'
+                                      ? 'MAG-UPGRADE'
+                                      : 'UPGRADE',
+                                  style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
                   : () {
-                      // 🚀 AUTOMATION INJECTION: Direkta nitong tinatawag ang naitama nating interactive deposit form box
+                      // Kung hindi pa expired o kung naka-TEST PRO mode, normal na magbubukas ang input form panel box
                       _addFundsDialog();
                     },
               icon: const Icon(Icons.add, size: 20),
@@ -11386,14 +12261,16 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
+                // 🔥 CONFIGURATION: Awtomatikong lilipat sa pagka-Gray kapag disabled ang profile parameters
                 backgroundColor: const Color(0xFFFFD700),
                 foregroundColor: Colors.black,
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
-                // Kapag disabled (100% kompleto na), magiging madilim ang button
-                disabledBackgroundColor: Colors.white12,
-                disabledForegroundColor: Colors.white24,
+                disabledBackgroundColor: Colors.grey[
+                    700], // Kulay gray na background katulad ng sa Utang Page
+                disabledForegroundColor:
+                    Colors.white24, // Kulay ng text at icon kapag naka-disable
               ),
             ),
           ],
@@ -11437,6 +12314,8 @@ class DebtHistoryPage extends StatefulWidget {
   final VoidCallback onPaymentAdded;
   final Color boxBgColor;
   final Color fontColor;
+  final bool isTrialExpiredMode;
+  final bool isPremiumUser;
 
   const DebtHistoryPage(
       {super.key,
@@ -11445,6 +12324,8 @@ class DebtHistoryPage extends StatefulWidget {
       required this.pesoFormatter,
       required this.onPaymentAdded,
       required this.boxBgColor,
+      required this.isTrialExpiredMode,
+      required this.isPremiumUser,
       required this.fontColor});
 
   @override
@@ -11693,7 +12574,7 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("🛑❌", style: TextStyle(fontSize: 48)),
+                const Text("❌", style: TextStyle(fontSize: 48)),
                 const SizedBox(height: 16),
                 Text(
                   _translate(
@@ -11739,6 +12620,63 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
   }
 
   void _addPaymentEntryDialog() {
+    if (!widget.isPremiumUser && widget.debt.payments.length >= 10) {
+      Navigator.pop(context); // Isasara ang input sheet dialog kung nakabukas
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+          ),
+          dismissDirection: DismissDirection.up,
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  widget.currentLocale == 'en'
+                      ? '🛑 Maximum of 10 free payments per person!'
+                      : (widget.currentLocale == 'id'
+                          ? '🛑 Maksimal 10 kali pembayaran per orang!'
+                          : '🛑 Limitado sa 10 libreng bayad bawat tao!'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.white),
+                ),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  backgroundColor: const Color(0xFFFFD700),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  Navigator.pop(
+                      context); // Ibabalik sa home screen para makapag-upgrade
+                },
+                child: Text(
+                  widget.currentLocale == 'tl' ? 'MAG-UPGRADE' : 'UPGRADE',
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
     final TextEditingController amountCtrl = TextEditingController();
     String sym = widget.debt.currencySymbol.isNotEmpty
         ? widget.debt.currencySymbol
@@ -11883,7 +12821,7 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(lunasNa ? "🎉🏆" : "🟢",
+                            Text(lunasNa ? "🎉🏆" : "💵",
                                 style: const TextStyle(fontSize: 48)),
                             const SizedBox(height: 16),
                             Text(
@@ -11968,14 +12906,28 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
 // 🔥 NAGDAGDAG NG MGA ACTIONS SA APP BAR PARA SA PDF EXPORT MANAGER CONTROL
         actions: [
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf_rounded,
-                color: Color(0xFFFFD700), size: 22),
-            tooltip: _translate(
-                "Export Statement", "Ekspor Laporan", "I-export ang Report"),
-            onPressed:
-                _generateAndShareDebtPDF, // 🚀 Tinatawag ang PDF Engine setup panel
+            // 🛑 Magbabago ang opacity at kulay kapag expired na ang trial period
+            icon: Icon(
+              Icons.picture_as_pdf_rounded,
+              color: widget.isTrialExpiredMode
+                  ? widget.fontColor
+                      .withValues(alpha: 0.15) // 🔥 Magiging malabo/greyed out
+                  : const Color(0xFFFFD700),
+              size: 22,
+            ),
+            // 🛑 LOCK ENGINE: Haharangin ang click action kapag expired
+            onPressed: widget.isTrialExpiredMode
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            "🔒 Premium Feature Only! Upgrade to PRO to export data."),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                : _generateAndShareDebtPDF, // 🔥 Ginamit ang tamang PDF method para sa utang page
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Padding(
@@ -12120,160 +13072,103 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                                     icon: const Icon(Icons.delete_outline,
                                         color: Colors.redAccent, size: 20),
                                     onPressed: () {
+                                      // 1. Kumuha ng kopya ng halaga para sa history tracking display
+                                      double removedPaymentAmount =
+                                          payment.amount;
+
+                                      setState(() {
+                                        // 2. Ibawas ang halaga sa kabuuang naibayad na (paidAmount) ng utang
+                                        widget.debt.paidAmount -=
+                                            removedPaymentAmount;
+                                        if (widget.debt.paidAmount < 0) {
+                                          widget.debt.paidAmount = 0.0;
+                                        }
+
+                                        // 3. Alisin ang payment log sa array list
+                                        widget.debt.payments.removeAt(idx);
+                                      });
+
+                                      // 4. I-save agad sa SharedPreferences database disk module
+                                      widget.onPaymentAdded();
+                                      Navigator.pop(
+                                          context); // Isasara ang Confirmation Box
+
+                                      // 🎉 5. THE MULTILINGUAL SUCCESS PROMPT DIALOG CARD POPUP
                                       showDialog(
                                         context: context,
-                                        builder: (context) => AlertDialog(
+                                        builder: (BuildContext subCtx) =>
+                                            AlertDialog(
                                           backgroundColor:
                                               const Color(0xFF1E1E1E),
                                           shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(16)),
-                                          title: Text(_translate(
-                                              "Delete Payment?",
-                                              "Hapus Pembayaran?",
-                                              "Burahin ang Bayad?")),
-                                          content: Text(_translate(
-                                              "Are you sure you want to permanently remove this payment entry?",
-                                              "Apakah Anda yakin ingin menghapus catatan pembayaran ini secara permanen?",
-                                              "Sigurado ka bang gusto mong burahin nang tuluyan ang tala ng bayad na ito?")),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: Text(
-                                                  _translate("Cancel", "Batal",
-                                                      "Kanselahin"),
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text("🗑️",
+                                                  style:
+                                                      TextStyle(fontSize: 48)),
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                widget.currentLocale == 'en'
+                                                    ? "PAYMENT DELETED!"
+                                                    : (widget.currentLocale ==
+                                                            'id'
+                                                        ? "PEMBAYARAN DIHAPUS!"
+                                                        : "NABURA ANG BAYAD!"),
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                widget.currentLocale == 'en'
+                                                    ? "Successfully removed the payment of ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} from history."
+                                                    : (widget.currentLocale ==
+                                                            'id'
+                                                        ? "Berhasil menghapus catatan pembayaran sebesar ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} dari riwayat."
+                                                        : "Matagumpay na nabura ang bayad na ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} sa kasaysayan."),
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                    color: Colors.white54,
+                                                    fontSize: 12,
+                                                    height: 1.4),
+                                              ),
+                                              const SizedBox(height: 20),
+                                              ElevatedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(subCtx),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFFFFD700),
+                                                  foregroundColor: Colors.black,
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20)),
+                                                  padding: const EdgeInsets
+                                                          .symmetric(
+                                                      horizontal: 24,
+                                                      vertical: 10),
+                                                ),
+                                                child: Text(
+                                                  widget.currentLocale == 'en'
+                                                      ? "OKAY"
+                                                      : (widget.currentLocale ==
+                                                              'id'
+                                                          ? "OK"
+                                                          : "SIGE"),
                                                   style: const TextStyle(
-                                                      color: Colors.white38)),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                // 1. Kumuha ng kopya ng halaga para sa history tracking display
-                                                double removedPaymentAmount =
-                                                    payment.amount;
-
-                                                setState(() {
-                                                  // 2. Ibawas ang halaga sa kabuuang naibayad na (paidAmount) ng utang
-                                                  widget.debt.paidAmount -=
-                                                      removedPaymentAmount;
-                                                  if (widget.debt.paidAmount <
-                                                      0)
-                                                    widget.debt.paidAmount =
-                                                        0.0;
-
-                                                  // 3. Alisin ang payment log sa array list
-                                                  widget.debt.payments
-                                                      .removeAt(idx);
-                                                });
-
-                                                // 4. I-save agad sa SharedPreferences database disk module
-                                                widget.onPaymentAdded();
-                                                Navigator.pop(
-                                                    context); // Isasara ang Confirmation Box
-
-                                                // 🎉 5. THE MULTILINGUAL SUCCESS PROMPT DIALOG CARD POPUP
-                                                showDialog(
-                                                  context: context,
-                                                  builder:
-                                                      (BuildContext subCtx) =>
-                                                          AlertDialog(
-                                                    backgroundColor:
-                                                        const Color(0xFF1E1E1E),
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        16)),
-                                                    content: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        const Text("🗑️",
-                                                            style: TextStyle(
-                                                                fontSize: 48)),
-                                                        const SizedBox(
-                                                            height: 16),
-                                                        Text(
-                                                          _translate(
-                                                              "PAYMENT DELETED!",
-                                                              "PEMBAYARAN DIHAPUS!",
-                                                              "NABURA ANG BAYAD!"),
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style: const TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontSize: 16,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 8),
-                                                        Text(
-                                                          _translate(
-                                                              "Successfully removed the payment of ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} from history.",
-                                                              "Berhasil menghapus catatan pembayaran sebesar ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} dari riwayat.",
-                                                              "Matagumpay na nabura ang bayad na ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} sa kasaysayan."),
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white54,
-                                                                  fontSize: 12,
-                                                                  height: 1.4),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 20),
-                                                        ElevatedButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  subCtx),
-                                                          style: ElevatedButton
-                                                              .styleFrom(
-                                                            backgroundColor:
-                                                                const Color(
-                                                                    0xFFFFD700),
-                                                            foregroundColor:
-                                                                Colors.black,
-                                                            shape: RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            20)),
-                                                            padding:
-                                                                const EdgeInsets
-                                                                        .symmetric(
-                                                                    horizontal:
-                                                                        24,
-                                                                    vertical:
-                                                                        10),
-                                                          ),
-                                                          child: Text(
-                                                            _translate("OKAY",
-                                                                "OK", "SIGE"),
-                                                            style: const TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              child: Text(
-                                                  _translate("Delete", "Hapus",
-                                                      "Burahin"),
-                                                  style: const TextStyle(
-                                                      color: Colors.redAccent,
                                                       fontWeight:
-                                                          FontWeight.bold)),
-                                            ),
-                                          ],
+                                                          FontWeight.bold),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       );
                                     },
@@ -12315,15 +13210,20 @@ class DebtsPage extends StatefulWidget {
   final String currentLocale;
   final String currentCurrency;
   final String Function(double) pesoFormatter;
+  final List<Map<String, String>> globalCurrencies;
+  final Function(Function(Map<String, String>)) openCurrencySearchPicker;
+  final Color boxBgColor;
+  final Color fontColor;
+  final bool
+      isPremiumUser; // 🔥 NAITAMA: Inalisan ng underscore para mawala ang named argument syntax error
+  final bool isTrialExpiredMode;
+  final bool isCompactMode;
+  final VoidCallback onUpgradeTriggered;
   final VoidCallback onDataChanged;
   final Function(
       {required String title,
       required String message,
       required String emoji}) showSuccessPopup;
-  final List<Map<String, String>> globalCurrencies;
-  final Function(Function(Map<String, String>)) openCurrencySearchPicker;
-  final Color boxBgColor;
-  final Color fontColor;
 
   const DebtsPage({
     super.key,
@@ -12331,12 +13231,16 @@ class DebtsPage extends StatefulWidget {
     required this.currentLocale,
     required this.currentCurrency,
     required this.pesoFormatter,
-    required this.onDataChanged,
-    required this.showSuccessPopup,
     required this.globalCurrencies,
     required this.openCurrencySearchPicker,
     required this.boxBgColor,
     required this.fontColor,
+    required this.isPremiumUser, // 🔥 NAITAMA
+    required this.isTrialExpiredMode,
+    required this.isCompactMode,
+    required this.onUpgradeTriggered,
+    required this.onDataChanged,
+    required this.showSuccessPopup,
   });
 
   @override
@@ -13072,10 +13976,14 @@ class _DebtsPageState extends State<DebtsPage> {
         summaryOweMe[sym] = summaryOweMe[sym]! + remaining;
       }
     }
+    // 🔥 HOOK HARD LOCKER FOR DEBT SEARCH FILTER REGISTRY ENGINE
+    // Kung expired na ang trial, puwersahing walang lumabas sa query para ma-freeze ang view list layer
+    final cleanQuery =
+        widget.isTrialExpiredMode ? "" : searchDebtQuery.toLowerCase();
 
-    // 🔍 PINALAWAK (FIX): Sinasala muna ang listahan base sa pangalan na hinahanap ng user
-    List<DebtItemV2> processedDebts = widget.debtsList.where((item) {
-      return item.name.toLowerCase().contains(searchDebtQuery.toLowerCase());
+    List<DebtItemV2> processedDebts = widget.debtsList.where((debt) {
+      final matchesSearch = debt.name.toLowerCase().contains(cleanQuery);
+      return matchesSearch;
     }).toList();
 
     // 🔥 SORTING ENGINE SYSTEM (In-apply sa processedDebts na may search filter)
@@ -13173,10 +14081,10 @@ class _DebtsPageState extends State<DebtsPage> {
                       children: [
                         Text(
                           widget.currentLocale == 'en'
-                              ? "TOTAL OWED TO YOU 🟢"
+                              ? "TOTAL OWED TO YOU 💵"
                               : (widget.currentLocale == 'id'
-                                  ? "TOTAL PIUTANG ANDA 🟢"
-                                  : "UTANG SAYO 🟢"),
+                                  ? "TOTAL PIUTANG ANDA 💵"
+                                  : "UTANG SAYO 💵"),
                           style: TextStyle(
                               color: widget.fontColor.withValues(alpha: 0.5),
                               fontSize: 11),
@@ -13205,92 +14113,148 @@ class _DebtsPageState extends State<DebtsPage> {
               ],
             ),
             const SizedBox(height: 14),
-            TextField(
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: widget.currentLocale == 'en'
-                    ? 'Search person name...'
-                    : (widget.currentLocale == 'id'
-                        ? 'Cari nama orang...'
-                        : 'Maghanap ng pangalan...'),
-                hintStyle: TextStyle(
-                    color: widget.fontColor.withValues(alpha: 0.35),
-                    fontSize: 13),
-                prefixIcon: const Icon(Icons.search,
-                    color: Color(0xFFFFD700), size: 20),
-                suffixIcon: searchDebtQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear,
-                            size: 18,
-                            color: widget.fontColor.withValues(alpha: 0.5)),
-                        onPressed: () {
-                          setState(() {
-                            searchDebtQuery = "";
-                          });
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: widget.boxBgColor,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white10)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Color(0xFFFFD700), width: 1)),
-              ),
-              controller: TextEditingController.fromValue(
-                TextEditingValue(
-                  text: searchDebtQuery,
-                  selection:
-                      TextSelection.collapsed(offset: searchDebtQuery.length),
+            // HANAPIN MO ITONG LUMANG CODE NA ITO:
+            // 🔥 HARD LOCK LAYER: Binalot sa AbsorbPointer para harangin ang lahat ng touch/tap interaction kapag expired
+            AbsorbPointer(
+              absorbing: widget.isTrialExpiredMode,
+              child: TextField(
+                style: const TextStyle(fontSize: 14, color: Colors.white),
+                enabled: !widget
+                    .isTrialExpiredMode, // 🛑 I-disable ang field programmatically
+                decoration: InputDecoration(
+                  hintText: widget.isTrialExpiredMode
+                      ? (widget.currentLocale == 'en'
+                          ? 'Search disabled (Free Trial Expired)'
+                          : (widget.currentLocale == 'id'
+                              ? 'Pencarian dinonaktifkan'
+                              : 'Bawal maghanap (Expired na ang Trial)'))
+                      : (widget.currentLocale == 'en'
+                          ? 'Search person name...'
+                          : (widget.currentLocale == 'id'
+                              ? 'Cari nama orang...'
+                              : 'Maghanap ng pangalan...')),
+                  hintStyle: TextStyle(
+                      color: widget.isTrialExpiredMode
+                          ? widget.fontColor.withValues(alpha: 0.15)
+                          : widget.fontColor.withValues(alpha: 0.35),
+                      fontSize: 13),
+                  prefixIcon: Icon(Icons.search,
+                      color: widget.isTrialExpiredMode
+                          ? Colors.white12
+                          : const Color(0xFFFFD700),
+                      size: 20),
+                  suffixIcon: searchDebtQuery.isNotEmpty &&
+                          !widget.isTrialExpiredMode
+                      ? IconButton(
+                          icon: Icon(Icons.clear,
+                              size: 18,
+                              color: widget.fontColor.withValues(alpha: 0.5)),
+                          onPressed: () {
+                            setState(() {
+                              searchDebtQuery = "";
+                            });
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: widget.isTrialExpiredMode
+                      ? widget.boxBgColor.withValues(alpha: 0.4)
+                      : widget.boxBgColor,
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white10)),
+                  disabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                          color: Colors
+                              .white12)), // Magdidilim ang borders kapag expired
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xFFFFD700), width: 1)),
                 ),
+                controller: TextEditingController.fromValue(
+                  TextEditingValue(
+                    text: widget.isTrialExpiredMode
+                        ? ""
+                        : searchDebtQuery, // Puwersahing walang laman kapag locked
+                    selection: TextSelection.collapsed(
+                        offset: widget.isTrialExpiredMode
+                            ? 0
+                            : searchDebtQuery.length),
+                  ),
+                ),
+                onChanged: (val) {
+                  if (!widget.isTrialExpiredMode) {
+                    setState(() {
+                      searchDebtQuery = val.trim();
+                    });
+                  }
+                },
               ),
-              onChanged: (val) {
-                setState(() {
-                  searchDebtQuery = val.trim();
-                });
-              },
             ),
+
+            // ── DEBTS TRACKER SORTING LAYER ──
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(Icons.sort_rounded,
-                    color: widget.fontColor.withValues(alpha: 0.7), size: 16),
-                const SizedBox(width: 6),
-                Text(txtSortLabel,
-                    style: TextStyle(
-                        color: widget.fontColor.withValues(alpha: 0.5),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
+                Opacity(
+                  opacity: widget.isTrialExpiredMode ? 0.3 : 1.0,
+                  child: Row(
+                    children: [
+                      Icon(Icons.sort_rounded,
+                          color: widget.fontColor.withValues(alpha: 0.7),
+                          size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                          widget.currentLocale == 'en'
+                              ? "Sort by:"
+                              : (widget.currentLocale == 'id'
+                                  ? "Urutkan:"
+                                  : "I-sort ayon sa:"),
+                          style: TextStyle(
+                              color: widget.fontColor.withValues(alpha: 0.5),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                      color: widget.boxBgColor,
+                      color: widget.isTrialExpiredMode
+                          ? widget.boxBgColor.withValues(alpha: 0.5)
+                          : widget.boxBgColor,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.white10)),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton(
-                      value: _currentSortCriteria,
+                    child: DropdownButton<String>(
+                      value: _currentSortCriteria, // 🔥 NAGAMIT NANG TAMA
                       dropdownColor: widget.boxBgColor,
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: Color(0xFFFFD700), size: 18),
+                      onChanged: widget.isTrialExpiredMode
+                          ? null
+                          : (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _currentSortCriteria = newValue;
+                                });
+                              }
+                            },
+                      icon: Icon(Icons.arrow_drop_down,
+                          color: widget.isTrialExpiredMode
+                              ? Colors.white12
+                              : const Color(0xFFFFD700),
+                          size: 18),
                       style: TextStyle(
-                          color: widget.fontColor,
+                          color: widget.isTrialExpiredMode
+                              ? widget.fontColor.withValues(alpha: 0.2)
+                              : widget.fontColor,
                           fontSize: 11,
                           fontWeight: FontWeight.bold),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            _currentSortCriteria = newValue;
-                          });
-                        }
-                      },
                       items: [
                         DropdownMenuItem(
                             value: 'latest',
@@ -13326,6 +14290,7 @@ class _DebtsPageState extends State<DebtsPage> {
                 ),
               ],
             ),
+
             const SizedBox(height: 10),
             Expanded(
               child: processedDebts
@@ -13368,9 +14333,10 @@ class _DebtsPageState extends State<DebtsPage> {
                                   debt: debt,
                                   currentLocale: widget.currentLocale,
                                   pesoFormatter: widget.pesoFormatter,
-                                  // 🔥 IDINAGDAG ANG MGA KULAY DITO SA ONTAP:
+                                  isPremiumUser: widget.isPremiumUser,
                                   boxBgColor: widget.boxBgColor,
                                   fontColor: widget.fontColor,
+                                  isTrialExpiredMode: widget.isTrialExpiredMode,
                                   onPaymentAdded: () {
                                     widget.onDataChanged();
                                     setState(() {});
@@ -13380,71 +14346,71 @@ class _DebtsPageState extends State<DebtsPage> {
                             ).then((_) => setState(() {}));
                           },
                           child: Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(12),
+                            margin: EdgeInsets.only(
+                                bottom: widget.isCompactMode
+                                    ? 6
+                                    : 8), // 🔥 Bawas espasyo kapag compact
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: widget.isCompactMode
+                                    ? 6
+                                    : 12), // 🔥 Mas manipis na padding kapag compact
                             decoration: BoxDecoration(
-                                color: widget.boxBgColor,
-                                borderRadius: BorderRadius.circular(14)),
+                              color: widget.boxBgColor,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: const Color(0xFFFFD700)
+                                      .withValues(alpha: 0.15),
+                                  width: 1),
+                            ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                              color: debt.isOwedToMe
-                                                  ? const Color(0xFF00E676)
-                                                      .withValues(alpha: 0.15)
-                                                  : Colors.redAccent
-                                                      .withValues(alpha: 0.15),
-                                              borderRadius:
-                                                  BorderRadius.circular(6)),
-                                          child: Text(
-                                              debt.isOwedToMe
-                                                  ? (widget.currentLocale ==
-                                                          'en'
-                                                      ? "OWED TO YOU"
-                                                      : (widget.currentLocale ==
-                                                              'id'
-                                                          ? "PIUTANG"
-                                                          : "UTANG SAYO"))
-                                                  : (widget.currentLocale ==
-                                                          'en'
-                                                      ? "YOU OWE"
-                                                      : (widget.currentLocale ==
-                                                              'id'
-                                                          ? "UTANG"
-                                                          : "UTANG MO")),
-                                              style: TextStyle(
-                                                  color: debt.isOwedToMe
-                                                      ? const Color(0xFF00E676)
-                                                      : Colors.redAccent,
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold)),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(debt.name,
-                                            style: TextStyle(
-                                                color: widget.fontColor,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                        "Paid: ${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(debt.paidAmount.toInt())} / ${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(debt.totalAmount.toInt())}",
+                                // KALIWANG BAHAGI: Pangalan at Status (I owe / They owe)
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        debt.name.toUpperCase(),
                                         style: TextStyle(
-                                            color: widget.fontColor
-                                                .withValues(alpha: 0.38),
-                                            fontSize: 11)),
-                                  ],
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: widget.isCompactMode
+                                                ? 12
+                                                : 14, // 🔥 Dynamic text size
+                                            color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        debt.isOwedToMe
+                                            ? (widget.currentLocale == 'en'
+                                                ? "THEY OWE ME 🟢"
+                                                : (widget.currentLocale == 'id'
+                                                    ? "PIUTANG 🟢"
+                                                    : "UTANG SA'KIN 🟢"))
+                                            : (widget.currentLocale == 'en'
+                                                ? "I OWE THEM 🔴"
+                                                : (widget.currentLocale == 'id'
+                                                    ? "UTANG 🔴"
+                                                    : "UTANG KO 🔴")),
+                                        style: TextStyle(
+                                            fontSize: widget.isCompactMode
+                                                ? 9
+                                                : 10, // 🔥 Dynamic sub-text size
+                                            fontWeight: FontWeight.bold,
+                                            color: debt.isOwedToMe
+                                                ? const Color(0xFF00E676)
+                                                : Colors.redAccent),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+
+                                // KANANG BAHAGI: Halaga at Popup Menu Button
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Column(
                                       crossAxisAlignment:
@@ -13455,10 +14421,7 @@ class _DebtsPageState extends State<DebtsPage> {
                                             isFullyPaid
                                                 ? (widget.currentLocale == 'en'
                                                     ? "SETTLED"
-                                                    : (widget.currentLocale ==
-                                                            'id'
-                                                        ? "LUNAS"
-                                                        : "LUNAS"))
+                                                    : "LUNAS")
                                                 : "${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(remaining.toInt())}",
                                             style: TextStyle(
                                                 color: isFullyPaid
@@ -13468,29 +14431,21 @@ class _DebtsPageState extends State<DebtsPage> {
                                                             0xFF00E676)
                                                         : Colors.redAccent),
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 14)),
-                                        if (!isFullyPaid) ...[
-                                          const SizedBox(height: 2),
-                                          Text(unpaidLabel,
-                                              style: TextStyle(
-                                                  color: widget.fontColor
-                                                      .withValues(alpha: 0.38),
-                                                  fontSize: 8.5,
-                                                  fontWeight: FontWeight.bold))
-                                        ],
+                                                fontSize: widget.isCompactMode
+                                                    ? 12
+                                                    : 14)), // 🔥 Dynamic price size
                                       ],
                                     ),
                                     PopupMenuButton<String>(
                                       icon: Icon(Icons.more_vert,
                                           color: widget.fontColor
-                                              .withValues(alpha: 0.3),
-                                          size: 18),
+                                              .withValues(alpha: 0.5),
+                                          size: widget.isCompactMode
+                                              ? 16
+                                              : 20), // 🔥 Dynamic dot sizes
                                       color: const Color(0xFF252525),
-                                      // ── 🔥 BINAGO ANG ONSELECTED LOGIC CONTROLS ──
                                       onSelected: (String action) {
                                         if (action == 'add_payment') {
-                                          // 🚀 DIREKTA SA ENTRY PAGE: Nilalaktawan ang simpleng popup dialog
-                                          // At tinatawag ang buong details history navigation sub-page frame
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -13501,8 +14456,14 @@ class _DebtsPageState extends State<DebtsPage> {
                                                     widget.currentLocale,
                                                 pesoFormatter:
                                                     widget.pesoFormatter,
-                                                boxBgColor: widget.boxBgColor,
-                                                fontColor: widget.fontColor,
+                                                isPremiumUser: widget
+                                                    .isPremiumUser, // 🔥 Ipinasa ang required parameter para sa PRO check
+                                                boxBgColor: widget
+                                                    .boxBgColor, // 🔥 Ibinalik ang required variable
+                                                fontColor: widget
+                                                    .fontColor, // 🔥 Ibinalik ang required variable
+                                                isTrialExpiredMode: widget
+                                                    .isTrialExpiredMode, // 🔥 Ibinalik ang required variable
                                                 onPaymentAdded: () {
                                                   widget.onDataChanged();
                                                   setState(() {});
@@ -13519,100 +14480,132 @@ class _DebtsPageState extends State<DebtsPage> {
                                         }
                                       },
                                       itemBuilder: (ctx) {
-                                        // manatili ang iyong orihinal na list items array code...
-
-                                        bool isFullyPaid = (debt.totalAmount -
-                                                debt.paidAmount) <=
-                                            0;
+                                        final bool isLocked =
+                                            widget.isTrialExpiredMode;
                                         return [
-                                          // 🔥 BAGONG POPUP ITEM: GRAYED OUT KAPAG LUNAS NA
-                                          PopupMenuItem(
-                                              value: isFullyPaid
-                                                  ? null
-                                                  : 'add_payment',
-                                              enabled: !isFullyPaid,
-                                              child: Row(children: [
-                                                Icon(Icons.add_circle_outline,
-                                                    color: isFullyPaid
-                                                        ? Colors.white24
-                                                        : const Color(
-                                                            0xFF00E676),
-                                                    size: 16),
-                                                const SizedBox(width: 8),
-                                                Text(
+                                          PopupMenuItem<String>(
+                                            value: (isFullyPaid || isLocked)
+                                                ? null
+                                                : 'add_payment',
+                                            enabled: !isFullyPaid && !isLocked,
+                                            child: Opacity(
+                                              opacity: (isFullyPaid || isLocked)
+                                                  ? 0.30
+                                                  : 1.0,
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.add_circle_outline,
+                                                      color: isFullyPaid
+                                                          ? Colors.white24
+                                                          : const Color(
+                                                              0xFF00E676),
+                                                      size: 16),
+                                                  const SizedBox(width: 8),
+                                                  Text(
                                                     widget.currentLocale == 'en'
                                                         ? "Add Payment"
                                                         : (widget.currentLocale ==
                                                                 'id'
-                                                            ? "Tambah Pembayaran"
-                                                            : "Magbayad / Maningil"),
+                                                            ? "Tambah Bayar"
+                                                            : "Magtala ng Bayad"),
                                                     style: TextStyle(
+                                                        fontSize: 13,
                                                         color: isFullyPaid
                                                             ? Colors.white24
-                                                            : Colors.white,
-                                                        fontSize: 13))
-                                              ])),
-                                          PopupMenuItem(
-                                              value: 'edit_name',
-                                              child: Row(children: [
-                                                const Icon(Icons.edit,
-                                                    color: Color(0xFFFFD700),
-                                                    size: 16),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                    widget.currentLocale == 'en'
-                                                        ? "Edit Name"
-                                                        : (widget.currentLocale ==
-                                                                'id'
-                                                            ? "Ubah Nama"
-                                                            : "I-edit ang Pangalan"),
-                                                    style: TextStyle(
-                                                        color: widget.fontColor,
-                                                        fontSize: 13))
-                                              ])),
-                                          PopupMenuItem(
-                                              value: 'edit_amount',
-                                              child: Row(children: [
-                                                const Icon(
-                                                    Icons
-                                                        .monetization_on_outlined,
-                                                    color: Color(0xFFFFD700),
-                                                    size: 16),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                    widget.currentLocale == 'en'
-                                                        ? "Edit Amount"
-                                                        : (widget.currentLocale ==
-                                                                'id'
-                                                            ? "Ubah Jumlah"
-                                                            : "I-edit ang Halaga"),
-                                                    style: TextStyle(
-                                                        color: widget.fontColor,
-                                                        fontSize: 13))
-                                              ])),
-                                          PopupMenuItem(
-                                              value: 'delete',
-                                              child: Row(children: [
-                                                const Icon(Icons.delete_outline,
-                                                    color: Colors.redAccent,
-                                                    size: 16),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                    widget.currentLocale == 'en'
-                                                        ? "Delete"
-                                                        : (widget.currentLocale ==
-                                                                'id'
-                                                            ? "Hapus"
-                                                            : "Burahin"),
-                                                    style: TextStyle(
-                                                        color: widget.fontColor,
-                                                        fontSize: 13))
-                                              ])),
+                                                            : Colors.white),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          PopupMenuItem<String>(
+                                            value:
+                                                isLocked ? null : 'edit_name',
+                                            enabled: !isLocked,
+                                            child: Opacity(
+                                              opacity: isLocked ? 0.30 : 1.0,
+                                              child: Row(
+                                                children: [
+                                                  const Icon(Icons.edit_note,
+                                                      color: Color(0xFFFFD700),
+                                                      size: 16),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                      widget.currentLocale ==
+                                                              'en'
+                                                          ? "Edit Name"
+                                                          : (widget.currentLocale ==
+                                                                  'id'
+                                                              ? "Ubah Nama"
+                                                              : "I-edit ang Pangalan"),
+                                                      style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.white)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          PopupMenuItem<String>(
+                                            value:
+                                                isLocked ? null : 'edit_amount',
+                                            enabled: !isLocked,
+                                            child: Opacity(
+                                              opacity: isLocked ? 0.30 : 1.0,
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                      Icons
+                                                          .monetization_on_outlined,
+                                                      color: Color(0xFFFFD700),
+                                                      size: 16),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                      widget.currentLocale ==
+                                                              'en'
+                                                          ? "Edit Amount"
+                                                          : (widget.currentLocale ==
+                                                                  'id'
+                                                              ? "Ubah Jumlah"
+                                                              : "I-edit ang Halaga"),
+                                                      style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.white)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          PopupMenuItem<String>(
+                                            value: isLocked ? null : 'delete',
+                                            enabled: !isLocked,
+                                            child: Opacity(
+                                              opacity: isLocked ? 0.30 : 1.0,
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                      Icons.delete_outline,
+                                                      color: Colors.redAccent,
+                                                      size: 16),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                      widget.currentLocale ==
+                                                              'en'
+                                                          ? "Delete"
+                                                          : (widget.currentLocale ==
+                                                                  'id'
+                                                              ? "Hapus"
+                                                              : "Burahin"),
+                                                      style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.white)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
                                         ];
                                       },
-                                    )
+                                    ),
                                   ],
-                                )
+                                ),
                               ],
                             ),
                           ),
@@ -13621,23 +14614,105 @@ class _DebtsPageState extends State<DebtsPage> {
                     ),
             ),
             ElevatedButton.icon(
-              onPressed: _showAddDebtDialog,
-              icon: const Icon(Icons.add_card),
+              // 🛑 LOCK SYSTEM TRIGGER GATEWAY: Magiging kulay Gray at haharang LANG kapag mayroon nang 2 o higit pang utang records AT hindi premium
+              onPressed: (!widget.isPremiumUser && widget.debtsList.length >= 2)
+                  ? () {
+                      // Ipinapakita ang eleganteng uniform top red upgrade dropdown notification alert banner
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          duration: const Duration(seconds: 4),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                          margin: EdgeInsets.only(
+                            top: MediaQuery.of(context).padding.top + 10,
+                            left: 16,
+                            right: 16,
+                          ),
+                          dismissDirection: DismissDirection.up,
+                          content: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  widget.currentLocale == 'en'
+                                      ? '🛑 Limited to 2 free debt records!'
+                                      : (widget.currentLocale == 'id'
+                                          ? '🛑 Terbatas 2 catatan utang!'
+                                          : '🛑 Limitado sa 2 libreng talaan ng utang!'),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: Colors.white),
+                                ),
+                              ),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  backgroundColor: const Color(0xFFFFD700),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6)),
+                                ),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context)
+                                      .hideCurrentSnackBar();
+                                  widget
+                                      .onUpgradeTriggered(); // 🚀 Direktang redirect sa premium plans selection page
+                                },
+                                child: Text(
+                                  widget.currentLocale == 'tl'
+                                      ? 'MAG-UPGRADE'
+                                      : 'UPGRADE',
+                                  style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                  : () {
+                      // LIGTAS: Kung 0 o 1 pa lang ang utang, normal itong magbubukas para makapag-add ng bagong transaksyon ang user!
+                      _showAddDebtDialog();
+                    },
+              icon: Icon(
+                Icons.add_card,
+                size: 20,
+                color: (!widget.isPremiumUser && widget.debtsList.length >= 2)
+                    ? Colors
+                        .white24 // Magdidilim lang ang icon kapag naabot na ang 2 items limit
+                    : Colors.black,
+              ),
               label: Text(
-                widget.currentLocale == 'en'
-                    ? "TRACK NEW DEBT TRANSACTION"
-                    : (widget.currentLocale == 'id'
-                        ? "CATAT TRANSAKSI UTANG BARU"
-                        : "MAGDAGDAG NG UTANG"),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                'TRACK NEW DEBT TRANSACTION',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: (!widget.isPremiumUser && widget.debtsList.length >= 2)
+                      ? Colors
+                          .white24 // Magdidilim lang ang teksto kapag naabot na ang 2 items limit
+                      : Colors.black,
+                ),
               ),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFD700),
-                  foregroundColor: Colors.black,
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12))),
-            )
+                // 🔥 CRITICAL OVERRIDE VALUE LOGIC:
+                // Magiging kulay Gray LANG kapag nakagawa na ng 2 utang. Kung 0 o 1 pa lang, mananatiling kulay Gold/Yellow kahit expired na ang trial ng user!
+                backgroundColor: (!widget.isPremiumUser &&
+                        widget.debtsList.length >= 2)
+                    ? const Color(0xFF424242) // Madilim na disabled gray
+                    : const Color(
+                        0xFFFFD700), // Mananatiling magandang kulay Gold/Yellow habang may slots pa
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation:
+                    (!widget.isPremiumUser && widget.debtsList.length >= 2)
+                        ? 0
+                        : 4,
+              ),
+            ),
           ],
         ),
       ),
@@ -13810,7 +14885,7 @@ class _DebtsPageState extends State<DebtsPage> {
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(lunasNa ? "🎉🏆" : "🟢",
+                            Text(lunasNa ? "🎉🏆" : "💵",
                                 style: const TextStyle(fontSize: 48)),
                             const SizedBox(height: 16),
                             Text(
@@ -14019,4 +15094,223 @@ class DebtItemV2 {
                 .toList()
             : [],
       );
+}
+
+class TrialDetailsPage extends StatelessWidget {
+  final String currentLocale;
+  final Color boxBgColor;
+  final Color fontColor;
+  final VoidCallback onUpgradeTriggered;
+
+  const TrialDetailsPage({
+    super.key,
+    required this.currentLocale,
+    required this.boxBgColor,
+    required this.fontColor,
+    required this.onUpgradeTriggered,
+  });
+
+  String _translate(String en, String id, String fil) {
+    if (currentLocale == 'en') return en;
+    if (currentLocale == 'id') return id;
+    return fil;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          _translate("Trial Version Details", "Detail Versi Uji Coba",
+              "Mga Detalye ng Trial Version"),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _translate("What's Included in the Free Tier?",
+                  "Apa Saja yang Termasuk?", "Ano ang Kasama sa Libreng Tier?"),
+              style: const TextStyle(
+                  color: Color(0xFFFFD700),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _buildFeatureRow(
+                    feature: _translate("Multi-Wallet Creation",
+                        "Pengelola Banyak Dompet", "Paggawa ng Multi-Wallet"),
+                    free: _translate("Limited (Max 1)", "Terbatas (Maks 1)",
+                        "Limitado (Max 1)"),
+                    pro: _translate(
+                        "Unlimited 🚀", "Tanpa Batas 🚀", "Walang Limit 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate("Savings Milestones", "Target Tabungan",
+                        "Layunin sa Pag-iipon"),
+                    free: _translate(
+                        "Max 2 (Cannot delete after trial) 🔒",
+                        "Maks 2 (Tidak bisa dihapus setelah uji coba) 🔒",
+                        "Max 2 (Bawal burahin pagkatapos ng trial) 🔒"),
+                    pro: _translate(
+                        "Unlimited 🚀", "Tanpa Batas 🚀", "Walang Limit 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate("Debt Relationship Tracker",
+                        "Manajemen Utang", "Pagtala ng mga Utang"),
+                    free: _translate(
+                        "Max 2 (Cannot delete after trial) 🔒",
+                        "Maks 2 (Tidak bisa dihapus setelah uji coba) 🔒",
+                        "Max 2 (Bawal burahin pagkatapos ng trial) 🔒"),
+                    pro: _translate(
+                        "Unlimited 🚀", "Tanpa Batas 🚀", "Walang Limit 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate("Data Export (PDF / CSV)",
+                        "Ekspor Laporan PDF/CSV", "I-export sa PDF o CSV"),
+                    free: _translate(
+                        "Locked after 30 days 🔒",
+                        "Terkunci setelah 30 hari 🔒",
+                        "Naka-lock after 30 days 🔒"),
+                    pro: _translate("Full Access 🚀", "Akses Seumur Hidup 🚀",
+                        "Full Access 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate("Custom Color Themes",
+                        "Preset Tema Warna", "Mga Custom Color Theme"),
+                    free: _translate(
+                        "Locked after 30 days 🔒",
+                        "Terkunci setelah 30 hari 🔒",
+                        "Naka-lock after 30 days 🔒"),
+                    pro: _translate(
+                        "Full Access 🚀", "Akses Penuh 🚀", "Full Access 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate(
+                        "Change Background Color",
+                        "Ubah Warna Latar Belakang",
+                        "Pagbago ng Background Color"),
+                    free: _translate(
+                        "Locked after 30 days 🔒",
+                        "Terkunci setelah 30 hari 🔒",
+                        "Naka-lock after 30 days 🔒"),
+                    pro: _translate(
+                        "Full Access 🚀", "Akses Penuh 🚀", "Full Access 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate("Privacy Shield Mode",
+                        "Mode Perisai Privasi", "Privacy Shield Mode"),
+                    free: _translate(
+                        "Locked after 30 days 🔒",
+                        "Terkunci setelah 30 hari 🔒",
+                        "Naka-lock after 30 days 🔒"),
+                    pro: _translate(
+                        "Full Access 🚀", "Akses Penuh 🚀", "Full Access 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate(
+                        "Manage Your Data", "Kelola Data", "I-manage ang Data"),
+                    free: _translate(
+                        "Locked after 30 days 🔒",
+                        "Terkunci setelah 30 hari 🔒",
+                        "Naka-lock after 30 days 🔒"),
+                    pro: _translate(
+                        "Full Access 🚀", "Akses Penuh 🚀", "Full Access 🚀"),
+                  ),
+                  _buildFeatureRow(
+                    feature: _translate("Compact Mode Layout",
+                        "Mode Ringkas Tampilan", "Compact Mode Layout"),
+                    free: _translate(
+                        "Locked after 30 days 🔒",
+                        "Terkunci setelah 30 hari 🔒",
+                        "Naka-lock after 30 days 🔒"),
+                    pro: _translate(
+                        "Full Access 🚀", "Akses Penuh 🚀", "Full Access 🚀"),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onUpgradeTriggered();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+                foregroundColor: Colors.black,
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                _translate(
+                    "UPGRADE TO PRO NOW",
+                    "UPGRADE KE VERSI PRO SEKARANG",
+                    "MAG-UPGRADE SA PRO NGAYON"),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(
+      {required String feature, required String free, required String pro}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: boxBgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(feature,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.white)),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 11,
+                child: Text(
+                    "${_translate('Free Trial:', 'Uji Coba:', 'Free Trial:')} $free",
+                    style: const TextStyle(
+                        fontSize: 11.5, color: Colors.white54, height: 1.3)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 9,
+                child: Text("PRO: $pro",
+                    textAlign: TextAlign.end,
+                    style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF00E676),
+                        fontWeight: FontWeight.bold,
+                        height: 1.3)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
