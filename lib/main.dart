@@ -4741,9 +4741,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         ];
       }
 
-      activeWalletId = _isTrialExpired
-          ? "default"
-          : (p.getString('active_wallet_id') ?? "default");
+      // 🏆 NAITAMA NA: Inalis ang _isTrialExpired tracker blocker para hindi ka i-force-lock sa default wallet view list!
+      activeWalletId = p.getString('active_wallet_id') ?? "default";
 
       AppWallet? selectedWallet;
       for (var w in wallets) {
@@ -4834,7 +4833,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   void _switchWallet(String id) async {
-    if (_isTrialExpired && !_isPremiumUser) return;
+    // 🔥 NAITAMA: Tinanggal ang blocker dito para ma-access at matingnan pa rin ang wallets kahit lagpas 30 days!
     final p = await SharedPreferences.getInstance();
     await p.setString('active_wallet_id', id);
     setState(() {
@@ -5857,6 +5856,63 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   // 🔥 INAYOS NA METHOD NG PAG-DELETE NG PITAKA NA MAY SUCCESS PROMPT
   void _showDeleteWalletConfirmDialog(
       AppWallet wallet, StateSetter setModalState) {
+    if (trialExpiredWithNoPremium) {
+      Navigator.pop(context); // Isasara ang popup menu drawer
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+          ),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  _currentLocale == 'en'
+                      ? '🛑 Wallet deletion is restricted after trial expiration!'
+                      : (_currentLocale == 'id'
+                          ? '🛑 Penghapusan dompet dibatasi setelah masa uji coba berakhir!'
+                          : '🛑 Ang pagbura ng pitaka ay hindi pinapayagan matapos mag-expire ang trial!'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.white),
+                ),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  backgroundColor: const Color(0xFFFFD700),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  _showUpgradeOptionsBottomSheet();
+                },
+                child: Text(
+                  _currentLocale == 'tl'
+                      ? 'MAG-UPGRADE'
+                      : (_currentLocale == 'id' ? 'UPGRADE' : 'UPGRADE'),
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return; // Pipigilan ang pagpapatuloy ng operasyon
+    }
     if (wallet.id == "default") {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -5955,10 +6011,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   void _showWalletManagerDialog() {
-    if (_isTrialExpired && !_isPremiumUser) {
-      _showUpgradeOptionsBottomSheet();
-      return;
-    }
+    // 🔥 SOLUSYON: Tiyaking BURADO o WALA na rito ang linyang '_showUpgradeOptionsBottomSheet();' o 'return;'
+    // Diretso dapat agad sa pagbubukas ng dialog interface framework box!
     showDialog(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
@@ -6047,19 +6101,21 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   ),
                                 ),
                                 // 🚀 TAMA AT GUMAGANA: Dito nakalagay ang pag-select ng wallet kapag pinindot ang card o tile mismo
+                                // 🚀 PINAYAGAN ANG ACCESS: Maaari pa rin niyang i-click at lipatan ang wallet kahit expired na ang 30 days!
                                 onTap: () {
                                   setModalState(() {
                                     activeWalletId = w.id;
                                   });
                                   Navigator.pop(context);
 
-                                  // I-update ang global active currency symbol bago lumipat ng wallet
                                   setState(() {
                                     _currentCurrency = w.currency;
                                   });
 
-                                  _switchWallet(w.id);
+                                  _switchWallet(w
+                                      .id); // Ligtas na lilipat ng wallet data model disk
                                 },
+
                                 trailing: PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert,
                                       color: Colors.white54),
@@ -6126,17 +6182,28 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                     ),
                                     if (w.id != "default")
                                       PopupMenuItem<String>(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.delete_outline,
-                                                color: Colors.redAccent,
-                                                size: 18),
-                                            const SizedBox(width: 10),
-                                            Text(_getTxt('del_wallet_tooltip'),
-                                                style: const TextStyle(
-                                                    fontSize: 13)),
-                                          ],
+                                        // 🔥 SOLUSYON: Gagawin nating null ang value kapag expired na at walang premium para hindi ito mapindot
+                                        value: (trialExpiredWithNoPremium)
+                                            ? null
+                                            : 'delete',
+                                        enabled:
+                                            !trialExpiredWithNoPremium, // Idi-disable ang menu item option
+                                        child: Opacity(
+                                          opacity: (trialExpiredWithNoPremium)
+                                              ? 0.35
+                                              : 1.0, // Mag-ge-grey out kapag restricted
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.delete_outline,
+                                                  color: Colors.redAccent,
+                                                  size: 18),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                  _getTxt('del_wallet_tooltip'),
+                                                  style: const TextStyle(
+                                                      fontSize: 13)),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                   ],
@@ -6150,15 +6217,96 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12, top: 4),
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showAddWalletDialog();
-                    },
-                    icon: const Icon(Icons.add_card, size: 18),
-                    label: Text(_getTxt('btn_add_wallet')),
+                    // 🔥 RESTRISYON: Haharangin ang pag-ADD kapag expired na ang 30 days trial period
+                    onPressed: (trialExpiredWithNoPremium)
+                        ? () {
+                            Navigator.pop(
+                                context); // Isasara ang Wallet Manager modal
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                duration: const Duration(seconds: 4),
+                                backgroundColor: Colors.redAccent,
+                                behavior: SnackBarBehavior.floating,
+                                margin: EdgeInsets.only(
+                                  top: MediaQuery.of(context).padding.top + 10,
+                                  left: 16,
+                                  right: 16,
+                                ),
+                                dismissDirection: DismissDirection.up,
+                                content: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _currentLocale == 'en'
+                                            ? '🛑 Wallet creation locked! Trial expired.'
+                                            : (_currentLocale == 'id'
+                                                ? '🛑 Pembuatan dompet terkunci! Masa uji coba berakhir.'
+                                                : '🛑 Paggawa ng pitaka ay naka-lock! Expired na ang trial.'),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: Colors.white),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        backgroundColor:
+                                            const Color(0xFFFFD700),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(6)),
+                                      ),
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context)
+                                            .hideCurrentSnackBar();
+                                        _showUpgradeOptionsBottomSheet(); // Buksan ang plan subscription modal
+                                      },
+                                      child: Text(
+                                        _currentLocale == 'tl'
+                                            ? 'MAG-UPGRADE'
+                                            : (_currentLocale == 'id'
+                                                ? 'UPGRADE'
+                                                : 'UPGRADE'),
+                                        style: const TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                        : () {
+                            Navigator.pop(context);
+                            _showAddWalletDialog();
+                          },
+                    icon: Icon(
+                      Icons.add_card,
+                      size: 18,
+                      color: (trialExpiredWithNoPremium)
+                          ? Colors.white24
+                          : const Color(0xFFFFD700),
+                    ),
+                    label: Text(
+                      _getTxt('btn_add_wallet'),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: (trialExpiredWithNoPremium)
+                            ? Colors.white24
+                            : const Color(0xFFFFD700),
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFFFFD700).withValues(alpha: 0.15),
+                      backgroundColor: (trialExpiredWithNoPremium)
+                          ? const Color(0xFF424242)
+                          : const Color(0xFFFFD700).withValues(alpha: 0.15),
                       foregroundColor: const Color(0xFFFFD700),
                       minimumSize: const Size(double.infinity, 45),
                       shape: RoundedRectangleBorder(
@@ -9367,6 +9515,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // 🔥 NAITAMA: Pinagsama sa isang Row ang Wallet Icon, Label, Export, at Wallet Manager
+                        // 🔥 NAITAMA: Ipinanatili ang magandang kulay Gold kahit expired na ang 30-day trial ng app
                         Row(
                           children: [
                             const Icon(Icons.wallet,
@@ -9383,13 +9532,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                 ),
                               ),
                             ),
-                            // 📥 INILIPAT DITO: Export Popup Button
+                            // 📥 Export Popup Button (Mananatiling ginto ang kulay)
                             PopupMenuButton<String>(
-                              icon: Icon(
+                              icon: const Icon(
                                 Icons.ios_share_rounded,
-                                color: trialExpiredWithNoPremium
-                                    ? Colors.white10
-                                    : const Color(0xFFFFD700),
+                                color: Color(
+                                    0xFFFFD700), // Inalis ang white10 blocker para laging buhay ang kulay
                                 size: 24,
                               ),
                               tooltip: _currentLocale == 'tl'
@@ -9438,18 +9586,17 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                 ),
                               ],
                             ),
-                            // 💼 INILIPAT DITO: Wallet Manager Card Sheet Controller
+                            // 💼 Wallet Manager Controller Button (Buhay na ulit ang kulay at clickable na kahit expired)
                             IconButton(
-                              icon: Icon(Icons.account_balance_wallet,
-                                  color: trialExpiredWithNoPremium
-                                      ? Colors.white10
-                                      : const Color(0xFFFFD700),
-                                  size: 24),
+                              icon: const Icon(Icons.account_balance_wallet,
+                                  color: Color(0xFFFFD700), size: 24),
                               tooltip: _getTxt('wallet_manager'),
-                              onPressed: _showWalletManagerDialog,
+                              onPressed:
+                                  _showWalletManagerDialog, // Dapat ganito lang kasimple ang tawag!
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 16),
                         // ── DASHBOARD HOME LAYER BLOCK FRAME (Inside Tab index 0) ──
                         // ── COMPACT PRODUCTION TRIAL NOTIFICATION CARD BANNER ──
@@ -15298,8 +15445,10 @@ class TrialDetailsPage extends StatelessWidget {
                   _buildFeatureRow(
                     feature: _translate("Multi-Wallet Creation",
                         "Pengelola Banyak Dompet", "Paggawa ng Multi-Wallet"),
-                    free: _translate("Limited (Max 1)", "Terbatas (Maks 1)",
-                        "Limitado (Max 1)"),
+                    free: _translate(
+                        "Max 2 (Cannot delete after trial) 🔒",
+                        "Maks 2 (Tidak bisa dihapus setelah uji coba) 🔒",
+                        "Max 2 (Bawal burahin pagkatapos ng trial) 🔒"),
                     pro: _translate(
                         "Unlimited 🚀", "Tanpa Batas 🚀", "Walang Limit 🚀"),
                   ),
@@ -15314,8 +15463,8 @@ class TrialDetailsPage extends StatelessWidget {
                         "Unlimited 🚀", "Tanpa Batas 🚀", "Walang Limit 🚀"),
                   ),
                   _buildFeatureRow(
-                    feature: _translate("Debt Relationship Tracker",
-                        "Manajemen Utang", "Pagtala ng mga Utang"),
+                    feature: _translate("Debt Tracker", "Manajemen Utang",
+                        "Pagtala ng mga Utang"),
                     free: _translate(
                         "Max 2 (Cannot delete after trial) 🔒",
                         "Maks 2 (Tidak bisa dihapus setelah uji coba) 🔒",
@@ -15332,16 +15481,6 @@ class TrialDetailsPage extends StatelessWidget {
                         "Naka-lock after 30 days 🔒"),
                     pro: _translate("Full Access 🚀", "Akses Seumur Hidup 🚀",
                         "Full Access 🚀"),
-                  ),
-                  _buildFeatureRow(
-                    feature: _translate("Custom Color Themes",
-                        "Preset Tema Warna", "Mga Custom Color Theme"),
-                    free: _translate(
-                        "Locked after 30 days 🔒",
-                        "Terkunci setelah 30 hari 🔒",
-                        "Naka-lock after 30 days 🔒"),
-                    pro: _translate(
-                        "Full Access 🚀", "Akses Penuh 🚀", "Full Access 🚀"),
                   ),
                   _buildFeatureRow(
                     feature: _translate(
