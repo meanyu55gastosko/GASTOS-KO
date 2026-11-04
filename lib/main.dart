@@ -2816,6 +2816,52 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   Widget _buildInteractiveBarChartReport(List chartData) {
     if (chartData.isEmpty) return const SizedBox();
 
+    // 🔥 SULUSYON: Kung blangko o placeholder lang ang laman, magpakita ng malinis na Empty State Card sa tatlong wika
+    final bool kasalukuyangBlangko = all.isEmpty ||
+        chartData.any((e) =>
+            e.title == "Walang Gastos" ||
+            e.title == "No Expenses" ||
+            e.title == "Belum ada pengeluaran" && e.total == 0.0);
+
+    if (kasalukuyangBlangko) {
+      String emptyChartMessage = "No data available for Bar Report";
+      if (_currentLocale == 'tl') {
+        emptyChartMessage = "Walang sapat na datos para sa Bar Report";
+      } else if (_currentLocale == 'id') {
+        emptyChartMessage = "Tidak ada data untuk Laporan Grafik";
+      }
+
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(_isCompactMode ? 12 : 16),
+        decoration: BoxDecoration(
+          color: _boxBgColor,
+          borderRadius: BorderRadius.circular(16),
+          border:
+              Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
+            child: Column(
+              children: [
+                const Icon(Icons.bar_chart_rounded,
+                    size: 40, color: Colors.white24),
+                const SizedBox(height: 8),
+                Text(
+                  emptyChartMessage,
+                  style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_selectedReportCategory.isEmpty ||
         !chartData.any((e) =>
             e.title.toLowerCase().trim() ==
@@ -2847,7 +2893,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
 
     String dynamicInsightMsg = "";
     if (currentTargetVal < currentSpendingVal) {
-      // 1. CASE: NAKAKATIPID (Mas mababa ang target kaysa sa nagastos)
+      // 1. CASE: NAKAKATIPID
       double natipid = currentSpendingVal - currentTargetVal;
       dynamicInsightMsg = _currentLocale == 'tl'
           ? "Magaling! Sa pagbabawas ng gastos sa ${activeGroupedItem.title} nang ${peso(natipid)}, makakatipid ka ng karagdagang pondo."
@@ -2855,15 +2901,15 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               ? "Luar biasa! Mengurangi pengeluaran ${activeGroupedItem.title} sebesar ${peso(natipid)} akan menyisakan lebih banyak dana."
               : "Awesome! Cutting down on ${activeGroupedItem.title} by ${peso(natipid)} will free up more funds.");
     } else if (currentTargetVal > currentSpendingVal) {
-      // 🎯 2. CASE: HIGHER VALUE PROMPT (Mas mataas ang target limit kaysa sa totoong nagastos)
-      double overAmount = currentTargetVal - currentSpendingVal;
+      // 🎯 2. CASE: HIGHER VALUE PROMPT (Saktong fix para itugma ang deklared value sa babala)
+      // 🔥 SULUSYON: Ginamit ang 'peso(currentTargetVal)' para ipakita ang mismong input value (e.g., $750) sa halip na ang difference
       dynamicInsightMsg = _currentLocale == 'tl'
-          ? "Babala! Ang iyong target limit ay mas mataas nang ${peso(overAmount)} kaysa sa kasalukuyang nagastos. Subukang ibaba ito."
+          ? "Babala! Ang iyong target limit ay naitakda sa ${peso(currentTargetVal)} na mas mataas kaysa sa kasalukuyang nagastos. Subukang ibaba ito."
           : (_currentLocale == 'id'
-              ? "Peringatan! Target anggaran Anda lebih tinggi ${peso(overAmount)} dari pengeluaran saat ini. Coba turunkan nilainya."
-              : "Allocation Warning! Your target budget is ${peso(overAmount)} higher than current spending. Try lowering it to optimize.");
+              ? "Peringatan! Target anggaran Anda diatur sebesar ${peso(currentTargetVal)} yang lebih tinggi dari pengeluaran saat ini. Coba turunkan nilainya."
+              : "Allocation Warning! Your target budget is ${peso(currentTargetVal)} higher than current spending. Try lowering it to optimize.");
     } else {
-      // 3. CASE: SAKTONG PANTAY (Equal values fallback)
+      // 3. CASE: SAKTONG PANTAY
       dynamicInsightMsg = _currentLocale == 'tl'
           ? "Naka-set ang pondo sa normal o pantay. Subukang ibaba ang halaga upang makahanap ng pwedeng maipon."
           : (_currentLocale == 'id'
@@ -2900,83 +2946,129 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 160,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: chartData.take(5).map<Widget>((item) {
-                String itemKey = item.title.toLowerCase().trim();
-                double itemTarget =
-                    _customCategoryTargets[itemKey] ?? (item.total * 0.9);
+          // 🔥 LIGTAS NA DESIGN: Swipable pakanan para walang limitasyon ang kategorya at hindi mag-overlap o mag-crash
+          // 🔥 LIGTAS NA DESIGN: Swipable pakanan gamit ang tamang 'chartData' variable para walang compile error at crash
+          // 🔥 SOLUSYON: Gumawa ng local controller para ligtas na gumuhit ang scrollbar sa ilalim nang hindi nag-cre-crash ang app
+          // 🏆 NAITAMANG SCROLLBAR: Wala nang compile error sa padding configuration
+          () {
+            final ScrollController graphScrollCtrl = ScrollController();
+            return Theme(
+              data: ThemeData.dark().copyWith(
+                scrollbarTheme: ScrollbarThemeData(
+                  thumbColor: WidgetStateProperty.all(const Color(0xFFFFD700)
+                      .withValues(alpha: 0.5)), // Kulay ginto ang scroll line
+                  radius: const Radius.circular(4),
+                  thickness: WidgetStateProperty.all(
+                      3.0), // Manipis para malinis tingnan
+                ),
+              ),
+              child: Scrollbar(
+                controller: graphScrollCtrl,
+                thumbVisibility:
+                    true, // Laging nakikita ang scrollbar kung swipable ang graph
+                child: SingleChildScrollView(
+                  controller: graphScrollCtrl,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Container(
+                    height:
+                        165, // May sapat na taas para sa scrollbar sa ilalim
+                    width: math.max(MediaQuery.of(context).size.width - 32,
+                        chartData.length * 60.0),
+                    // 🔥 SOLUSYON: Inayos ang parameters mula vertical/horizontal patungong top/bottom/left/right
+                    padding: const EdgeInsets.only(
+                        top: 8, bottom: 8, left: 4, right: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: chartData.map<Widget>((item) {
+                        String itemKey = item.title.toLowerCase().trim();
+                        double itemTarget = _customCategoryTargets[itemKey] ??
+                            (item.total * 0.9);
 
-                double spendBarHeight = (item.total / maxBarVal) * 110;
-                double targetBarHeight = (itemTarget / maxBarVal) * 110;
+                        double spendBarHeight = (item.total / maxBarVal) * 110;
+                        double targetBarHeight = (itemTarget / maxBarVal) * 110;
 
-                if (spendBarHeight < 5) spendBarHeight = 5;
-                if (targetBarHeight < 5) targetBarHeight = 5;
+                        if (spendBarHeight < 5) spendBarHeight = 5;
+                        if (targetBarHeight < 5) targetBarHeight = 5;
 
-                bool isItemActive = itemKey == _selectedReportCategory;
+                        bool isItemActive = itemKey == _selectedReportCategory;
 
-                return Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: _isCompactMode ? 10 : 14,
-                            height: spendBarHeight,
-                            decoration: BoxDecoration(
-                              color: item.color
-                                  .withValues(alpha: isItemActive ? 0.8 : 0.4),
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(4)),
-                            ),
+                        return Container(
+                          width: 50,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    width: 10,
+                                    height: spendBarHeight,
+                                    decoration: BoxDecoration(
+                                      color: item.color.withValues(
+                                          alpha: isItemActive ? 0.8 : 0.4),
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(4)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    width: 10,
+                                    height: targetBarHeight,
+                                    decoration: BoxDecoration(
+                                      color: isItemActive
+                                          ? const Color(0xFFFFD700)
+                                          : item.color,
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(4)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                item.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: isItemActive
+                                      ? const Color(0xFFFFD700)
+                                      : Colors.white38,
+                                  fontWeight: isItemActive
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  fontFamily: 'sans-serif',
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 3),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: _isCompactMode ? 10 : 14,
-                            height: targetBarHeight,
-                            decoration: BoxDecoration(
-                              color: isItemActive
-                                  ? const Color(0xFFFFD700)
-                                  : item.color,
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(4)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: isItemActive
-                              ? const Color(0xFFFFD700)
-                              : Colors.white38,
-                          fontWeight: isItemActive
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ],
+                        );
+                      }).toList(),
+                    ),
                   ),
-                );
-              }).toList(),
-            ),
-          ),
+                ),
+              ),
+            );
+          }(),
+
           const SizedBox(height: 8),
           const Divider(color: Colors.white10, height: 1),
           const SizedBox(height: 12),
+
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 12),
+
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 12),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -3011,21 +3103,46 @@ class HomeScreenState extends State with WidgetsBindingObserver {
           const SizedBox(height: 8),
 
           // 🔥 NAITAMA: Pinalitan ang SingleChildScrollView ng Wrap widget para awtomatikong mag-fit lahat sa screen
+          // 🔥 SOLUSYON: Ginamit ang center alignment at pinalawak ang spacing para mawala ang bakante sa gilid
+          // 🔥 SOLUSYON: Ipakalat nang husto sa magkabilang gilid para walang sayang na space sa kanan
+          // 🔥 ALTERNATIBONG SOLUSYON: Pantay na Grid para sagad ang box sa kanan kahit maikli ang text
+          // 🏆 NAITAMANG GRID: Malinis, sagad sa kanan, at walang bawas na letra!
+          // 🏆 INTAC AT SIKSIK NA CHIPS LAYOUT: Dikit-dikit at walang sayang na space sa paligid
           Wrap(
-            spacing: 6, // Agwat ng mga chips pakaliwa-pakanan (horizontal)
+            spacing:
+                6, // Mas pinasiksik na agwat sa kaliwa't kanan (horizontal)
             runSpacing:
-                6, // Agwat kapag gumulong na sa susunod na linya (vertical)
-            alignment: WrapAlignment.start,
+                6, // Mas pinasiksik na agwat sa itaas at ibaba (vertical)
+            alignment:
+                WrapAlignment.start, // Pagsasamahin sila simula sa kaliwa
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: chartData.map<Widget>((item) {
               String itemKey = item.title.toLowerCase().trim();
               bool isSelected = itemKey == _selectedReportCategory;
+
               return ChoiceChip(
-                visualDensity: VisualDensity.compact,
-                label: Text(item.title, style: const TextStyle(fontSize: 11)),
+                // Inalis ang checkmark para makatipid sa espasyo ng mga letra
+                showCheckmark: false,
+                // Nilagyan ng saktong internal padding para maging compact ang bawat box
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                labelPadding: EdgeInsets.zero,
+                label: Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 12, // Sakto ang laki para madaling basahin
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 selected: isSelected,
                 selectedColor: const Color(0xFFFFD700),
                 labelStyle: TextStyle(
                     color: isSelected ? Colors.black : Colors.white70),
+                // Custom shape para mapanatili ang magandang rounded edges ng boxes
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: Colors.white10, width: 1),
+                ),
                 onSelected: (val) {
                   if (val) {
                     setState(() {
@@ -3036,6 +3153,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               );
             }).toList(),
           ),
+
           const SizedBox(height: 16),
 
           Row(
@@ -3388,15 +3506,43 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 ],
               ),
               // 🔥 CLICKABLE SAVINGS TARGET BUTTON
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(Icons.track_changes_rounded,
-                    color: Color(0xFFFFD700), size: 18),
-                tooltip: _currentLocale == 'tl'
-                    ? "I-set ang Target"
-                    : "Set Savings Goal",
-                onPressed: _showSetSavingsGoalDialog,
+              // 🔥 SOLUSYON: Ginawang InkWell para magkasama ang multi-language text label at gintong icon sa iisang clickable widget
+              InkWell(
+                onTap: _showSetSavingsGoalDialog,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 1. ANG SET GOALS TEXT LABEL (Awtomatikong nagbabago ang wika)
+                      Text(
+                        _currentLocale == 'tl'
+                            ? "I-Set ang Target"
+                            : (_currentLocale == 'id'
+                                ? "Atur Target"
+                                : "Set Target"),
+                        style: const TextStyle(
+                          color:
+                              Color(0xFFFFD700), // Katugmang kulay ginto/dilaw
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(
+                          width: 6), // Patlang sa pagitan ng text at icon
+
+                      // 2. ANG IYONG ORIHINAL NA GINTONG ICON
+                      const Icon(
+                        Icons.track_changes_rounded,
+                        color: Color(0xFFFFD700),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -9409,12 +9555,13 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                             : "You have $_trialDaysLeft days left remaining to evaluate premium features and analytics tools. ")),
                                               ),
                                               // 2. ANG CLICKABLE HINT LABEL NA DIREKTANG KADUGTONG SA IISANG TALATA
+                                              // 2. ANG CLICKABLE HINT LABEL NA DIREKTANG KADUGTONG SA IISANG TALATA
                                               TextSpan(
                                                 text: _currentLocale == 'tl'
-                                                    ? "\n👉 I-click para sa mga detalye"
+                                                    ? "\nI-click para sa mga detalye"
                                                     : (_currentLocale == 'id'
-                                                        ? "\n👉 Ketuk para detail lebih lanjut"
-                                                        : "\n👉 Click for more details"),
+                                                        ? "\nKetuk para detail lebih lanjut"
+                                                        : "\nClick for more details"),
                                                 style: TextStyle(
                                                   fontSize: 9.5,
                                                   fontWeight: FontWeight.bold,
@@ -9425,8 +9572,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                       : const Color(0xFFFFD700)
                                                           .withValues(
                                                               alpha: 0.9),
-                                                  decoration: TextDecoration
-                                                      .underline, // May salungguhit para mukhang link link tool profile
+                                                  // 🔥 SOLUSYON: Ginawang none para permanenteng matanggal ang underline line link
+                                                  decoration:
+                                                      TextDecoration.none,
                                                 ),
                                               ),
                                             ],
