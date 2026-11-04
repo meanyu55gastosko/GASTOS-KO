@@ -6217,11 +6217,31 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12, top: 4),
                   child: ElevatedButton.icon(
-                    // 🔥 RESTRISYON: Haharangin ang pag-ADD kapag expired na ang 30 days trial period
-                    onPressed: (trialExpiredWithNoPremium)
+                    // 🔥 SOLUSYON: Haharangin ang pag-click kapag expired na ang trial O mayroon nang 2 o higit pang wallets sa free tier
+                    onPressed: (trialExpiredWithNoPremium ||
+                            (!_isPremiumUser && wallets.length >= 2))
                         ? () {
                             Navigator.pop(
-                                context); // Isasara ang Wallet Manager modal
+                                context); // Isasara ang Wallet Manager list view popup card box
+
+                            // Alamin kung quota limit o expiry limit ang dahilan ng restriction guard
+                            final bool isQuotaLimit =
+                                !_isPremiumUser && wallets.length >= 2;
+                            String alertText = "";
+
+                            if (_currentLocale == 'tl') {
+                              alertText = isQuotaLimit
+                                  ? '🛑 Limitado sa 2 libreng pitaka!'
+                                  : '🛑 Paggawa ng pitaka ay naka-lock! Expired na ang trial.';
+                            } else if (_currentLocale == 'id') {
+                              alertText = isQuotaLimit
+                                  ? '🛑 Terbatas 2 dompet gratis!'
+                                  : '🛑 Pembuatan dompet terkunci! Masa uji coba berakhir.';
+                            } else {
+                              alertText = isQuotaLimit
+                                  ? '🛑 Limited to 2 free wallets!'
+                                  : '🛑 Wallet creation locked! Trial expired.';
+                            }
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -6240,11 +6260,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        _currentLocale == 'en'
-                                            ? '🛑 Wallet creation locked! Trial expired.'
-                                            : (_currentLocale == 'id'
-                                                ? '🛑 Pembuatan dompet terkunci! Masa uji coba berakhir.'
-                                                : '🛑 Paggawa ng pitaka ay naka-lock! Expired na ang trial.'),
+                                        alertText,
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
@@ -6264,7 +6280,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                       onPressed: () {
                                         ScaffoldMessenger.of(context)
                                             .hideCurrentSnackBar();
-                                        _showUpgradeOptionsBottomSheet(); // Buksan ang plan subscription modal
+                                        _showUpgradeOptionsBottomSheet(); // Bubuksan ang premium plans selection option menu panel layout
                                       },
                                       child: Text(
                                         _currentLocale == 'tl'
@@ -6290,7 +6306,8 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     icon: Icon(
                       Icons.add_card,
                       size: 18,
-                      color: (trialExpiredWithNoPremium)
+                      color: (trialExpiredWithNoPremium ||
+                              (!_isPremiumUser && wallets.length >= 2))
                           ? Colors.white24
                           : const Color(0xFFFFD700),
                     ),
@@ -6298,13 +6315,16 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       _getTxt('btn_add_wallet'),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: (trialExpiredWithNoPremium)
+                        color: (trialExpiredWithNoPremium ||
+                                (!_isPremiumUser && wallets.length >= 2))
                             ? Colors.white24
                             : const Color(0xFFFFD700),
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: (trialExpiredWithNoPremium)
+                      // Kakapit ang solid gray disabled styling layout block kapag naabot na ang maximum 2 items budget slots quota rule configuration
+                      backgroundColor: (trialExpiredWithNoPremium ||
+                              (!_isPremiumUser && wallets.length >= 2))
                           ? const Color(0xFF424242)
                           : const Color(0xFFFFD700).withValues(alpha: 0.15),
                       foregroundColor: const Color(0xFFFFD700),
