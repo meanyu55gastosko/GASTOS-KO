@@ -1301,6 +1301,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   // ── 🔥 LIVE EXCHANGE RATE NETWORK ENGINE (100% FIXED INTERPOLATION URL GLITCH) ──
   // ── 🔥 LIVE EXCHANGE RATE MOBILE ENGINE WITH MULTILINGUAL ERROR WRAPPERS ──
   // ── 🔥 LIVE EXCHANGE RATE NATIVE GOOGLE ENGINE (100% GUARANTEED CELLPHONE COMPLIANT) ──
+  // ── 🔥 PRODUCTION EXCHANGE RATE ENGINE (POWERED BY EXCHANGERATE-API) ──
+  // ── 🔥 PRODUCTION EXCHANGE RATE ENGINE (POWERED BY OFFICIAL EXCHANGERATE-API) ──
+  // ── 🔥 PRODUCTION EXCHANGE RATE ENGINE (POWERED BY OFFICIAL EXCHANGERATE-API) ──
   Future<void> fetchLiveExchangeRate({
     required String baseCurrency,
     required String targetCurrency,
@@ -1329,97 +1332,45 @@ class HomeScreenState extends State with WidgetsBindingObserver {
       final String cleanBase = baseCurrency.toString().toUpperCase().trim();
       final String cleanTarget = targetCurrency.toString().toUpperCase().trim();
 
-      // 🚀 OFFICIAL GOOGLE SEARCH SEARCH MATRIX STREAM ENDPOINT
-      // Gumagamit ng standard desktop user-agent para ibalik ng Google ang malinis at mabilis na structural HTML table result box
-      final String googleSearchUrl = "https://google.com";
+      // 🔑 THE OFFICIAL PRODUCTION API KEY REGISTERED BY USER
+      const String myApiKey = "bbb5f2a0467b3304f6ce362a";
 
-      final response = await http.get(
-        Uri.parse(googleSearchUrl),
-        headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      ).timeout(
-        const Duration(seconds: 8), // 🛡️ Safe guard timeout memory buffer box
-      );
+      // 🚀 SECURE V6 DATA CONVERSION ENDPOINT LAYER (100% Phone & FlutLab Compliant)
+      final String endpointUrl = "https://exchangerate-api.com";
+
+      final response = await http.get(Uri.parse(endpointUrl)).timeout(
+            const Duration(seconds: 8),
+          );
 
       if (response.statusCode == 200) {
-        final String htmlContent = response.body;
+        final Map<String, dynamic> parsedJson = jsonDecode(response.body);
 
-        // 🧠 GOOGLE FINANCE HTML PARSING PATTERN LAYER NODES:
-        // Hinahanap ang eksaktong numerical data block attribute sa loob ng Google conversion calculator converter display template layer rules
-        // Karaniwang nakatago sa tags na 'data-exchange-rate' o sa tabi ng text na 'United States Dollar ='
-        double? activeParsedRate;
+        if (parsedJson['result'] == 'success') {
+          // Ginamit ang saktong JSON tag array key ng ExchangeRate-API V6 engine response framework
+          final Map<String, dynamic> ratesContainer =
+              parsedJson['conversion_rates'] ?? {};
 
-        // Pattern 1: Hinahanap ang native data-exchange-rate parameter card property node
-        if (htmlContent.contains('data-exchange-rate="')) {
-          final parts = htmlContent.split('data-exchange-rate="');
-          if (parts.length > 1) {
-            final rateSegment = parts[1].split('"')[0];
-            activeParsedRate = double.tryParse(rateSegment);
-          }
-        }
-
-        // Pattern 2 Fallback: Kung binago ng Google ang backend parameters class rows, gagamit ng string regex boundary matching text algorithms
-        if (activeParsedRate == null) {
-          final RegExp fallbackRegExp =
-              RegExp(r'class="BNeawe iBp4i AP7cub">([\d.,]+)\s');
-          final match = fallbackRegExp.firstMatch(htmlContent);
-          if (match != null && match.groupCount >= 1) {
-            String cleanNumberText = match.group(1)!.replaceAll(',', '').trim();
-            activeParsedRate = double.tryParse(cleanNumberText);
-          }
-        }
-
-        // Pattern 3 Fallback: Karagdagang malawak na structural search para sa universal rate values sheet mapping matrix rules
-        if (activeParsedRate == null && htmlContent.contains('data-value="')) {
-          final parts = htmlContent.split('data-value="');
-          for (int i = 1; i < parts.length; i++) {
-            final segment = parts[i].split('"')[0];
-            final double? testingNum = double.tryParse(segment);
-            if (testingNum != null &&
-                testingNum > 0.001 &&
-                testingNum < 500000.0) {
-              activeParsedRate = testingNum;
-              break;
+          if (ratesContainer.containsKey(cleanTarget)) {
+            final double? fetchedRate =
+                double.tryParse(ratesContainer[cleanTarget].toString());
+            if (fetchedRate != null) {
+              onSuccess(
+                  fetchedRate); // 🏆 SUCCESS: Live currency data successfully loaded into app!
+              return;
             }
           }
         }
-
-        // 🏆 REGISTRY ROUTINE: Kapag matagumpay na nakuha ang live rate mula sa Google Search matrix page records
-        if (activeParsedRate != null && activeParsedRate > 0) {
-          onSuccess(activeParsedRate);
-          return;
-        }
-
-        // Kung sakaling mag-maintenance ang Google page setup (Safe fallback parameter loop choice node)
-        // Gumagamit ng mabilis at selyadong fallback server upang hindi mag-blanko ang screen ni user
-        final fallbackResponse = await http
-            .get(Uri.parse("https://open.er-api.com"))
-            .timeout(const Duration(seconds: 5));
-        if (fallbackResponse.statusCode == 200) {
-          final Map<String, dynamic> fallbackData =
-              jsonDecode(fallbackResponse.body);
-          final Map<String, dynamic> rates = fallbackData['rates'] ?? {};
-          final double? fallbackRate =
-              double.tryParse(rates[cleanTarget].toString());
-          if (fallbackRate != null) {
-            onSuccess(fallbackRate);
-            return;
-          }
-        }
-
         onFailure(_currentLocale == 'tl'
-            ? "Hindi ma-parse ang Google rates."
-            : "Google parsing pair alignment mismatch.");
+            ? "Hindi tugma ang currency pair."
+            : "Currency profile target record mismatch.");
       } else {
         onFailure(getNetworkErrorMsg());
       }
     } on TimeoutException {
       onFailure(getTimeoutErrorMsg());
     } catch (e) {
-      onFailure(getNetworkErrorMsg());
+      onFailure(
+          getNetworkErrorMsg()); // Awtomatikong sasaluhin kung walang internet o airplane mode ang CP
     }
   }
 
@@ -10758,6 +10709,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     ),
                   ),
                 )
+              // ── 🔥 LIVE CURRENCY CONVERTER ACTIVE WIDGET DISPLAY LAYER ──
               : LiveConvertTab(
                   currentLocale: _currentLocale,
                   globalCurrencies: globalCurrencies,
@@ -10769,6 +10721,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       required String targetCurrency,
                       required Function(double liveRate) onSuccess,
                       required Function(String errorText) onFailure}) async {
+                    // 🚀 LIGTAS: Tinatawag ang naitamang ExchangeRate-API V6 engine native function!
                     await fetchLiveExchangeRate(
                       baseCurrency: baseCurrency,
                       targetCurrency: targetCurrency,
@@ -17100,9 +17053,13 @@ class _LiveConvertTabState extends State<LiveConvertTab> {
     final baseDetails = widget.globalCurrencies.firstWhere(
         (c) => c["code"] == _baseCurrencyCode,
         orElse: () => widget.globalCurrencies.first);
+
+    // ── 🔥 SIGURADUHIN NA GANITO ANG LOOKUP SA LOOB NG LIVECONVERTTAB BUILD ──
     final targetDetails = widget.globalCurrencies.firstWhere(
-        (c) => c["code"] == _targetCurrencyCode,
-        orElse: () => widget.globalCurrencies[1]);
+      (c) => c["code"] == _targetCurrencyCode,
+      orElse: () => widget
+          .globalCurrencies[1], // Siguraduhing may ligtas na fallback index
+    );
 
     final fmtCode = NumberFormat('#,##0.00', 'en_US');
 
