@@ -21,6 +21,8 @@ dependencies:
   pdf: ^3.10.8
   printing: ^5.11.1
   file_picker: ^8.1.2
+  fl_chart: ^0.69.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
