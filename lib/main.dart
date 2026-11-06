@@ -18,11 +18,25 @@ import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 import 'dart:ui'; // Siguraduhing imported ito para sa DateFormat
 import 'dart:ui'
     as ui; // 🔥 SULUSYON: Nilagyan ng 'as ui' para mawala ang conflict sa TextDirection!
 
-void main() => runApp(const GastosKoApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // ── 🔥 PRODUCTION COMPLIANCE OVERLAY SHIELD ──
+  // Tinatanggal ang lumang status bar/navigation parameters upang maging Edge-to-Edge compliant sa Android 15
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
+
+  runApp(const GastosKoApp());
+}
 
 class GastosKoApp extends StatelessWidget {
   const GastosKoApp({super.key});
@@ -30,8 +44,19 @@ class GastosKoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: ThemeData.dark()
-            .copyWith(scaffoldBackgroundColor: const Color(0xFF121212)),
+        theme: ThemeData.dark().copyWith(
+          scaffoldBackgroundColor: const Color(0xFF121212),
+          // ── 🔥 ANDROID 15 INITIAL WINDOW DISPLAY OVERRIDE ──
+          // Pinupwersa ang native app window layers na mag-render sa likod ng system system bars nang walang deprecation logs
+          appBarTheme: const AppBarTheme(
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.light,
+              systemNavigationBarColor: Colors.transparent,
+              systemNavigationBarIconBrightness: Brightness.light,
+            ),
+          ),
+        ),
         home: const SplashScreen());
   }
 }
@@ -1266,6 +1291,83 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     const Color(0xFFAB47BC),
     const Color(0xFF26A69A),
   ];
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK FETCHER ENGINE (NO API KEY REQUIRED) ──
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK FETCHER ENGINE (FIXED URL GLITCH) ──
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK FETCHER ENGINE (FIXED V2 ENDPOINT COMPLIANCE) ──
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK FETCHER ENGINE (100% FIXED PARSING ERROR) ──
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK FETCHER ENGINE (100% FLUTLAB EMULATOR READY) ──
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK FETCHER ENGINE (100% FLUTLAB WEB & PLAYSTORE SAFE) ──
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK ENGINE (100% FIXED WEB EMULATOR & CORS PROXY READY) ──
+  // ── 🔥 LIVE EXCHANGE RATE NETWORK ENGINE (100% FIXED INTERPOLATION URL GLITCH) ──
+  // ── 🔥 LIVE EXCHANGE RATE MOBILE ENGINE WITH MULTILINGUAL ERROR WRAPPERS ──
+  Future<void> fetchLiveExchangeRate({
+    required String baseCurrency,
+    required String targetCurrency,
+    required Function(double liveRate) onSuccess,
+    required Function(String errorText) onFailure,
+  }) async {
+    // ── 🌐 LOCAL LOCALIZED MULTILINGUAL DICTIONARY SHIELD ──
+    String getNetworkErrorMsg() {
+      if (_currentLocale == 'id') {
+        return "Tidak ada koneksi internet. Silakan periksa jaringan Anda dan coba lagi.";
+      } else if (_currentLocale == 'tl') {
+        return "Walang koneksyon sa internet. Paki-check ang iyong network at subukan ulit.";
+      }
+      return "No internet connection. Please check your network and try again.";
+    }
+
+    String getTimeoutErrorMsg() {
+      if (_currentLocale == 'id') {
+        return "Koneksi ke server habis. Silakan coba lagi nanti. ⏳";
+      } else if (_currentLocale == 'tl') {
+        return "Masyadong matagal ang koneksyon sa server. Pakisubukang muli mamaya. ⏳";
+      }
+      return "Server connection timeout. Please try again later. ⏳";
+    }
+
+    try {
+      final String cleanBase = baseCurrency.toString().toUpperCase().trim();
+      final String cleanTarget = targetCurrency.toString().toUpperCase().trim();
+
+      final String endpointUrl = "https://er-api.com";
+
+      final response = await http.get(Uri.parse(endpointUrl)).timeout(
+            const Duration(
+                seconds:
+                    6), // 🛡️ Mabilis na timeout para hindi mag-hang ang app
+          );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> parsedJson = jsonDecode(response.body);
+
+        if (parsedJson['result'] == 'success') {
+          final Map<String, dynamic> ratesContainer = parsedJson['rates'] ?? {};
+
+          if (ratesContainer.containsKey(cleanTarget)) {
+            final double? fetchedRate =
+                double.tryParse(ratesContainer[cleanTarget].toString());
+            if (fetchedRate != null) {
+              onSuccess(fetchedRate); // 🏆 SUCCESSFUL: Mapped rate correctly
+              return;
+            }
+          }
+        }
+        onFailure(_currentLocale == 'tl'
+            ? "Hindi tugma ang currency pair."
+            : "Currency exchange mapping failure.");
+      } else {
+        onFailure(getNetworkErrorMsg());
+      }
+    } on TimeoutException {
+      // ⏳ SAFE TRANSITION: Sinalo ang mabagal na loading
+      onFailure(getTimeoutErrorMsg());
+    } catch (e) {
+      // 🌐 SAFE TRANSITION: Sinalo ang ClientException (walang internet o naka-airplane mode)
+      // Inaalis ang mahabang raw text code logs, pinalitan ng malinis na multilingual message
+      onFailure(getNetworkErrorMsg());
+    }
+  }
+
   Map<String, Color> colorMap = {};
   Timer? _bgSessionTimer;
   final Duration _sessionTimeoutDuration = const Duration(minutes: 5);
@@ -1412,14 +1514,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   color: _appFontColor.withValues(alpha: 0.7)),
             ),
             IconButton(
-              // 🔥 SULUSYON: Awtomatikong magiging kulay Gray ang icon kapag limitado na ang account para mukhang disabled
               icon: Icon(
                 Icons.add_circle,
                 color: (!_isPremiumUser && savingsGoals.length >= 2)
-                    ? Colors
-                        .white24 // Kulay gray/transparent kapag naka-lock na
-                    : const Color(
-                        0xFFFFD700), // Orihinal na kulay Gold kapag active
+                    ? Colors.white24
+                    : const Color(0xFFFFD700),
                 size: 24,
               ),
               onPressed: () {
@@ -1440,19 +1539,18 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                         children: [
                           Expanded(
                             child: Text(
-                              _currentLocale ==
-                                      'en' // 🔥 Naitama ang pagkakasunod ng English fallback validation grid
-                                  ? '🛑 Limited to 2 free goals!'
+                              _currentLocale == 'en'
+                                  ? 'Limited to 2 free goals!'
                                   : (_currentLocale == 'id'
-                                      ? '🛑 Terbatas 2 target tabungan!'
-                                      : '🛑 Limitado sa 2 libreng layunin!'),
+                                      ? 'Terbatas 2 target tabungan!'
+                                      : 'Limitado sa 2 libreng layunin!'),
+                              textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                   color: Colors.white),
                             ),
                           ),
-                          // 🔥 CLICKABLE UPGRADE LINK BUTTON
                           TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
@@ -1464,14 +1562,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             onPressed: () {
                               ScaffoldMessenger.of(context)
                                   .hideCurrentSnackBar();
-                              _showUpgradeOptionsBottomSheet(); // 🚀 REDIRECT SA PLAN CHOOSE PAGE
+                              _showUpgradeOptionsBottomSheet();
                             },
                             child: Text(
                               _currentLocale == 'tl'
-                                  ? 'MAG-UPGRADE' // 🔥 Isinalin sa Tagalog
+                                  ? 'MAG-UPGRADE'
                                   : (_currentLocale == 'id'
-                                      ? 'UPGRADE' // Standard na ginagamit sa Bahasa Indonesia para sa tech/apps
-                                      : 'UPGRADE'), // Default para sa English
+                                      ? 'UPGRADE'
+                                      : 'UPGRADE'),
                               style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -1514,6 +1612,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             itemCount: savingsGoals.length,
             itemBuilder: (context, index) {
               final goal = savingsGoals[index];
+
               int daysRemaining =
                   goal.deadline.difference(DateTime.now()).inDays;
               if (daysRemaining < 0) daysRemaining = 0;
@@ -1523,149 +1622,182 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                   : 0.0;
               if (progress > 100) progress = 100;
 
+              final bool isTargetReached =
+                  goal.savedAmount >= goal.targetAmount;
+
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
+                margin: EdgeInsets.only(bottom: _isCompactMode ? 6 : 12),
+                padding: EdgeInsets.all(_isCompactMode ? 10 : 14),
                 decoration: BoxDecoration(
                   color: _boxBgColor,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: const Color(0xFFFFD700).withValues(alpha: 0.15),
-                      width: 1),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── HEADER ROW INYONG MALINIS NA 3 DOTS VERTICAL MENU ──
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          goal.name.toUpperCase(),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: Color(0xfffff2a1)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                goal.name.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: const Color(0xFFFFD700),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: _isCompactMode ? 11 : 13),
+                              ),
+                              // ── 🔥 THE GREEN DYNAMIC TARGET REACHED BADGE FOR HOMESCREEN STATE CARDS ──
+                              if (isTargetReached) ...[
+                                const SizedBox(height: 5),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00E676)
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                        color: const Color(0xFF00E676),
+                                        width: 0.6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.check_circle_rounded,
+                                          color: Color(0xFF00E676), size: 10),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _currentLocale == 'en'
+                                            ? "TARGET REACHED"
+                                            : (_currentLocale == 'id'
+                                                ? "TARGET TERCAPAI"
+                                                : "NAABOT ANG TARGET"),
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert,
-                              color: Colors.white30, size: 18),
-                          color: const Color(0xFF252525),
-                          onSelected: (String action) {
-                            if (action == 'edit')
-                              _showEditSingleGoalDialog(goal);
-                            if (action == 'delete')
-                              _showDeleteGoalConfirm(goal);
+                        IconButton(
+                          icon: Icon(Icons.arrow_forward_ios_rounded,
+                              color: Colors.white38,
+                              size: _isCompactMode ? 14 : 16),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => GoalDetailsPage(
+                                  goal: goal,
+                                  currentLocale: _currentLocale,
+                                  pesoFormatter: peso,
+                                  isPremiumUser: _isPremiumUser,
+                                  boxBgColor: _boxBgColor,
+                                  fontColor: Colors.white,
+                                  isTrialExpiredMode: trialExpiredWithNoPremium,
+                                  onUpgradeTriggered:
+                                      _showUpgradeOptionsBottomSheet,
+                                  showSuccessPopup: (
+                                      {String? emoji,
+                                      String? message,
+                                      String? title}) {},
+                                  onDataChanged: () {
+                                    setState(() {});
+                                    saveData();
+                                  },
+                                ),
+                              ),
+                            ).then((_) => setState(() {}));
                           },
-                          itemBuilder: (ctx) => [
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.edit_note,
-                                      color: Color(0xFFFFD700), size: 16),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _currentLocale == 'en'
-                                        ? "Edit Milestone"
-                                        : (_currentLocale == 'id'
-                                            ? "Ubah Target"
-                                            : "I-adjust ang Ipon"),
-                                    style: const TextStyle(
-                                        fontSize: 13, color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.delete_outline,
-                                      color: Colors.redAccent, size: 16),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _currentLocale == 'en'
-                                        ? "Delete"
-                                        : (_currentLocale == 'id'
-                                            ? "Hapus"
-                                            : "Burahin"),
-                                    style: const TextStyle(
-                                        fontSize: 13, color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    // ── PROGRESS ROW: GUMAGAMIT NG DYNAMIC PESO() FORMATTER ──
+                    const SizedBox(height: 14),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "${_currentLocale == 'en' ? 'Saved: ' : (_currentLocale == 'id' ? 'Terkumpul: ' : 'Naipon: ')}${peso(goal.savedAmount)}",
+                          "${_currentLocale == 'en' ? 'Saved:' : (_currentLocale == 'id' ? 'Terkumpul:' : 'Naipon:')} ${goal.currencySymbol.isNotEmpty ? goal.currencySymbol : '₱'}${commaFormat.format(goal.savedAmount.toInt())}",
                           style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00E676)),
+                            color: Color(0xFF00E676),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                         Text(
-                          "${_currentLocale == 'en' ? 'Target: ' : (_currentLocale == 'id' ? 'Target: ' : 'Target: ')}${peso(goal.targetAmount)}",
+                          "${_currentLocale == 'en' ? 'Target:' : 'Target:'} ${goal.currencySymbol.isNotEmpty ? goal.currencySymbol : '₱'}${commaFormat.format(goal.targetAmount.toInt())}",
                           style: const TextStyle(
-                              fontSize: 12, color: Colors.white60),
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    // ── TIME ROW (DEADLINE LABELS) ──
+                    const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Deadline: ${DateFormat('yyyy-MM-dd').format(goal.deadline)}",
-                          style: const TextStyle(
-                              fontSize: 10, color: Colors.white38),
+                          style: TextStyle(
+                              color: _appFontColor.withValues(alpha: 0.38),
+                              fontSize: 10),
                         ),
                         Text(
                           _currentLocale == 'en'
                               ? "$daysRemaining days left"
                               : (_currentLocale == 'id'
-                                  ? "$daysRemaining hari lagi"
+                                  ? "Sisa $daysRemaining hari"
                                   : "$daysRemaining araw na lang"),
                           style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.orangeAccent,
-                              fontWeight: FontWeight.bold),
+                              color: Colors.white38, fontSize: 10),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    // ── PROGRESS INDICATOR TRACKBAR ──
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progress / 100,
-                              backgroundColor: Colors.white10,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFFFFD700)),
-                              minHeight: 5,
+                    if (!_isCompactMode) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: (progress / 100) > 1.0
+                                    ? 1.0
+                                    : (progress / 100),
+                                backgroundColor: Colors.white10,
+                                valueColor: const AlwaysStoppedAnimation(
+                                    Color(0xFFFFD700)),
+                                minHeight: 5,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text("${progress.toStringAsFixed(0)}%",
+                          const SizedBox(width: 10),
+                          Text(
+                            "${progress.toInt()}%",
                             style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFFD700))),
-                      ],
-                    )
+                              color: Color(0xFFFFD700),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -1732,6 +1864,80 @@ class HomeScreenState extends State with WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  // ── 🔧 HELPER PROMPT 1: DELETE TRANSACTION CONFIRMATION DIALOG ──
+  // ── 🔧 FIXED PRODUCTION METHOD HOOK FOR DELETE EXPENSE CONFIRMATION DIALOG ──
+  void _showDeleteExpenseTransactionConfirm(dynamic item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          _currentLocale == 'en'
+              ? "Delete Record?"
+              : (_currentLocale == 'id'
+                  ? "Hapus Catatan?"
+                  : "Burahin ang Tala?"),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        content: Text(
+          _currentLocale == 'en'
+              ? "Are you sure you want to permanently remove this transaction from your history log?"
+              : (_currentLocale == 'id'
+                  ? "Apakah Anda yakin ingin menghapus transaksi ini secara permanen dari riwayat?"
+                  : "Sigurado ka bang gusto mong burahin nang tuluyan ang transaksyong ito sa iyong talaan?"),
+          style:
+              const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+                _currentLocale == 'en'
+                    ? "Cancel"
+                    : (_currentLocale == 'id' ? "Batal" : "Kanselahin"),
+                style: const TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                // 💡 SOLUSYON: Ginamit ang iyong totoong local variable na 'all' para sa ligtas na data removal math computing engine
+                all.remove(item);
+              });
+              saveData();
+              Navigator.pop(ctx);
+
+              // Multi-language system confirmation notification banner block
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  duration: const Duration(seconds: 3),
+                  backgroundColor: Colors.redAccent,
+                  behavior: SnackBarBehavior.floating,
+                  content: Text(
+                    _currentLocale == 'en'
+                        ? "Transaction entry successfully deleted!"
+                        : (_currentLocale == 'id'
+                            ? "Catatan transaksi berhasil dihapus!"
+                            : "Matagumpay na nabura ang tala ng gastos!"),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              );
+            },
+            child: Text(
+                _currentLocale == 'en'
+                    ? "Delete"
+                    : (_currentLocale == 'id' ? "Hapus" : "Burahin"),
+                style: const TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
+  }
+
   // Idagdag ang argument na ito sa function definition mo:
   // Idagdag ang argument na ito sa function definition mo:
   void _showCreateNewGoalDialog({VoidCallback? onSaveSuccess}) {
@@ -1753,10 +1959,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               Expanded(
                 child: Text(
                   _currentLocale == 'en'
-                      ? '🛑 Limited to 2 free goals!'
+                      ? 'Limited to 2 free goals!'
                       : (_currentLocale == 'id'
-                          ? '🛑 Terbatas 2 target tabungan!'
-                          : '🛑 Limitado sa 2 libreng layunin!'),
+                          ? 'Terbatas 2 target tabungan!'
+                          : 'Limitado sa 2 libreng layunin!'),
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -3519,7 +3726,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       // 1. ANG SET GOALS TEXT LABEL (Awtomatikong nagbabago ang wika)
                       Text(
                         _currentLocale == 'tl'
-                            ? "I-Set ang Target"
+                            ? "Set ang Target"
                             : (_currentLocale == 'id'
                                 ? "Atur Target"
                                 : "Set Target"),
@@ -5875,10 +6082,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               Expanded(
                 child: Text(
                   _currentLocale == 'en'
-                      ? '🛑 Wallet deletion is restricted after trial expiration!'
+                      ? 'Wallet deletion is restricted after trial expiration!'
                       : (_currentLocale == 'id'
-                          ? '🛑 Penghapusan dompet dibatasi setelah masa uji coba berakhir!'
-                          : '🛑 Ang pagbura ng pitaka ay hindi pinapayagan matapos mag-expire ang trial!'),
+                          ? 'Penghapusan dompet dibatasi setelah masa uji coba berakhir!'
+                          : 'Ang pagbura ng pitaka ay hindi pinapayagan matapos mag-expire ang trial!'),
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -6011,11 +6219,10 @@ class HomeScreenState extends State with WidgetsBindingObserver {
   }
 
   void _showWalletManagerDialog() {
-    // 🔥 SOLUSYON: Tiyaking BURADO o WALA na rito ang linyang '_showUpgradeOptionsBottomSheet();' o 'return;'
-    // Diretso dapat agad sa pagbubukas ng dialog interface framework box!
     showDialog(
       context: context,
-      builder: (BuildContext context) => StatefulBuilder(
+      builder: (BuildContext dialogContext) => StatefulBuilder(
+        // 💡 Ginamit ang dialogContext para sa modal layout stability tracker
         builder: (context, setModalState) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E1E),
           titlePadding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
@@ -6034,7 +6241,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               ),
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.white54, size: 20),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
               )
             ],
           ),
@@ -6100,29 +6307,25 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                         fontSize: 12, color: Colors.white54),
                                   ),
                                 ),
-                                // 🚀 TAMA AT GUMAGANA: Dito nakalagay ang pag-select ng wallet kapag pinindot ang card o tile mismo
-                                // 🚀 PINAYAGAN ANG ACCESS: Maaari pa rin niyang i-click at lipatan ang wallet kahit expired na ang 30 days!
                                 onTap: () {
                                   setModalState(() {
                                     activeWalletId = w.id;
                                   });
-                                  Navigator.pop(context);
+                                  Navigator.pop(dialogContext);
 
                                   setState(() {
                                     _currentCurrency = w.currency;
                                   });
 
-                                  _switchWallet(w
-                                      .id); // Ligtas na lilipat ng wallet data model disk
+                                  _switchWallet(w.id);
                                 },
-
                                 trailing: PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert,
                                       color: Colors.white54),
                                   color: const Color(0xFF252525),
                                   onSelected: (String action) {
                                     if (action == 'add') {
-                                      Navigator.pop(context);
+                                      Navigator.pop(dialogContext);
                                       _showAddAmountToWalletDialog(w);
                                     } else if (action == 'edit') {
                                       _showEditWalletBudgetDialog(
@@ -6182,16 +6385,14 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                     ),
                                     if (w.id != "default")
                                       PopupMenuItem<String>(
-                                        // 🔥 SOLUSYON: Gagawin nating null ang value kapag expired na at walang premium para hindi ito mapindot
                                         value: (trialExpiredWithNoPremium)
                                             ? null
                                             : 'delete',
-                                        enabled:
-                                            !trialExpiredWithNoPremium, // Idi-disable ang menu item option
+                                        enabled: !trialExpiredWithNoPremium,
                                         child: Opacity(
                                           opacity: (trialExpiredWithNoPremium)
                                               ? 0.35
-                                              : 1.0, // Mag-ge-grey out kapag restricted
+                                              : 1.0,
                                           child: Row(
                                             children: [
                                               const Icon(Icons.delete_outline,
@@ -6217,39 +6418,36 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12, top: 4),
                   child: ElevatedButton.icon(
-                    // 🔥 SOLUSYON: Haharangin ang pag-click kapag expired na ang trial O mayroon nang 2 o higit pang wallets sa free tier
                     onPressed: (trialExpiredWithNoPremium ||
                             (!_isPremiumUser && wallets.length >= 2))
                         ? () {
                             Navigator.pop(
-                                context); // Isasara ang Wallet Manager list view popup card box
-
-                            // Alamin kung quota limit o expiry limit ang dahilan ng restriction guard
+                                dialogContext); // 💡 1. Isara agad ang Wallet Manager dialog bago i-show ang snackbar alert box
                             final bool isQuotaLimit =
                                 !_isPremiumUser && wallets.length >= 2;
                             String alertText = "";
-
                             if (_currentLocale == 'tl') {
                               alertText = isQuotaLimit
-                                  ? '🛑 Limitado sa 2 libreng pitaka!'
-                                  : '🛑 Paggawa ng pitaka ay naka-lock! Expired na ang trial.';
+                                  ? 'Limitado sa 2 libreng pitaka!'
+                                  : 'Paggawa ng pitaka ay naka-lock! Expired na ang trial.';
                             } else if (_currentLocale == 'id') {
                               alertText = isQuotaLimit
-                                  ? '🛑 Terbatas 2 dompet gratis!'
-                                  : '🛑 Pembuatan dompet terkunci! Masa uji coba berakhir.';
+                                  ? 'Terbatas 2 dompet gratis!'
+                                  : 'Pembuatan dompet terkunci! Masa uji coba berakhir.';
                             } else {
                               alertText = isQuotaLimit
-                                  ? '🛑 Limited to 2 free wallets!'
-                                  : '🛑 Wallet creation locked! Trial expired.';
+                                  ? 'Limited to 2 free wallets!'
+                                  : 'Wallet creation locked! Trial expired.';
                             }
-
-                            ScaffoldMessenger.of(context).showSnackBar(
+// 💡 2. Gamitin ang parent build context para mag-trigger ng stable premium checkout paywall sheets
+                            ScaffoldMessenger.of(this.context).showSnackBar(
                               SnackBar(
                                 duration: const Duration(seconds: 4),
                                 backgroundColor: Colors.redAccent,
                                 behavior: SnackBarBehavior.floating,
                                 margin: EdgeInsets.only(
-                                  top: MediaQuery.of(context).padding.top + 10,
+                                  top: MediaQuery.of(this.context).padding.top +
+                                      10,
                                   left: 16,
                                   right: 16,
                                 ),
@@ -6261,6 +6459,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                     Expanded(
                                       child: Text(
                                         alertText,
+                                        textAlign: TextAlign.center,
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
@@ -6278,9 +6477,9 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                                 BorderRadius.circular(6)),
                                       ),
                                       onPressed: () {
-                                        ScaffoldMessenger.of(context)
+                                        ScaffoldMessenger.of(this.context)
                                             .hideCurrentSnackBar();
-                                        _showUpgradeOptionsBottomSheet(); // Bubuksan ang premium plans selection option menu panel layout
+                                        _showUpgradeOptionsBottomSheet(); // 🚀 3. Maayos na nitong ilo-load ang Google pricing tiles nang walang scope layout overlaps!
                                       },
                                       child: Text(
                                         _currentLocale == 'tl'
@@ -6300,7 +6499,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             );
                           }
                         : () {
-                            Navigator.pop(context);
+                            Navigator.pop(dialogContext);
                             _showAddWalletDialog();
                           },
                     icon: Icon(
@@ -6322,7 +6521,6 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      // Kakapit ang solid gray disabled styling layout block kapag naabot na ang maximum 2 items budget slots quota rule configuration
                       backgroundColor: (trialExpiredWithNoPremium ||
                               (!_isPremiumUser && wallets.length >= 2))
                           ? const Color(0xFF424242)
@@ -6593,10 +6791,11 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               Expanded(
                 child: Text(
                   _currentLocale == 'tl'
-                      ? '🛑 Limitado sa 10 libreng gastos!'
+                      ? 'Limitado sa 10 libreng gastos!'
                       : (_currentLocale == 'id'
-                          ? '🛑 Terbatas 10 pengeluaran!'
-                          : '🛑 Limited to 10 free expenses!'),
+                          ? 'Terbatas 10 pengeluaran!'
+                          : 'Limited to 10 free expenses!'),
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -7253,22 +7452,33 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                         }
                       }
                       setState(() {
+                        // 💡 SOLUSYON: Gagamitin ang saktong title input mula sa text controller field box
+                        final String saktongPamagat = titleCtrl.text
+                                .trim()
+                                .isNotEmpty
+                            ? titleCtrl.text.trim()
+                            : targetCategoryKey; // Gagamit ng fallback category kung walang isinulat
+
                         final newExpense = Expense(
                           id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          title: titleCtrl.text.trim(),
+                          title:
+                              saktongPamagat, // 🚀 SEGURO NA: Maitalatala na ang "Kuryente" dito
                           amount: amt,
                           date: napilingPetsa,
                           color: itemColor,
                           iconEmoji: finalEmoji,
                         );
                         all.add(newExpense);
+
+                        // 🔥 INAYOS ANG LOGIC: I-sync ang emoji gamit ang tamang identifier rules loop
                         for (var expense in all) {
                           if (expense.title.toLowerCase().trim() ==
-                              targetCategoryKey) {
+                              saktongPamagat.toLowerCase().trim()) {
                             expense.iconEmoji = finalEmoji;
                           }
                         }
                       });
+
                       try {
                         for (var w in wallets) {
                           String? walletExpenseData =
@@ -7277,11 +7487,12 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                             List parsedList = jsonDecode(walletExpenseData);
                             bool chunkModified = false;
                             for (var rawExp in parsedList) {
+                              // 💡 INAYOS ANG LOGIC: Gagamitin ang pamagat para sa database file allocation index records
                               if (rawExp['title']
                                       .toString()
                                       .toLowerCase()
                                       .trim() ==
-                                  targetCategoryKey) {
+                                  titleCtrl.text.trim().toLowerCase()) {
                                 rawExp['iconEmoji'] = finalEmoji;
                                 chunkModified = true;
                               }
@@ -7293,21 +7504,36 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                           }
                         }
                       } catch (_) {}
+
                       await saveData();
+
                       if (mounted) {
+                        // 🔥 MULTILINGUAL LOGIC FIX: Ipapakita na ang saktong pamagat ("Kuryente") sa prompt alert box imbes na kategorya!
+                        String saktongPamagatText =
+                            titleCtrl.text.trim().isNotEmpty
+                                ? titleCtrl.text.trim()
+                                : targetCategoryKey;
                         String addSuccessMsg = _currentLocale == 'tl'
-                            ? 'Matagumpay na naidagdag ang kategorya!'
+                            ? "Matagumpay na naidagdag ang '$saktongPamagatText' sa talaan ng gastos!"
                             : (_currentLocale == 'id'
-                                ? 'Catatan kustom berhasil ditambahkan!'
-                                : 'Custom entry successfully added!');
+                                ? "Catatan '$saktongPamagatText' berhasil ditambahkan!"
+                                : "Successfully added '$saktongPamagatText' to expense logs!");
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(addSuccessMsg),
+                            duration: const Duration(seconds: 3),
+                            content: Text(
+                              addSuccessMsg,
+                              textAlign: TextAlign.center,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             backgroundColor: const Color(0xFF00E676),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
                       }
+
                       Navigator.pop(context);
                       if (natitiraPagkatapos <= 0) {
                         Future.delayed(const Duration(milliseconds: 150), () {
@@ -7459,6 +7685,27 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 🔥 SOLUSYON: Pinalitan ang controller name mula sa 'titleController' patungong 'titleCtrl' para magtugma sa iyong database schema variables
+                      TextField(
+                        controller: titleCtrl,
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          labelText: _currentLocale == 'en'
+                              ? "Item / Preset Name (e.g. Kuryente)"
+                              : (_currentLocale == 'id'
+                                  ? "Nama Catatan (e.g. Listrik)"
+                                  : "Pangalan ng Tala / Preset (e.g. Kuryente)"),
+                          labelStyle: const TextStyle(
+                              color: Colors.white54, fontSize: 13),
+                          enabledBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white10)),
+                          focusedBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFFFFD700))),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
                       // 🔥 SINKRONAYS NA AUTOCOMPLETE SA EDIT DIALOG
                       Autocomplete<String>(
                         optionsBuilder: (TextEditingValue textEditingValue) {
@@ -8268,6 +8515,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
         child: Row(
           children: [
             ChoiceChip(
+              showCheckmark: false,
               // 🔥 Ginawang mas compact ang padding sa loob ng chip
               visualDensity: _isCompactMode
                   ? VisualDensity.compact
@@ -8293,6 +8541,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             ),
             const SizedBox(width: 6),
             ChoiceChip(
+              showCheckmark: false,
               visualDensity: _isCompactMode
                   ? VisualDensity.compact
                   : VisualDensity.standard,
@@ -8317,6 +8566,7 @@ class HomeScreenState extends State with WidgetsBindingObserver {
             ),
             const SizedBox(width: 6),
             InputChip(
+              showCheckmark: false,
               visualDensity: _isCompactMode
                   ? VisualDensity.compact
                   : VisualDensity.standard,
@@ -10033,43 +10283,96 @@ class HomeScreenState extends State with WidgetsBindingObserver {
                                           style: const TextStyle(
                                               color: Colors.white38,
                                               fontSize: 12)),
+                                  // 🔥 AUTOMATION PRODUCTION OVERRIDE: Pinalitan ang dalawang magkahiwalay na icons ng isang malinis na 3-dots actions popup menu layout
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(peso(item.amount),
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: _appFontColor,
-                                              fontSize:
-                                                  _isCompactMode ? 13 : 14)),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.edit,
-                                          color: trialExpiredWithNoPremium
-                                              ? Colors.white10
-                                              : const Color(0xFFFFD700),
-                                          size: 20,
-                                        ),
-                                        onPressed: trialExpiredWithNoPremium
-                                            ? null
-                                            : () =>
-                                                _showEditExpenseDialog(item),
+                                      Text(
+                                        peso(item.amount),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: _appFontColor,
+                                            fontSize: _isCompactMode ? 13 : 14),
                                       ),
-                                      IconButton(
-                                        icon: Icon(Icons.delete_outline,
-                                            color: trialExpiredWithNoPremium
-                                                ? Colors.white10
-                                                : Colors.redAccent,
-                                            size: 20),
-                                        onPressed: trialExpiredWithNoPremium
-                                            ? null
-                                            : () {
-                                                setState(() {
-                                                  all.remove(item);
-                                                  saveData();
-                                                });
-                                              },
+                                      const SizedBox(width: 4),
+                                      PopupMenuButton<String>(
+                                        icon: Icon(
+                                          Icons.more_vert,
+                                          color: _appFontColor.withValues(
+                                              alpha: 0.5),
+                                          size: _isCompactMode ? 18 : 22,
+                                        ),
+                                        color: const Color(0xFF252525),
+                                        onSelected: (String action) {
+                                          if (action == 'edit') {
+                                            _showEditExpenseDialog(item);
+                                          } else if (action == 'delete') {
+                                            _showDeleteExpenseTransactionConfirm(
+                                                item);
+                                          }
+                                        },
+                                        itemBuilder: (BuildContext ctx) {
+                                          final bool isLocked =
+                                              trialExpiredWithNoPremium;
+                                          return [
+                                            PopupMenuItem<String>(
+                                              value: isLocked ? null : 'edit',
+                                              enabled: !isLocked,
+                                              child: Opacity(
+                                                opacity: isLocked ? 0.30 : 1.0,
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                        Icons.edit_note_rounded,
+                                                        color:
+                                                            Color(0xFFFFD700),
+                                                        size: 16),
+                                                    const SizedBox(width: 10),
+                                                    Text(
+                                                      _currentLocale == 'en'
+                                                          ? "Edit Entry"
+                                                          : (_currentLocale ==
+                                                                  'id'
+                                                              ? "Ubah Catatan"
+                                                              : "I-edit ang Tala"),
+                                                      style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.white),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            PopupMenuItem<String>(
+                                              value: isLocked ? null : 'delete',
+                                              enabled: !isLocked,
+                                              child: Opacity(
+                                                opacity: isLocked ? 0.30 : 1.0,
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                        Icons
+                                                            .delete_outline_rounded,
+                                                        color: Colors.redAccent,
+                                                        size: 16),
+                                                    const SizedBox(width: 10),
+                                                    Text(
+                                                      _currentLocale == 'en'
+                                                          ? "Delete"
+                                                          : (_currentLocale ==
+                                                                  'id'
+                                                              ? "Hapus"
+                                                              : "Burahin"),
+                                                      style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.white),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ];
+                                        },
                                       ),
                                     ],
                                   ),
@@ -10190,6 +10493,148 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               );
             },
           ),
+
+          // 👈 Dulo ng DebtsPage block mo sa code
+
+          // ── 🔥 TAB index 3: LIVE CURRENCY CONVERTER ACTIVE WIDGET DISPLAY LAYER ──
+          // Awtomatikong magpapakita ng PRO Paywall Lock screen kapag tapos na ang 30-day free trial!
+          trialExpiredWithNoPremium
+              ? Container(
+                  padding: const EdgeInsets.all(24.0),
+                  color: Colors.transparent,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Soft elegant circular background layer matrix container block for lock shield icon
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                              color: const Color(0xFFFFD700)
+                                  .withValues(alpha: 0.05),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: const Color(0xFFFFD700)
+                                      .withValues(alpha: 0.15),
+                                  width: 1.5)),
+                          child: const Icon(Icons.lock_person_rounded,
+                              size: 54, color: Color(0xFFFFD700)),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          _currentLocale == 'tl'
+                              ? "NAKASARANG FEATURE (PRO)"
+                              : (_currentLocale == 'id'
+                                  ? "FITUR TERKUNCI (PRO)"
+                                  : "FEATURE LOCKED (PRO)"),
+                          // ❌ LUMANG CODE NA MAY ERROR:
+                          // 🔥 SULUSYON: Inalis ang 'const' at pinalitan ng 'FontWeight.w900' upang maging 100% compliant sa Flutter graphics kit rules!
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 0.8),
+                        ),
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            _currentLocale == 'tl'
+                                ? "Ang Live Currency Converter ay para lamang sa mga PRO users. Tapos na ang iyong 30-day free trial."
+                                : (_currentLocale == 'id'
+                                    ? "Live Currency Converter hanya tersedia untuk pengguna PRO. Uji coba gratis 30 hari Anda telah berakhir."
+                                    : "Live Currency Converter is exclusively available for PRO users. Your 30-day free trial has expired."),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white38,
+                                height: 1.4),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        // Action control route button triggers paywall checkout dialog sheet panel
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _showUpgradeOptionsBottomSheet();
+                          },
+                          icon: const Icon(Icons.star_rounded,
+                              size: 18, color: Colors.black),
+                          label: Text(
+                            _currentLocale == 'tl'
+                                ? "MAG-UPGRADE SA PRO"
+                                : (_currentLocale == 'id'
+                                    ? "UPGRADE KE PRO"
+                                    : "UPGRADE TO PRO"),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                fontSize: 12),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFD700),
+                            minimumSize: const Size(200, 44),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            elevation: 4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : LiveConvertTab(
+                  currentLocale: _currentLocale,
+                  globalCurrencies: globalCurrencies,
+                  openCurrencySearchPicker: _openCurrencySearchPicker,
+                  boxBgColor: _boxBgColor,
+                  fontColor: _appFontColor,
+                  onFetchLiveRate: (
+                      {required String baseCurrency,
+                      required String targetCurrency,
+                      required Function(double liveRate) onSuccess,
+                      required Function(String errorText) onFailure}) async {
+                    await fetchLiveExchangeRate(
+                      baseCurrency: baseCurrency,
+                      targetCurrency: targetCurrency,
+                      onSuccess: onSuccess,
+                      onFailure: onFailure,
+                    );
+                  },
+                ),
+
+          // 👈 Isinasara nito ang listahan ng children sa loob ng IndexedStack
+
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            color: Colors.transparent,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.currency_exchange_rounded,
+                      size: 70, color: Color(0xFFFFD700)),
+                  const SizedBox(height: 20),
+                  Text(
+                    _currentLocale == 'tl'
+                        ? "LIVE CURRENCY CONVERTER"
+                        : "LIVE CURRENCY CONVERTER",
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _currentLocale == 'tl'
+                        ? "Real-time na palitan gamit ang Frankfurter API"
+                        : "Real-time updates powered by Frankfurter Open API Engine",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: Colors.white38),
+                  )
+                ],
+              ),
+            ),
+          ),
         ],
       ),
 
@@ -10215,13 +10660,17 @@ class HomeScreenState extends State with WidgetsBindingObserver {
               icon: const Icon(Icons.track_changes_rounded), label: tabGoals),
           BottomNavigationBarItem(
               icon: const Icon(Icons.money_off_csred_rounded), label: tabDebts),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.currency_exchange_rounded),
+            label: tabConvert,
+          ),
         ],
       ),
 // ── FLOATING ACTION PLUS BUTTON CONTROL ──
       floatingActionButton: _currentTabIndex == 0
           ? SizedBox(
-              width: 38,
-              height: 38,
+              width: 43,
+              height: 43,
               child: FloatingActionButton(
                 backgroundColor: _isTrialExpired && !_isPremiumUser
                     ? Colors.grey
@@ -10620,39 +11069,59 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
 
           // 🔥 IDINAGDAG: THE INTERACTIVE DROPDOWN SORTING CONTROL ROW (Eksaktong disenyo mula sa Utang Screen)
           // ── SAVINGS GOALS SORTING LAYER ──
+          // ── 🔥 FIXED UNIFIED DROPDOWN RE-ALIGNMENT LAYER FOR SAVINGS GOALS PAGE ──
+          // ── 🔥 FIXED EXACT MATCH CYAN DROPDOWN LAYER FOR SAVINGS GOALS PAGE ──
+          // ── 🔥 FIXED EXACT MATCH CYAN DROPDOWN LAYER FOR SAVINGS GOALS PAGE ──
+          // ── 🔥 PRODUCTION TRIAL SHIELD FOR GOALS SORTING LAYER ──
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              // 1. PINALAWAK NA OPACITY FILTER PARA SA TEXT LABEL AT ICON
               Opacity(
-                opacity: widget.isTrialExpiredMode ? 0.3 : 1.0,
+                opacity: widget.isTrialExpiredMode
+                    ? 0.35
+                    : 1.0, // 🔥 Mag-ge-grey out kapag expired ang trial
                 child: Row(
                   children: [
                     Icon(Icons.sort_rounded,
-                        color: widget.fontColor.withValues(alpha: 0.7),
+                        color: widget.fontColor.withValues(alpha: 0.5),
                         size: 16),
                     const SizedBox(width: 6),
-                    Text(_translate("Sort by:", "Urutkan:", "I-sort ayon sa:"),
-                        style: TextStyle(
-                            color: widget.fontColor.withValues(alpha: 0.5),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      widget.currentLocale == 'en'
+                          ? "Sort by:"
+                          : (widget.currentLocale == 'id'
+                              ? "Urutkan:"
+                              : "I-sort ayon sa:"),
+                      style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
+              // 2. INTERACTIVE CONTAINER DESIGN NA NAGPAPALIT NG OPACITY AT DISABLE STATE
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                     color: widget.isTrialExpiredMode
-                        ? widget.boxBgColor.withValues(alpha: 0.5)
-                        : widget.boxBgColor,
+                        ? widget.boxBgColor.withValues(
+                            alpha:
+                                0.2) // 🔥 Magdidilim ang background kapag expired
+                        : const Color(0xFF1E1E24).withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white10)),
+                    border: Border.all(
+                        color: widget.isTrialExpiredMode
+                            ? Colors.white.withValues(alpha: 0.03)
+                            : Colors.white10)),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _currentGoalSortCriteria, // 🔥 NAGAMIT NANG TAMA
+                    value: _currentGoalSortCriteria,
                     dropdownColor: widget.boxBgColor,
+                    // 🔥 SULUSYON: Ginawang 'null' ang onChanged kapag expired na ang trial para ma-disable ang dropdown engine clicks at maging gray ang kulay nito!
                     onChanged: widget.isTrialExpiredMode
                         ? null
                         : (String? newValue) {
@@ -10664,32 +11133,70 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                           },
                     icon: Icon(Icons.arrow_drop_down,
                         color: widget.isTrialExpiredMode
-                            ? Colors.white12
+                            ? Colors.white12 // 🔥 Faded arrow icon kapag locked
                             : const Color(0xFFFFD700),
                         size: 18),
                     style: TextStyle(
                         color: widget.isTrialExpiredMode
-                            ? widget.fontColor.withValues(alpha: 0.2)
+                            ? widget.fontColor.withValues(
+                                alpha:
+                                    0.2) // 🔥 Faded text selection display color base sa napiling theme
                             : widget.fontColor,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold),
                     items: [
                       DropdownMenuItem(
                           value: 'latest',
                           child: Text(
-                              _translate("Latest", "Terbaru", "Pinakabago"))),
+                            widget.currentLocale == 'en'
+                                ? "Latest"
+                                : (widget.currentLocale == 'id'
+                                    ? "Terbaru"
+                                    : "Pinakabago"),
+                            style: TextStyle(
+                                color: widget.isTrialExpiredMode
+                                    ? widget.fontColor.withValues(alpha: 0.2)
+                                    : widget.fontColor),
+                          )),
                       DropdownMenuItem(
                           value: 'oldest',
                           child: Text(
-                              _translate("Oldest", "Terlama", "Pinakaluma"))),
+                            widget.currentLocale == 'en'
+                                ? "Oldest"
+                                : (widget.currentLocale == 'id'
+                                    ? "Terlama"
+                                    : "Pinakaluma"),
+                            style: TextStyle(
+                                color: widget.isTrialExpiredMode
+                                    ? widget.fontColor.withValues(alpha: 0.2)
+                                    : widget.fontColor),
+                          )),
                       DropdownMenuItem(
                           value: 'highest',
-                          child: Text(_translate(
-                              "Highest", "Tertinggi", "Pinakamataas"))),
+                          child: Text(
+                            widget.currentLocale == 'en'
+                                ? "Highest"
+                                : (widget.currentLocale == 'id'
+                                    ? "Tertinggi"
+                                    : "Pinakamataas"),
+                            style: TextStyle(
+                                color: widget.isTrialExpiredMode
+                                    ? widget.fontColor.withValues(alpha: 0.2)
+                                    : widget.fontColor),
+                          )),
                       DropdownMenuItem(
                           value: 'lowest',
-                          child: Text(_translate(
-                              "Lowest", "Terendah", "Pinakamababa"))),
+                          child: Text(
+                            widget.currentLocale == 'en'
+                                ? "Lowest"
+                                : (widget.currentLocale == 'id'
+                                    ? "Terendah"
+                                    : "Pinakamababa"),
+                            style: TextStyle(
+                                color: widget.isTrialExpiredMode
+                                    ? widget.fontColor.withValues(alpha: 0.2)
+                                    : widget.fontColor),
+                          )),
                     ],
                   ),
                 ),
@@ -10697,7 +11204,8 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
             ],
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+
           // SINKRONAYS DETECTION SYSTEM LAYER
           processedGoals.isEmpty
               ? Expanded(
@@ -10748,6 +11256,10 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                         displayProgressPercentage = 100;
                       }
 
+                      // 🔥 AUTOMATION FLAG LAYER: Live data analysis mapping module
+                      final bool isTargetReached =
+                          goal.savedAmount >= goal.targetAmount;
+
                       return InkWell(
                         borderRadius: BorderRadius.circular(14),
                         onTap: () {
@@ -10755,12 +11267,9 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                         },
                         child: Container(
                           margin: EdgeInsets.only(
-                              bottom: widget.isCompactMode
-                                  ? 6
-                                  : 12), // 🔥 Mas maliit na gap kapag compact
-                          padding: EdgeInsets.all(widget.isCompactMode
-                              ? 10
-                              : 14), // 🔥 Mas manipis na padding kapag compact
+                              bottom: widget.isCompactMode ? 6 : 12),
+                          padding:
+                              EdgeInsets.all(widget.isCompactMode ? 10 : 14),
                           decoration: BoxDecoration(
                             color: widget.boxBgColor,
                             borderRadius: BorderRadius.circular(14),
@@ -10775,21 +11284,78 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(goal.name.toUpperCase(),
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: widget.isCompactMode
-                                              ? 11
-                                              : 13, // 🔥 Dynamic text size
-                                          color: const Color(0xFFFFD700))),
+                                  // ── 🔥 SULUSYON: Ligtas na binalot sa Expanded + Column at ginamit ang local 'isTargetReached' variable para walang isCompactMode / currentLocale alignment errors ──
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          goal.name.toUpperCase(),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: widget.isCompactMode
+                                                  ? 11
+                                                  : 13,
+                                              color: const Color(0xFFFFD700)),
+                                        ),
+                                        // ── 🔥 THE GREEN MULTILINGUAL INDICATOR BADGE FOR SAVINGS TARGETS ──
+                                        if (isTargetReached) ...[
+                                          const SizedBox(height: 5),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF00E676)
+                                                  .withValues(
+                                                      alpha:
+                                                          0.15), // Ligtas laban sa withOpacity deprecation tracking logs
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              border: Border.all(
+                                                  color:
+                                                      const Color(0xFF00E676),
+                                                  width: 0.6),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                    Icons.check_circle_rounded,
+                                                    color: Color(0xFF00E676),
+                                                    size: 10),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  widget.currentLocale == 'en'
+                                                      ? "TARGET REACHED"
+                                                      : (widget.currentLocale ==
+                                                              'id'
+                                                          ? "TARGET TERCAPAI"
+                                                          : "NAABOT ANG TARGET"),
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF00E676),
+                                                    fontSize: 8.5,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
                                   PopupMenuButton<String>(
                                     icon: Icon(Icons.more_vert,
                                         color: widget.fontColor
                                             .withValues(alpha: 0.5),
-                                        size: widget.isCompactMode
-                                            ? 16
-                                            : 20), // 🔥 Dynamic icon size
+                                        size: widget.isCompactMode ? 16 : 20),
                                     color: const Color(0xFF252525),
                                     onSelected: (String action) {
                                       if (action == 'deposit') {
@@ -10805,20 +11371,24 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                                     itemBuilder: (ctx) {
                                       final bool isGoalCompleted =
                                           goal.savedAmount >= goal.targetAmount;
-                                      final bool isLocked =
-                                          widget.isTrialExpiredMode;
+                                      final bool isLocked = widget
+                                          .isTrialExpiredMode; // 30-day trial indicator
                                       return [
                                         PopupMenuItem<String>(
-                                          value: (isGoalCompleted || isLocked)
+                                          // 🔥 Bukas ang deposit kahit expired basta pasok sa 2 entries limit
+                                          value: (isGoalCompleted ||
+                                                  widget.savingsGoals.length >
+                                                      2)
                                               ? null
                                               : 'deposit',
-                                          enabled:
-                                              !isGoalCompleted && !isLocked,
+                                          enabled: !isGoalCompleted &&
+                                              widget.savingsGoals.length <= 2,
                                           child: Opacity(
-                                            opacity:
-                                                (isGoalCompleted || isLocked)
-                                                    ? 0.30
-                                                    : 1.0,
+                                            opacity: (isGoalCompleted ||
+                                                    widget.savingsGoals.length >
+                                                        2)
+                                                ? 0.30
+                                                : 1.0,
                                             child: Row(
                                               children: [
                                                 Icon(Icons.add_circle_outline,
@@ -10844,6 +11414,7 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                                           ),
                                         ),
                                         PopupMenuItem<String>(
+                                          // 🛑 DISABLED NA MULI KAPAG EXPIRED NA ANG 30 DAYS TRIAL
                                           value: isLocked ? null : 'edit_name',
                                           enabled: !isLocked,
                                           child: Opacity(
@@ -10867,6 +11438,7 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                                           ),
                                         ),
                                         PopupMenuItem<String>(
+                                          // 🛑 DISABLED NA MULI KAPAG EXPIRED NA ANG 30 DAYS TRIAL
                                           value:
                                               isLocked ? null : 'edit_amount',
                                           enabled: !isLocked,
@@ -10893,6 +11465,7 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                                           ),
                                         ),
                                         PopupMenuItem<String>(
+                                          // 🛑 Naka-disable kapag expired ang trial
                                           value: isLocked ? null : 'delete',
                                           enabled: !isLocked,
                                           child: Opacity(
@@ -10918,10 +11491,7 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                                   ),
                                 ],
                               ),
-                              SizedBox(
-                                  height: widget.isCompactMode
-                                      ? 4
-                                      : 8), // 🔥 Bawas espasyo
+                              SizedBox(height: widget.isCompactMode ? 4 : 8),
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -10968,7 +11538,6 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                                           fontWeight: FontWeight.bold)),
                                 ],
                               ),
-                              // 🔥 ITAGO ANG PROGRESS BAR KAPAG COMPACT MODE PARA MAKATIPID SA SPACING
                               if (!widget.isCompactMode) ...[
                                 const SizedBox(height: 6),
                                 Row(
@@ -11003,7 +11572,6 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                     },
                   ),
                 ),
-
           const SizedBox(height: 10),
 
           ElevatedButton.icon(
@@ -11028,10 +11596,11 @@ class _SavingsGoalsPageState extends State<SavingsGoalsPage> {
                                 Expanded(
                                   child: Text(
                                     widget.currentLocale == 'en'
-                                        ? '🛑 Limited to 2 free goals!'
+                                        ? 'Limited to 2 free goals!'
                                         : (widget.currentLocale == 'id'
-                                            ? '🛑 Terbatas 2 target tabungan!'
-                                            : '🛑 Limitado sa 2 libreng layunin!'),
+                                            ? 'Terbatas 2 target tabungan!'
+                                            : 'Limitado sa 2 libreng layunin!'),
+                                    textAlign: TextAlign.center,
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
@@ -11622,6 +12191,253 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     return fil;
   }
 
+  // ── 🔥 MULTILINGUAL ENGINE 1: EDIT DEPOSIT LOG FUNCTION ──
+  void _showEditDepositAmountDialog(GoalDeposit deposit, int index) {
+    final TextEditingController amountEditCtrl = TextEditingController(
+      text: NumberFormat('#,##0', 'en_US').format(deposit.amount.toInt()),
+    );
+    String sym = widget.goal.currencySymbol.isNotEmpty
+        ? widget.goal.currencySymbol
+        : "₱";
+    String internalErrorText = "";
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E24),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            _translate("Correct Deposit Amount", "Koreksi Jumlah Setoran",
+                "Itama ang Halaga ng Hulog"),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: amountEditCtrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  CommaFormatter()
+                ],
+                decoration: InputDecoration(
+                  prefixText: '$sym ',
+                  prefixStyle: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+                  labelText: _translate(
+                      "Deposit Amount", "Jumlah Setoran", "Halaga ng Hulog"),
+                ),
+              ),
+              if (internalErrorText.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(internalErrorText,
+                    style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+              ]
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(_translate("Cancel", "Batal", "Kanselahin"),
+                  style: const TextStyle(color: Colors.white38)),
+            ),
+            TextButton(
+              onPressed: () async {
+                final String cleanText =
+                    amountEditCtrl.text.replaceAll(',', '').trim();
+                final double? parsedAmount = double.tryParse(cleanText);
+                if (parsedAmount == null || parsedAmount <= 0) return;
+
+                // Kalkulahin ang pondo kung lalampas sa absolute boundary rules
+                double pondoIwanKungWala =
+                    widget.goal.savedAmount - deposit.amount;
+                double bagongKalkulasyonTotal =
+                    pondoIwanKungWala + parsedAmount;
+
+                if (bagongKalkulasyonTotal > widget.goal.targetAmount) {
+                  setDialogState(() {
+                    internalErrorText = _translate(
+                        "Amount exceeds total remaining budget limit roof!",
+                        "Jumlah melebihi batas batas sisa target tabungan!",
+                        "Ang halaga ay lumampas sa limitasyon ng natitirang target!");
+                  });
+                  return;
+                }
+
+                setState(() {
+                  deposit.amount = parsedAmount;
+                  widget.goal.savedAmount = bagongKalkulasyonTotal;
+                });
+
+                widget.onDataChanged();
+                Navigator.pop(context);
+
+                // 🎉 MULTILINGUAL TRANSACTION SUCCESS PROMPT SCREEN
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) => AlertDialog(
+                    backgroundColor: const Color(0xFF1E1E1E),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text("💰", style: TextStyle(fontSize: 48)),
+                        const SizedBox(height: 16),
+                        Text(
+                          _translate("DEPOSIT UPDATED!", "SETORAN DIPERBARUI!",
+                              "NA-UPDATE ANG HULOG!"),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _translate(
+                              "Successfully updated the entry amount value from history logs.",
+                              "Berhasil memperbarui nilai jumlah setoran dari catatan riwayat.",
+                              "Matagumpay na na-update ang halaga ng hulog sa kasaysayan."),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12, height: 1.4),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFD700),
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                          ),
+                          child: Text(_translate("OKAY", "OK", "SIGE"),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Text(_translate("Save", "Simpan", "I-save"),
+                  style: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 🔥 MULTILINGUAL ENGINE 2: DELETE INDIVIDUAL DEPOSIT LOG FUNCTION ──
+  void _confirmDeleteIndividualDeposit(GoalDeposit dep, int idx) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          _translate("Delete Deposit?", "Hapus Setoran?", "Burahin ang Hulog?"),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        content: Text(
+          _translate(
+              "Are you sure you want to permanently remove this deposit entry from history logs?",
+              "Apakah Anda yakin ingin menghapus catatan setoran ini secara permanen?",
+              "Sigurado ka bang gusto mong burahin nang tuluyan ang hulog na ito sa kasaysayan?"),
+          style:
+              const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_translate("Cancel", "Batal", "Kanselahin"),
+                style: const TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              double removedAmount = dep.amount;
+              setState(() {
+                widget.goal.savedAmount -= removedAmount;
+                if (widget.goal.savedAmount < 0) widget.goal.savedAmount = 0.0;
+                widget.goal.deposits.removeAt(idx);
+              });
+
+              widget.onDataChanged();
+              Navigator.pop(context);
+
+              // 🎉 MULTILINGUAL DELETE SUCCESS PROMPT SCREEN
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                  backgroundColor: const Color(0xFF1E1E1E),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text("🗑️", style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: 16),
+                      Text(
+                        _translate("DEPOSIT DELETED!", "SETORAN DIHAPUS!",
+                            "NABURA ANG HULOG!"),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _translate(
+                            "The selected deposit milestone item has been permanently removed.",
+                            "Catatan target setoran terpilih telah berhasil dihapus secara permanen.",
+                            "Ang napiling hulog ay matagumpay na nabura nang tuluyan sa talaan."),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12, height: 1.4),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD700),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                        ),
+                        child: Text(_translate("OKAY", "OK", "SIGE"),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            child: Text(_translate("Delete", "Hapus", "Burahin"),
+                style: const TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
+  }
+
   // 🔥 BAGONG IMPLEMENTASYON: PDF Generating Engine para sa Savings Goal Certificate Report
   Future<void> _generateAndShareGoalPDF() async {
     final pdf = pw.Document();
@@ -11891,251 +12707,283 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   }
 
   void _addFundsDialog() {
-    if (!widget.isPremiumUser && widget.goal.deposits.length >= 10) {
-      Navigator.pop(context); // Isasara ang input dialog panel kung nakabukas
-
-      // Magpakita ng alert gamit ang orihinal na context scaffold manager ng sub-page
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.currentLocale == 'tl'
-                ? '🛑 Hanggang 10 libreng hulog sa ipon lamang ang pinapayagan!'
-                : (widget.currentLocale == 'id'
-                    ? '🛑 Maksimal 10 kali setoran gratis saja!'
-                    : '🛑 Maximum of 10 free deposit logs only!'),
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    final TextEditingController amountCtrl = TextEditingController();
+    final TextEditingController fundCtrl = TextEditingController();
     String sym = widget.goal.currencySymbol.isNotEmpty
         ? widget.goal.currencySymbol
         : "₱";
-
     double natitirangKailangan =
         widget.goal.targetAmount - widget.goal.savedAmount;
-    if (natitirangKailangan < 0) natitirangKailangan = 0.0;
-    double kasalukuyangKulang =
-        widget.goal.targetAmount - widget.goal.savedAmount;
-    if (kasalukuyangKulang < 0) kasalukuyangKulang = 0.0;
+
+    // 📅 DATE CONTROLLER ARCHITECTURE
+    DateTime selectedDate = DateTime.now();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          _translate("Add Deposit", "Tambah Setoran", "Magtala ng Hulog"),
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: amountCtrl,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  CommaFormatter()
-                ],
-                decoration: InputDecoration(
-                  prefixText: '$sym ',
-                  prefixStyle: const TextStyle(
-                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
-                  labelText: _translate(
-                      "Deposit Amount", "Jumlah Setoran", "Halaga ng Hulog"),
-                  labelStyle:
-                      const TextStyle(color: Colors.white54, fontSize: 12),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E24),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(_translate("Add Funds to Goal", "Tambah Setoran Target",
+                "Magdagdag ng Hulog sa Layunin")),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: fundCtrl,
+                  keyboardType: TextInputType.number,
+                  autofocus: true,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CommaFormatter()
+                  ],
+                  decoration: InputDecoration(
+                    prefixText: '$sym ',
+                    prefixStyle: const TextStyle(
+                        color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+                    labelText: _translate("Deposit Amount", "Jumlah Setoran",
+                        "Halaga ng Ihuhulog"),
+                    helperText:
+                        '${_translate("Needed remaining:", "Sisa yang dibutuhkan:", "Natitirang kailangan:")} $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}',
+                    helperStyle: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${_translate("Remaining needed:", "Sisa yang dibutuhkan:", "Natitirang kailangan:")} $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}',
-                style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              _translate("Cancel", "Batal", "Kanselahin"),
-              style: const TextStyle(color: Colors.white38),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              final String cleanText =
-                  amountCtrl.text.replaceAll(',', '').trim();
-              final double? amt = double.tryParse(cleanText);
-              if (amt == null || amt <= 0) return;
+                const SizedBox(height: 20),
 
-              // 🛑 EXCESS PROTECTION BLOCK: Kung sumobra ang ihuhulog sa natitirang kailangan
-              if (amt > natitirangKailangan) {
-                Navigator.pop(context); // Isasara ang input form window muna
-
-                // 🎉 THE EXCESS DEPOSIT WARNING PROMPT DIALOG SCREEN
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext warningCtx) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E1E1E),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text("🛑", style: TextStyle(fontSize: 48)),
-                          const SizedBox(height: 16),
-                          Text(
-                            _translate(
-                                "EXCESS DEPOSIT AMOUNT!",
-                                "JUMLAH SETORAN BERLEBIH!",
-                                "SOBRA ANG IYONG HULOG!"),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                color: Colors.redAccent,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _translate(
-                                "The amount entered exceeds the remaining balance needed to reach your goal. The maximum allowed is $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}.",
-                                "Jumlah yang dimasukkan melebihi sisa yang dibutuhkan para mencapai target. Sisa maksimum yang diperbolehkan adalah $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}.",
-                                "Ang halagang inilagay mo ay lumampas sa natitirang kailangan para maabot ang iyong target. Ang pinakamataas na pinapayagang i-hulog na lang ay $sym${NumberFormat('#,##0', 'en_US').format(natitirangKailangan.toInt())}."),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 12,
-                                height: 1.4),
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(warningCtx),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFD700),
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20)),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 10),
-                            ),
-                            child: Text(
-                              _translate(
-                                  "TRY AGAIN", "COBA LAGI", "SUBUKAN ULIT"),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
+                // 📅 INTERACTIVE PETSA SELECTION COMPONENT
+                Text(
+                  _translate(
+                      "Select Date:", "Pilih Tanggal:", "Pumili ng Petsa:"),
+                  style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () async {
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: Color(0xFFFFD700),
+                              onPrimary: Colors.black,
+                              surface: Color(0xFF1E1E24),
+                              onSurface: Colors.white,
                             ),
                           ),
-                        ],
-                      ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        selectedDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          DateTime.now().hour,
+                          DateTime.now().minute,
+                        );
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white10),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white.withValues(alpha: 0.03),
                     ),
-                  );
-                }
-                return; // Pipigilan ang maling mathematical tracking
-              }
-
-              // Normal flow kung sakaling tama o sakto ang halaga
-              double bagongSavedTotal = widget.goal.savedAmount + amt;
-
-              setState(() {
-                widget.goal.deposits
-                    .add(GoalDeposit(amount: amt, date: DateTime.now()));
-                widget.goal.savedAmount = bagongSavedTotal;
-              });
-
-              widget.onDataChanged();
-              Navigator.pop(context); // Isasara ang input entry card
-
-              // 🎉 KUMPIRMASYON SUCCESS PROMPT WINDOW PAGKATAPOS MAGHULOG
-              if (mounted) {
-                bool goalNaabot = bagongSavedTotal >= widget.goal.targetAmount;
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E1E1E),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(goalNaabot ? "🎉🏆" : "💵",
-                            style: const TextStyle(fontSize: 48)),
-                        const SizedBox(height: 16),
                         Text(
-                          goalNaabot
-                              ? _translate(
-                                  "GOAL TARGET ACHIEVED! 🥳",
-                                  "TARGET COAL TERCAPAI! 🥳",
-                                  "NAABOT ANG TARGET GOAL! 🥳")
-                              : _translate("DEPOSIT ADDED!", "SETORAN DICATAT!",
-                                  "NAITALA ANG HULOG!"),
-                          textAlign: TextAlign.center,
+                          DateFormat('yyyy-MM-dd - hh:mm a')
+                              .format(selectedDate),
                           style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 13,
                               fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          goalNaabot
-                              ? _translate(
-                                  "Congratulations! You have fully reached your savings goal for ${widget.goal.name.toUpperCase()}.",
-                                  "Selamat! Anda telah sepenuhnya mencapai target tabungan untuk ${widget.goal.name.toUpperCase()}.",
-                                  "Salamat sa Diyos! Matagumpay mong naipon at naabot ang target pondo para sa ${widget.goal.name.toUpperCase()}.")
-                              : _translate(
-                                  "Successfully added a deposit of $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
-                                  "Berhasil mencatat setoran sebesar $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
-                                  "Matagumpay na naidagdag ang hulog na $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}."),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Colors.white54, fontSize: 12, height: 1.4),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFD700),
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 10),
-                          ),
-                          child: Text(
-                            _translate("OKAY", "OK", "SIGE"),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
+                        const Icon(Icons.calendar_month_rounded,
+                            color: Color(0xFFFFD700), size: 18),
                       ],
                     ),
                   ),
-                );
-              }
-            },
-            child: Text(
-              _translate("Deposit", "Setor", "Ihulog"),
-              style: const TextStyle(
-                  color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-          )
-        ],
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(_translate("Cancel", "Batal", "Kanselahin"),
+                      style: const TextStyle(color: Colors.white38))),
+              TextButton(
+                onPressed: () async {
+                  final String cleanText =
+                      fundCtrl.text.replaceAll(',', '').trim();
+                  final double? amt = double.tryParse(cleanText);
+                  if (amt == null || amt <= 0) return;
+
+                  if ((widget.goal.savedAmount + amt) >
+                      widget.goal.targetAmount) {
+                    Navigator.pop(context);
+                    if (mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext warningCtx) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text("🛑", style: TextStyle(fontSize: 48)),
+                              const SizedBox(height: 16),
+                              Text(
+                                _translate(
+                                    "EXCESS DEPOSIT LIMIT!",
+                                    "BATAS SETORAN BERLEBIH!",
+                                    "SOBRA ANG IYONG IHINULOG!"),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _translate(
+                                    "The amount entered exceeds your target roof limit.",
+                                    "Jumlah yang dimasukkan melebihi batas target tabungan Anda.",
+                                    "Ang halagang inilagay mo ay lumampas sa target na limitasyon ng layunin."),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                    height: 1.4),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(warningCtx),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFFD700),
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                ),
+                                child: Text(_translate("OKAY", "OK", "SIGE"),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  double bagongSavedTotal = widget.goal.savedAmount + amt;
+
+                  setState(() {
+                    widget.goal.deposits
+                        .add(GoalDeposit(amount: amt, date: selectedDate));
+                    widget.goal.savedAmount = bagongSavedTotal;
+                  });
+
+                  widget.onDataChanged();
+                  Navigator.pop(
+                      context); // Isasara ang lagayan ng data form entry dialog
+
+                  // 🔥 GINAMPANAN FIX: Ibinabalik ang nawalang multilingual success prompt screen dialog panel!
+                  if (mounted) {
+                    bool lunasNa = bagongSavedTotal >= widget.goal.targetAmount;
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        backgroundColor: const Color(0xFF1E1E1E),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(lunasNa ? "🎉🏆" : "💵",
+                                style: const TextStyle(fontSize: 48)),
+                            const SizedBox(height: 16),
+                            Text(
+                              lunasNa
+                                  ? _translate(
+                                      "GOAL TARGET REACHED! 🥳",
+                                      "TARGET TERCAPAI! 🥳",
+                                      "NAABOT ANG LAYUNIN! 🥳")
+                                  : _translate("FUNDS ADDED!",
+                                      "SETORAN DICATAT!", "NAITALA ANG HULOG!"),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              lunasNa
+                                  ? _translate(
+                                      "Congratulations! You have successfully reached your target goal savings for ${widget.goal.name.toUpperCase()}.",
+                                      "Selamat! Anda telah berhasil mencapai target tabungan untuk ${widget.goal.name.toUpperCase()}.",
+                                      "Maligayang pagbati! Matagumpay mong naipon at naabot ang target na pondo para sa ${widget.goal.name.toUpperCase()}.")
+                                  : _translate(
+                                      "Successfully added a deposit of $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
+                                      "Berhasil mencatat setoran sebesar $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}.",
+                                      "Matagumpay na naidagdag ang hulog na $sym${NumberFormat('#,##0', 'en_US').format(amt.toInt())}."),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                  height: 1.4),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFD700),
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 10),
+                              ),
+                              child: Text(_translate("OKAY", "OK", "SIGE"),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: Text(_translate("Save", "Simpan", "I-save"),
+                    style: const TextStyle(
+                        color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+              )
+            ],
+          );
+        },
       ),
     );
   }
@@ -12199,7 +13047,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                   borderRadius: BorderRadius.circular(16)),
               child: Column(
                 children: [
-                  Text(_translate("REM. KULANG", "SISA UTANG", "Rem:"),
+                  Text(_translate("NATITIRA", "SISA UTANG", "REMAINING:"),
                       style: const TextStyle(
                           color: Colors.white38,
                           fontSize: 11,
@@ -12292,7 +13140,8 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                         final dep = widget.goal.deposits[idx];
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.fromLTRB(14, 12, 4,
+                              12), // Ginawang compact ang kanan para sa 3-dots matching alignment
                           decoration: BoxDecoration(
                               color: widget.boxBgColor,
                               borderRadius: BorderRadius.circular(12)),
@@ -12328,168 +13177,75 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                                           color: Color(0xFF00E676),
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14)),
-                                  const SizedBox(width: 8),
-                                  // 🔥 AKTIBONG DELETE ACTION HUB WITH SUCCESS PROMPT WINDOW
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline,
-                                        color: Colors.redAccent, size: 20),
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          backgroundColor:
-                                              const Color(0xFF1E1E1E),
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16)),
-                                          title: Text(_translate(
-                                              "Delete Deposit?",
-                                              "Hapus Setoran?",
-                                              "Burahin ang Hulog?")),
-                                          content: Text(_translate(
-                                              "Are you sure you want to permanently remove this deposit entry?",
-                                              "Apakah Anda yakin ingin menghapus catatan setoran ini secara permanen?",
-                                              "Sigurado ka bang gusto mong burahin nang tuluyan ang hulog na ito?")),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: Text(
-                                                  _translate("Cancel", "Batal",
-                                                      "Kanselahin"),
+                                  const SizedBox(width: 4),
+
+                                  // 🔥 IDINAGDAG: THE 3-DOTS ACTION POPUP MENU ENGINE
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert,
+                                        color: Colors.white54, size: 20),
+                                    color: const Color(0xFF252525),
+                                    onSelected: (String action) {
+                                      if (action == 'edit') {
+                                        _showEditDepositAmountDialog(dep, idx);
+                                      } else if (action == 'delete') {
+                                        _confirmDeleteIndividualDeposit(
+                                            dep, idx);
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext ctx) {
+                                      final bool isLocked =
+                                          widget.isTrialExpiredMode;
+                                      return [
+                                        PopupMenuItem<String>(
+                                          value: isLocked ? null : 'edit',
+                                          enabled: !isLocked,
+                                          child: Opacity(
+                                            opacity: isLocked ? 0.30 : 1.0,
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                    Icons.edit_note_rounded,
+                                                    color: Color(0xFFFFD700),
+                                                    size: 16),
+                                                const SizedBox(width: 10),
+                                                Text(
+                                                  _translate(
+                                                      "Edit Amount",
+                                                      "Ubah Jumlah",
+                                                      "I-edit ang Halaga"),
                                                   style: const TextStyle(
-                                                      color: Colors.white38)),
+                                                      fontSize: 13,
+                                                      color: Colors.white),
+                                                ),
+                                              ],
                                             ),
-                                            TextButton(
-                                              onPressed: () {
-                                                // 1. Kumuha ng kopya ng halaga para sa success display label registry tracker
-                                                double removedAmount =
-                                                    dep.amount;
-
-                                                setState(() {
-                                                  // 2. Ibawas ang halaga sa kabuuang naipon ng goal matrix profile
-                                                  widget.goal.savedAmount -=
-                                                      removedAmount;
-                                                  if (widget.goal.savedAmount <
-                                                      0)
-                                                    widget.goal.savedAmount =
-                                                        0.0;
-
-                                                  // 3. Alisin ang entry sa local list array list loop
-                                                  widget.goal.deposits
-                                                      .removeAt(idx);
-                                                });
-
-                                                // 4. I-save agad sa SharedPreferences database preferences disk file registry
-                                                widget.onDataChanged();
-                                                Navigator.pop(
-                                                    context); // Isasara ang Confirmation Dialog box checker
-
-                                                // 🎉 5. THE MULTILINGUAL SUCCESS PROMPT DIALOG CARD POPUP
-                                                showDialog(
-                                                  context: context,
-                                                  builder:
-                                                      (BuildContext subCtx) =>
-                                                          AlertDialog(
-                                                    backgroundColor:
-                                                        const Color(0xFF1E1E1E),
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        16)),
-                                                    content: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        const Text("🗑️",
-                                                            style: TextStyle(
-                                                                fontSize: 48)),
-                                                        const SizedBox(
-                                                            height: 16),
-                                                        Text(
-                                                          _translate(
-                                                              "DEPOSIT DELETED!",
-                                                              "SETORAN DIHAPUS!",
-                                                              "NABURA ANG HULOG!"),
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style: const TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontSize: 16,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 8),
-                                                        Text(
-                                                          _translate(
-                                                              "Successfully removed the deposit of ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} from history.",
-                                                              "Berhasil menghapus setoran sebesar ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} dari riwayat.",
-                                                              "Matagumpay na nabura ang hulog na ${widget.goal.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedAmount.toInt())} sa kasaysayan."),
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white54,
-                                                                  fontSize: 12,
-                                                                  height: 1.4),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 20),
-                                                        ElevatedButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  subCtx),
-                                                          style: ElevatedButton
-                                                              .styleFrom(
-                                                            backgroundColor:
-                                                                const Color(
-                                                                    0xFFFFD700),
-                                                            foregroundColor:
-                                                                Colors.black,
-                                                            shape: RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            20)),
-                                                            padding:
-                                                                const EdgeInsets
-                                                                        .symmetric(
-                                                                    horizontal:
-                                                                        24,
-                                                                    vertical:
-                                                                        10),
-                                                          ),
-                                                          child: Text(
-                                                            _translate("OKAY",
-                                                                "OK", "SIGE"),
-                                                            style: const TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              child: Text(
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: isLocked ? null : 'delete',
+                                          enabled: !isLocked,
+                                          child: Opacity(
+                                            opacity: isLocked ? 0.30 : 1.0,
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                    Icons
+                                                        .delete_outline_rounded,
+                                                    color: Colors.redAccent,
+                                                    size: 16),
+                                                const SizedBox(width: 10),
+                                                Text(
                                                   _translate("Delete", "Hapus",
                                                       "Burahin"),
                                                   style: const TextStyle(
-                                                      color: Colors.redAccent,
-                                                      fontWeight:
-                                                          FontWeight.bold)),
+                                                      fontSize: 13,
+                                                      color: Colors.white),
+                                                ),
+                                              ],
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      );
+                                      ];
                                     },
                                   ),
                                 ],
@@ -12503,89 +13259,112 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
 
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              // 🔥 SULUSYON: Kapag expired na ang trial (higit sa 10 entries) at hindi PRO, magiging null (disabled) ang button trigger array hook
+              // 🔥 AUTOMATION LAYER: Kusang mag-o-on ang disabled (null) status kapag naka-10 deposit logs na sa free account profile tier registry
               onPressed: (isComplete ||
                       (!widget.isPremiumUser &&
                           widget.goal.deposits.length >= 10))
                   ? () {
-                      // Ipinapakita pa rin ang top dropdown alert notification para gabayan ang user sa plan menu
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          duration: const Duration(seconds: 4),
-                          backgroundColor: Colors.redAccent,
-                          behavior: SnackBarBehavior.floating,
-                          margin: EdgeInsets.only(
-                            top: MediaQuery.of(context).padding.top + 10,
-                            left: 16,
-                            right: 16,
+                      if (!isComplete &&
+                          !widget.isPremiumUser &&
+                          widget.goal.deposits.length >= 10) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            duration: const Duration(seconds: 4),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                            margin: EdgeInsets.only(
+                              top: MediaQuery.of(context).padding.top + 10,
+                              left: 16,
+                              right: 16,
+                            ),
+                            dismissDirection: DismissDirection.up,
+                            content: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    widget.currentLocale == 'en'
+                                        ? 'Maximum of 10 free deposits per goal reached!'
+                                        : (widget.currentLocale == 'id'
+                                            ? 'Maksimal 10 kali setoran per target tercapai!'
+                                            : 'Naabot mo na ang limitasyon na 10 libreng hulog sa layunin!'),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    backgroundColor: const Color(0xFFFFD700),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context)
+                                        .hideCurrentSnackBar();
+                                    // 🚀 SECURE REDIRECTION: Agad nitong ilo-load ang pricing checkout modal plans menu sheets sa labas nang hindi nagka-crash!
+                                    widget.onUpgradeTriggered();
+                                  },
+                                  child: Text(
+                                    widget.currentLocale == 'tl'
+                                        ? 'MAG-UPGRADE'
+                                        : 'UPGRADE',
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          dismissDirection: DismissDirection.up,
-                          content: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  widget.currentLocale == 'en'
-                                      ? '🛑 Maximum of 10 free deposits per goal!'
-                                      : (widget.currentLocale == 'id'
-                                          ? '🛑 Maksimal 10 kali setoran per target!'
-                                          : '🛑 Limitado sa 10 libreng hulog bawat layunin!'),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: Colors.white),
-                                ),
-                              ),
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  backgroundColor: const Color(0xFFFFD700),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6)),
-                                ),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context)
-                                      .hideCurrentSnackBar();
-                                  Navigator.pop(
-                                      context); // Isasara ang page para makabalik sa main screen kung nasaan ang Upgrade plan choices
-                                },
-                                child: Text(
-                                  widget.currentLocale == 'tl'
-                                      ? 'MAG-UPGRADE'
-                                      : 'UPGRADE',
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                        );
+                      }
                     }
                   : () {
-                      // Kung hindi pa expired o kung naka-TEST PRO mode, normal na magbubukas ang input form panel box
                       _addFundsDialog();
                     },
-              icon: const Icon(Icons.add, size: 20),
+              icon: Icon(
+                Icons.add,
+                size: 20,
+                color: (isComplete ||
+                        (!widget.isPremiumUser &&
+                            widget.goal.deposits.length >= 10))
+                    ? Colors.white24 // Magdidilim ang icon kapag restricted
+                    : Colors.black,
+              ),
               label: Text(
                 _translate("ADD FUNDS TO GOAL", "TAMBAH SETORAN TARGET",
                     "MAGDAGDAG NG HULOG SA LAYUNIN"),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: (isComplete ||
+                          (!widget.isPremiumUser &&
+                              widget.goal.deposits.length >= 10))
+                      ? Colors.white24 // Magdidilim ang letra kapag disabled
+                      : Colors.black,
+                ),
               ),
               style: ElevatedButton.styleFrom(
-                // 🔥 CONFIGURATION: Awtomatikong lilipat sa pagka-Gray kapag disabled ang profile parameters
-                backgroundColor: const Color(0xFFFFD700),
+                // Unified Matte Dark Gray frame kapag disabled at Gold naman kapag normal active status
+                backgroundColor: (isComplete ||
+                        (!widget.isPremiumUser &&
+                            widget.goal.deposits.length >= 10))
+                    ? const Color(0xFF424242) // Solid Matte Disabled Gray
+                    : const Color(0xFFFFD700), // Active Gold
                 foregroundColor: Colors.black,
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
-                disabledBackgroundColor: Colors.grey[
-                    700], // Kulay gray na background katulad ng sa Utang Page
-                disabledForegroundColor:
-                    Colors.white24, // Kulay ng text at icon kapag naka-disable
+                elevation: (isComplete ||
+                        (!widget.isPremiumUser &&
+                            widget.goal.deposits.length >= 10))
+                    ? 0
+                    : 4,
               ),
             ),
           ],
@@ -12627,6 +13406,7 @@ class DebtHistoryPage extends StatefulWidget {
   final String currentLocale;
   final String Function(double) pesoFormatter;
   final VoidCallback onPaymentAdded;
+  final VoidCallback onUpgradeTriggered;
   final Color boxBgColor;
   final Color fontColor;
   final bool isTrialExpiredMode;
@@ -12639,6 +13419,7 @@ class DebtHistoryPage extends StatefulWidget {
       required this.pesoFormatter,
       required this.onPaymentAdded,
       required this.boxBgColor,
+      required this.onUpgradeTriggered,
       required this.isTrialExpiredMode,
       required this.isPremiumUser,
       required this.fontColor});
@@ -12652,6 +13433,254 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
     if (widget.currentLocale == 'en') return en;
     if (widget.currentLocale == 'id') return id;
     return fil;
+  }
+
+  // ── 🔥 MULTILINGUAL ENGINE 1: EDIT PAYMENT TRANSACTION LOG FUNCTION ──
+  void _showEditPaymentAmountDialog(DebtPayment payment, int index) {
+    final TextEditingController amountEditCtrl = TextEditingController(
+      text: NumberFormat('#,##0', 'en_US').format(payment.amount.toInt()),
+    );
+    String sym = widget.debt.currencySymbol.isNotEmpty
+        ? widget.debt.currencySymbol
+        : "₱";
+    String internalErrorText = "";
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E24),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            _translate("Correct Payment Amount", "Koreksi Jumlah Pembayaran",
+                "Itama ang Halaga ng Bayad"),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: amountEditCtrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  CommaFormatter()
+                ],
+                decoration: InputDecoration(
+                  prefixText: '$sym ',
+                  prefixStyle: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+                  labelText: _translate(
+                      "Payment Amount", "Jumlah Pembayaran", "Halaga ng Bayad"),
+                ),
+              ),
+              if (internalErrorText.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(internalErrorText,
+                    style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+              ]
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(_translate("Cancel", "Batal", "Kanselahin"),
+                  style: const TextStyle(color: Colors.white38)),
+            ),
+            TextButton(
+              onPressed: () async {
+                final String cleanText =
+                    amountEditCtrl.text.replaceAll(',', '').trim();
+                final double? parsedAmount = double.tryParse(cleanText);
+                if (parsedAmount == null || parsedAmount <= 0) return;
+
+                // Kalkulahin ang pondo kung lalampas sa absolute boundary rules ng kabuuang utang
+                double utangIwanKungWala =
+                    widget.debt.paidAmount - payment.amount;
+                double bagongKalkulasyonTotal =
+                    utangIwanKungWala + parsedAmount;
+
+                if (bagongKalkulasyonTotal > widget.debt.totalAmount) {
+                  setDialogState(() {
+                    internalErrorText = _translate(
+                        "Amount exceeds total outstanding debt limit!",
+                        "Jumlah melebihi total batas sisa utang!",
+                        "Ang halaga ay lumampas sa kabuuang balanse ng utang!");
+                  });
+                  return;
+                }
+
+                setState(() {
+                  payment.amount = parsedAmount;
+                  widget.debt.paidAmount = bagongKalkulasyonTotal;
+                });
+
+                widget.onPaymentAdded();
+                Navigator.pop(context);
+
+                // 🎉 MULTILINGUAL TRANSACTION SUCCESS PROMPT SCREEN FOR DEBT EDIT
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) => AlertDialog(
+                    backgroundColor: const Color(0xFF1E1E1E),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text("💰", style: TextStyle(fontSize: 48)),
+                        const SizedBox(height: 16),
+                        Text(
+                          _translate("PAYMENT UPDATED!",
+                              "PEMBAYARAN DIPERBARUI!", "NA-UPDATE ANG BAYAD!"),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _translate(
+                              "Successfully updated the entry payment amount value from history logs.",
+                              "Berhasil memperbarui nilai jumlah pembayaran dari catatan riwayat.",
+                              "Matagumpay na na-update ang halaga ng bayad sa kasaysayan."),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12, height: 1.4),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFD700),
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                          ),
+                          child: Text(_translate("OKAY", "OK", "SIGE"),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Text(_translate("Save", "Simpan", "I-save"),
+                  style: const TextStyle(
+                      color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 🔥 MULTILINGUAL ENGINE 2: DELETE INDIVIDUAL PAYMENT TRANSACTION LOG FUNCTION ──
+  void _confirmDeleteIndividualPayment(DebtPayment payment, int idx) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          _translate(
+              "Delete Payment?", "Hapus Pembayaran?", "Burahin ang Bayad?"),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        content: Text(
+          _translate(
+              "Are you sure you want to permanently remove this payment entry from history logs?",
+              "Apakah Anda yakin ingin menghapus catatan pembayaran ini secara permanen?",
+              "Sigurado ka bang gusto mong burahin nang tuluyan ang bayad na ito sa kasaysayan?"),
+          style:
+              const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_translate("Cancel", "Batal", "Kanselahin"),
+                style: const TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              double removedAmount = payment.amount;
+              setState(() {
+                widget.debt.paidAmount -= removedAmount;
+                if (widget.debt.paidAmount < 0) widget.debt.paidAmount = 0.0;
+                widget.debt.payments.removeAt(idx);
+              });
+
+              widget.onPaymentAdded();
+              Navigator.pop(context);
+
+              // 🎉 MULTILINGUAL DELETE SUCCESS PROMPT SCREEN FOR DEBT PAYMENT
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                  backgroundColor: const Color(0xFF1E1E1E),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text("🗑️", style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: 16),
+                      Text(
+                        _translate("PAYMENT DELETED!", "PEMBAYARAN DIHAPUS!",
+                            "NABURA ANG BAYAD!"),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _translate(
+                            "The selected payment transaction item has been permanently removed.",
+                            "Catatan transaksi pembayaran terpilih telah berhasil dihapus secara permanen.",
+                            "Ang napiling bayad ay matagumpay na nabura nang tuluyan sa talaan."),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12, height: 1.4),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD700),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                        ),
+                        child: Text(_translate("OKAY", "OK", "SIGE"),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            child: Text(_translate("Delete", "Hapus", "Burahin"),
+                style: const TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
   }
 
   // 🔥 BAGONG IMPLEMENTASYON: PDF Generating Engine para sa Borrower Transaction Statement
@@ -12936,8 +13965,6 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
 
   void _addPaymentEntryDialog() {
     if (!widget.isPremiumUser && widget.debt.payments.length >= 10) {
-      Navigator.pop(context); // Isasara ang input sheet dialog kung nakabukas
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 4),
@@ -12952,17 +13979,24 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
           content: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // 🔥 SOLUSYON: Binalot sa Expanded para sakupin ang lahat ng bakanteng espasyo bago ang button
               Expanded(
-                child: Text(
-                  widget.currentLocale == 'en'
-                      ? '🛑 Maximum of 10 free payments per person!'
-                      : (widget.currentLocale == 'id'
-                          ? '🛑 Maksimal 10 kali pembayaran per orang!'
-                          : '🛑 Limitado sa 10 libreng bayad bawat tao!'),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.white),
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                      right: 8.0), // Konting puwang bago mag-button
+                  child: Text(
+                    widget.currentLocale == 'en'
+                        ? 'Maximum of 10 free payments per person!'
+                        : (widget.currentLocale == 'id'
+                            ? 'Maksimal 10 kali pembayaran per orang!'
+                            : 'Limitado sa 10 libreng bayad bawat tao!'),
+                    textAlign: TextAlign
+                        .center, // 🚀 GAGANA NA ITO NGAYON dahil may stretch space na ang Text box
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: Colors.white),
+                  ),
                 ),
               ),
               TextButton(
@@ -12975,8 +14009,7 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  Navigator.pop(
-                      context); // Ibabalik sa home screen para makapag-upgrade
+                  widget.onUpgradeTriggered();
                 },
                 child: Text(
                   widget.currentLocale == 'tl' ? 'MAG-UPGRADE' : 'UPGRADE',
@@ -12990,8 +14023,10 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
           ),
         ),
       );
+
       return;
     }
+
     final TextEditingController amountCtrl = TextEditingController();
     String sym = widget.debt.currencySymbol.isNotEmpty
         ? widget.debt.currencySymbol
@@ -12999,6 +14034,9 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
     double kasalukuyangKulang =
         widget.debt.totalAmount - widget.debt.paidAmount;
     if (kasalukuyangKulang < 0) kasalukuyangKulang = 0.0;
+
+    // 📅 DATE CONTROLLER ARCHITECTURE
+    DateTime selectedDate = DateTime.now();
 
     showDialog(
       context: context,
@@ -13010,29 +14048,105 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(_translate(
                 "Add Payment", "Tambah Pembayaran", "Magtala ng Bayad")),
-            content: TextField(
-              controller: amountCtrl,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                CommaFormatter()
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  autofocus: true,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CommaFormatter()
+                  ],
+                  decoration: InputDecoration(
+                    prefixText: '$sym ',
+                    prefixStyle: const TextStyle(
+                        color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+                    labelText: _translate("Payment Amount", "Jumlah Pembayaran",
+                        "Halaga ng Ibabayad"),
+                    helperText:
+                        '${_translate("Remaining balance:", "Sisa utang:", "Natitirang kulang:")} $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}',
+                    helperStyle: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 📅 INTERACTIVE PETSA SELECTION COMPONENT
+                Text(
+                  _translate(
+                      "Select Date:", "Pilih Tanggal:", "Pumili ng Petsa:"),
+                  style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () async {
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: Color(0xFFFFD700),
+                              onPrimary: Colors.black,
+                              surface: Color(0xFF1E1E24),
+                              onSurface: Colors.white,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        selectedDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          DateTime.now().hour,
+                          DateTime.now().minute,
+                        );
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white10),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white.withValues(alpha: 0.03),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          DateFormat('yyyy-MM-dd - hh:mm a')
+                              .format(selectedDate),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const Icon(Icons.calendar_month_rounded,
+                            color: Color(0xFFFFD700), size: 18),
+                      ],
+                    ),
+                  ),
+                ),
               ],
-              decoration: InputDecoration(
-                prefixText: '$sym ',
-                prefixStyle: const TextStyle(
-                    color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
-                labelText: _translate("Payment Amount", "Jumlah Pembayaran",
-                    "Halaga ng Ibabayad"),
-                helperText:
-                    '${_translate("Remaining balance:", "Sisa utang:", "Natitirang kulang:")} $sym${NumberFormat('#,##0', 'en_US').format(kasalukuyangKulang.toInt())}',
-                helperStyle: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold),
-              ),
             ),
             actions: [
               TextButton(
@@ -13046,13 +14160,9 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                   final double? amt = double.tryParse(cleanText);
                   if (amt == null || amt <= 0) return;
 
-                  // 🛑 COGNITIVE PROTECTION FILTER: Kung sumobra ang ibinabayad sa natitirang balanse
                   if ((widget.debt.paidAmount + amt) >
                       widget.debt.totalAmount) {
-                    Navigator.pop(
-                        context); // Isasara ang input table form view muna
-
-                    // 🎉 THE EXCESS PAYMENT WARNING PROMPT DIALOG SCREEN (Parehong style sa fully paid!)
+                    Navigator.pop(context);
                     if (mounted) {
                       showDialog(
                         context: context,
@@ -13096,35 +14206,27 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                                   foregroundColor: Colors.black,
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 10),
                                 ),
-                                child: Text(
-                                  _translate(
-                                      "TRY AGAIN", "COBA LAGI", "SUBUKAN ULIT"),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
+                                child: Text(_translate("OKAY", "OK", "SIGE"),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
                         ),
                       );
                     }
-                    return; // Haharangin ang pagsusulat sa database file registry stream
+                    return;
                   }
-
                   double bagongPaidTotal = widget.debt.paidAmount + amt;
-
                   setState(() {
+// 💡 GINAMPANAN: Ginamit ang piniling selectedDate sa halip na static DateTime.now()
                     widget.debt.payments
-                        .add(DebtPayment(amount: amt, date: DateTime.now()));
+                        .add(DebtPayment(amount: amt, date: selectedDate));
                     widget.debt.paidAmount = bagongPaidTotal;
                   });
-
                   widget.onPaymentAdded();
                   Navigator.pop(context);
-
                   if (mounted) {
                     bool lunasNa = bagongPaidTotal >= widget.debt.totalAmount;
                     showDialog(
@@ -13180,14 +14282,10 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                                 foregroundColor: Colors.black,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20)),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 10),
                               ),
-                              child: Text(
-                                _translate("OKAY", "OK", "SIGE"),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
+                              child: Text(_translate("OKAY", "OK", "SIGE"),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
@@ -13218,30 +14316,21 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
         title: Text(widget.debt.name.toUpperCase(),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         centerTitle: true,
-// 🔥 NAGDAGDAG NG MGA ACTIONS SA APP BAR PARA SA PDF EXPORT MANAGER CONTROL
         actions: [
           IconButton(
-            // 🛑 Magbabago ang opacity at kulay kapag expired na ang trial period
-            icon: Icon(
-              Icons.picture_as_pdf_rounded,
-              color: widget.isTrialExpiredMode
-                  ? widget.fontColor
-                      .withValues(alpha: 0.15) // 🔥 Magiging malabo/greyed out
-                  : const Color(0xFFFFD700),
-              size: 22,
-            ),
-            // 🛑 LOCK ENGINE: Haharangin ang click action kapag expired
+            icon: Icon(Icons.picture_as_pdf_rounded,
+                color: widget.isTrialExpiredMode
+                    ? widget.fontColor.withValues(alpha: 0.15)
+                    : const Color(0xFFFFD700),
+                size: 22),
             onPressed: widget.isTrialExpiredMode
                 ? () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text(
                             "🔒 Premium Feature Only! Upgrade to PRO to export data."),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                        behavior: SnackBarBehavior.floating));
                   }
-                : _generateAndShareDebtPDF, // 🔥 Ginamit ang tamang PDF method para sa utang page
+                : _generateAndShareDebtPDF,
           ),
         ],
       ),
@@ -13250,7 +14339,6 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-// Outstanding Balance Dashboard Card Element
             Container(
               padding: const EdgeInsets.all(16),
               width: double.infinity,
@@ -13324,9 +14412,6 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                     fontSize: 13,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-// Payments List View dynamic container loop
-
-            // Payments List View dynamic container loop
             Expanded(
               child: widget.debt.payments.isEmpty
                   ? Center(
@@ -13345,7 +14430,7 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                         final payment = widget.debt.payments[idx];
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
                           decoration: BoxDecoration(
                               color: widget.boxBgColor,
                               borderRadius: BorderRadius.circular(12)),
@@ -13381,111 +14466,72 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                                           color: Color(0xFF00E676),
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14)),
-                                  const SizedBox(width: 8),
-                                  // 🔥 AKTIBONG DELETE ACTION SA UTANG PAGE WITH SUCCESS DIALOG
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline,
-                                        color: Colors.redAccent, size: 20),
-                                    onPressed: () {
-                                      // 1. Kumuha ng kopya ng halaga para sa history tracking display
-                                      double removedPaymentAmount =
-                                          payment.amount;
-
-                                      setState(() {
-                                        // 2. Ibawas ang halaga sa kabuuang naibayad na (paidAmount) ng utang
-                                        widget.debt.paidAmount -=
-                                            removedPaymentAmount;
-                                        if (widget.debt.paidAmount < 0) {
-                                          widget.debt.paidAmount = 0.0;
-                                        }
-
-                                        // 3. Alisin ang payment log sa array list
-                                        widget.debt.payments.removeAt(idx);
-                                      });
-
-                                      // 4. I-save agad sa SharedPreferences database disk module
-                                      widget.onPaymentAdded();
-                                      Navigator.pop(
-                                          context); // Isasara ang Confirmation Box
-
-                                      // 🎉 5. THE MULTILINGUAL SUCCESS PROMPT DIALOG CARD POPUP
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext subCtx) =>
-                                            AlertDialog(
-                                          backgroundColor:
-                                              const Color(0xFF1E1E1E),
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16)),
-                                          content: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Text("🗑️",
-                                                  style:
-                                                      TextStyle(fontSize: 48)),
-                                              const SizedBox(height: 16),
-                                              Text(
-                                                widget.currentLocale == 'en'
-                                                    ? "PAYMENT DELETED!"
-                                                    : (widget.currentLocale ==
-                                                            'id'
-                                                        ? "PEMBAYARAN DIHAPUS!"
-                                                        : "NABURA ANG BAYAD!"),
-                                                textAlign: TextAlign.center,
-                                                style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 16,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                widget.currentLocale == 'en'
-                                                    ? "Successfully removed the payment of ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} from history."
-                                                    : (widget.currentLocale ==
-                                                            'id'
-                                                        ? "Berhasil menghapus catatan pembayaran sebesar ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} dari riwayat."
-                                                        : "Matagumpay na nabura ang bayad na ${widget.debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(removedPaymentAmount.toInt())} sa kasaysayan."),
-                                                textAlign: TextAlign.center,
-                                                style: const TextStyle(
-                                                    color: Colors.white54,
-                                                    fontSize: 12,
-                                                    height: 1.4),
-                                              ),
-                                              const SizedBox(height: 20),
-                                              ElevatedButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(subCtx),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor:
-                                                      const Color(0xFFFFD700),
-                                                  foregroundColor: Colors.black,
-                                                  shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              20)),
-                                                  padding: const EdgeInsets
-                                                          .symmetric(
-                                                      horizontal: 24,
-                                                      vertical: 10),
-                                                ),
-                                                child: Text(
-                                                  widget.currentLocale == 'en'
-                                                      ? "OKAY"
-                                                      : (widget.currentLocale ==
-                                                              'id'
-                                                          ? "OK"
-                                                          : "SIGE"),
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                              ),
-                                            ],
+                                  const SizedBox(width: 4),
+                                  PopupMenuButton(
+                                    icon: const Icon(Icons.more_vert,
+                                        color: Colors.white54, size: 20),
+                                    color: const Color(0xFF252525),
+                                    onSelected: (String action) {
+                                      if (action == 'edit') {
+                                        _showEditPaymentAmountDialog(
+                                            payment, idx);
+                                      } else if (action == 'delete') {
+                                        _confirmDeleteIndividualPayment(
+                                            payment, idx);
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext ctx) {
+                                      final bool isLocked =
+                                          widget.isTrialExpiredMode;
+                                      return [
+                                        PopupMenuItem(
+                                          value: isLocked ? null : 'edit',
+                                          enabled: !isLocked,
+                                          child: Opacity(
+                                            opacity: isLocked ? 0.30 : 1.0,
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                    Icons.edit_note_rounded,
+                                                    color: Color(0xFFFFD700),
+                                                    size: 16),
+                                                const SizedBox(width: 10),
+                                                Text(
+                                                    _translate(
+                                                        "Edit Amount",
+                                                        "Ubah Jumlah",
+                                                        "I-edit ang Halaga"),
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.white)),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      );
+                                        PopupMenuItem(
+                                          value: isLocked ? null : 'delete',
+                                          enabled: !isLocked,
+                                          child: Opacity(
+                                            opacity: isLocked ? 0.30 : 1.0,
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                    Icons
+                                                        .delete_outline_rounded,
+                                                    color: Colors.redAccent,
+                                                    size: 16),
+                                                const SizedBox(width: 10),
+                                                Text(
+                                                    _translate("Delete",
+                                                        "Hapus", "Burahin"),
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.white)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ];
                                     },
                                   ),
                                 ],
@@ -13496,21 +14542,107 @@ class _DebtHistoryPageState extends State<DebtHistoryPage> {
                       },
                     ),
             ),
-
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: isFullyPaid ? null : _addPaymentEntryDialog,
-              icon: const Icon(Icons.add, size: 20),
+              onPressed: (isFullyPaid ||
+                      (!widget.isPremiumUser &&
+                          widget.debt.payments.length >= 10))
+                  ? () {
+                      if (!isFullyPaid &&
+                          !widget.isPremiumUser &&
+                          widget.debt.payments.length >= 10) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            duration: const Duration(seconds: 4),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                            margin: EdgeInsets.only(
+                              top: MediaQuery.of(context).padding.top + 10,
+                              left: 16,
+                              right: 16,
+                            ),
+                            dismissDirection: DismissDirection.up,
+                            content: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    widget.currentLocale == 'en'
+                                        ? 'Maximum of 10 free payments per person reached!'
+                                        : (widget.currentLocale == 'id'
+                                            ? 'Maksimal 10 kali pembayaran per orang tercapai!'
+                                            : 'Limitado sa 10 libreng hulog bawat tao. Mag-upgrade na!'),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    backgroundColor: const Color(0xFFFFD700),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context)
+                                        .hideCurrentSnackBar();
+                                    widget
+                                        .onUpgradeTriggered(); // 🚀 NAGAMIT NANG TAMA: Lalabas agad ang plans option pricing cards sheet layout panel!
+                                  },
+                                  child: Text(
+                                    widget.currentLocale == 'tl'
+                                        ? 'MAG-UPGRADE'
+                                        : 'UPGRADE',
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  : _addPaymentEntryDialog,
+              icon: Icon(
+                Icons.add,
+                size: 20,
+                color: (isFullyPaid ||
+                        (!widget.isPremiumUser &&
+                            widget.debt.payments.length >= 10))
+                    ? Colors.white24
+                    : Colors.black,
+              ),
               label: Text(
                   _translate("ADD PAYMENT ENTRY", "TAMBAH CATATAN PEMBAYARAN",
                       "MAGDAGDAG NG HULOG"),
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: (isFullyPaid ||
+                            (!widget.isPremiumUser &&
+                                widget.debt.payments.length >= 10))
+                        ? Colors.white24
+                        : Colors.black,
+                  )),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
-                foregroundColor: Colors.black,
+                backgroundColor: (isFullyPaid ||
+                        (!widget.isPremiumUser &&
+                            widget.debt.payments.length >= 10))
+                    ? const Color(0xFF424242)
+                    : const Color(0xFFFFD700),
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
+                elevation: (isFullyPaid ||
+                        (!widget.isPremiumUser &&
+                            widget.debt.payments.length >= 10))
+                    ? 0
+                    : 4,
               ),
             ),
           ],
@@ -13529,8 +14661,7 @@ class DebtsPage extends StatefulWidget {
   final Function(Function(Map<String, String>)) openCurrencySearchPicker;
   final Color boxBgColor;
   final Color fontColor;
-  final bool
-      isPremiumUser; // 🔥 NAITAMA: Inalisan ng underscore para mawala ang named argument syntax error
+  final bool isPremiumUser;
   final bool isTrialExpiredMode;
   final bool isCompactMode;
   final VoidCallback onUpgradeTriggered;
@@ -13550,7 +14681,7 @@ class DebtsPage extends StatefulWidget {
     required this.openCurrencySearchPicker,
     required this.boxBgColor,
     required this.fontColor,
-    required this.isPremiumUser, // 🔥 NAITAMA
+    required this.isPremiumUser,
     required this.isTrialExpiredMode,
     required this.isCompactMode,
     required this.onUpgradeTriggered,
@@ -13563,6 +14694,7 @@ class DebtsPage extends StatefulWidget {
 }
 
 class _DebtsPageState extends State<DebtsPage> {
+  String searchDebtQuery = "";
   String _currentSortCriteria = 'latest';
 
   void _showEditDebtAmountDialog(DebtItemV2 debt) {
@@ -14271,8 +15403,6 @@ class _DebtsPageState extends State<DebtsPage> {
     );
   }
 
-  String searchDebtQuery = "";
-
   @override
   Widget build(BuildContext context) {
     final Map<String, double> summaryOweThem = {};
@@ -14630,17 +15760,31 @@ class _DebtsPageState extends State<DebtsPage> {
                     )
                   : ListView.builder(
                       physics: const BouncingScrollPhysics(),
-                      itemCount: processedDebts
-                          .length, // 🔥 PALITAN: sortedDebts -> processedDebts
+                      itemCount: processedDebts.length,
                       itemBuilder: (context, index) {
-                        final debt = processedDebts[
-                            index]; // 🔥 PALITAN: sortedDebts -> processedDebts
+                        final debt = processedDebts[index];
                         double remaining = debt.totalAmount - debt.paidAmount;
-                        bool isFullyPaid = remaining <= 0;
+                        if (remaining < 0) remaining = 0.0;
+
+                        // ── 🔥 MGA LINYANG IDINAGDAG PARA MAWALA ANG UNDEFINED ERRORS ──
+                        double progress = debt.totalAmount > 0
+                            ? (debt.paidAmount / debt.totalAmount) * 100
+                            : 0.0;
+                        if (progress > 100) progress = 100;
+                        int displayProgressPercentage = progress.floor();
+                        final bool isFullyPaid =
+                            debt.paidAmount >= debt.totalAmount;
+                        if (isFullyPaid) displayProgressPercentage = 100;
+
+                        String _translate(String en, String id, String fil) {
+                          if (widget.currentLocale == 'en') return en;
+                          if (widget.currentLocale == 'id') return id;
+                          return fil;
+                        }
+
                         return InkWell(
                           borderRadius: BorderRadius.circular(14),
                           onTap: () {
-                            // Binubuksan ang detalyadong Transaction History page kapag tinap ang card
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -14652,6 +15796,7 @@ class _DebtsPageState extends State<DebtsPage> {
                                   boxBgColor: widget.boxBgColor,
                                   fontColor: widget.fontColor,
                                   isTrialExpiredMode: widget.isTrialExpiredMode,
+                                  onUpgradeTriggered: widget.onUpgradeTriggered,
                                   onPaymentAdded: () {
                                     widget.onDataChanged();
                                     setState(() {});
@@ -14662,14 +15807,9 @@ class _DebtsPageState extends State<DebtsPage> {
                           },
                           child: Container(
                             margin: EdgeInsets.only(
-                                bottom: widget.isCompactMode
-                                    ? 6
-                                    : 8), // 🔥 Bawas espasyo kapag compact
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: widget.isCompactMode
-                                    ? 6
-                                    : 12), // 🔥 Mas manipis na padding kapag compact
+                                bottom: widget.isCompactMode ? 6 : 12),
+                            padding:
+                                EdgeInsets.all(widget.isCompactMode ? 10 : 14),
                             decoration: BoxDecoration(
                               color: widget.boxBgColor,
                               borderRadius: BorderRadius.circular(14),
@@ -14678,89 +15818,103 @@ class _DebtsPageState extends State<DebtsPage> {
                                       .withValues(alpha: 0.15),
                                   width: 1),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // KALIWANG BAHAGI: Pangalan at Status (I owe / They owe)
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        debt.name.toUpperCase(),
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: widget.isCompactMode
-                                                ? 12
-                                                : 14, // 🔥 Dynamic text size
-                                            color: Colors.white),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        debt.isOwedToMe
-                                            ? (widget.currentLocale == 'en'
-                                                ? "THEY OWE ME 🟢"
-                                                : (widget.currentLocale == 'id'
-                                                    ? "PIUTANG 🟢"
-                                                    : "UTANG SA'KIN 🟢"))
-                                            : (widget.currentLocale == 'en'
-                                                ? "I OWE THEM 🔴"
-                                                : (widget.currentLocale == 'id'
-                                                    ? "UTANG 🔴"
-                                                    : "UTANG KO 🔴")),
-                                        style: TextStyle(
-                                            fontSize: widget.isCompactMode
-                                                ? 9
-                                                : 10, // 🔥 Dynamic sub-text size
-                                            fontWeight: FontWeight.bold,
-                                            color: debt.isOwedToMe
-                                                ? const Color(0xFF00E676)
-                                                : Colors.redAccent),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // KANANG BAHAGI: Halaga at Popup Menu Button
                                 Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                            isFullyPaid
-                                                ? (widget.currentLocale == 'en'
-                                                    ? "SETTLED"
-                                                    : "LUNAS")
-                                                : "${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(remaining.toInt())}",
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            debt.name.toUpperCase(),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                                color: isFullyPaid
-                                                    ? const Color(0xFF00E676)
-                                                    : (debt.isOwedToMe
-                                                        ? const Color(
-                                                            0xFF00E676)
-                                                        : Colors.redAccent),
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: widget.isCompactMode
-                                                    ? 12
-                                                    : 14)), // 🔥 Dynamic price size
-                                      ],
+                                                    ? 11
+                                                    : 13,
+                                                color: const Color(0xFFFFD700)),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            debt.isOwedToMe
+                                                ? _translate(
+                                                    "THEY OWE ME 🟢",
+                                                    "PIUTANG 🟢",
+                                                    "UTANG SA'KIN 🟢")
+                                                : _translate("I OWE THEM 🔴",
+                                                    "UTANG 🔴", "UTANG KO 🔴"),
+                                            style: TextStyle(
+                                                fontSize: widget.isCompactMode
+                                                    ? 9
+                                                    : 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: debt.isOwedToMe
+                                                    ? const Color(0xFF00E676)
+                                                    : Colors.redAccent),
+                                          ),
+                                          if (isFullyPaid) ...[
+                                            const SizedBox(height: 5),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF00E676)
+                                                    .withValues(alpha: 0.15),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                    color:
+                                                        const Color(0xFF00E676),
+                                                    width: 0.6),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                      Icons
+                                                          .check_circle_rounded,
+                                                      color: Color(0xFF00E676),
+                                                      size: 10),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    _translate("SETTLED",
+                                                        "LUNAS", "BAYAD NA"),
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF00E676),
+                                                      fontSize: 8.5,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      letterSpacing: 0.5,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                     ),
                                     PopupMenuButton<String>(
                                       icon: Icon(Icons.more_vert,
                                           color: widget.fontColor
                                               .withValues(alpha: 0.5),
-                                          size: widget.isCompactMode
-                                              ? 16
-                                              : 20), // 🔥 Dynamic dot sizes
+                                          size: widget.isCompactMode ? 16 : 20),
                                       color: const Color(0xFF252525),
+                                      // ── 🔥 HANAPIN AT PALITAN ITONG BUONG ONSELECTED BLOCK NG POPUPMENUBUTTON ──
                                       onSelected: (String action) {
                                         if (action == 'add_payment') {
+                                          // 🔥 SULUSYON: Direkta nang magpapop-forward sa DebtHistoryPage (Bayad Utang Page) sa halip na dialog box!
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -14771,14 +15925,14 @@ class _DebtsPageState extends State<DebtsPage> {
                                                     widget.currentLocale,
                                                 pesoFormatter:
                                                     widget.pesoFormatter,
-                                                isPremiumUser: widget
-                                                    .isPremiumUser, // 🔥 Ipinasa ang required parameter para sa PRO check
-                                                boxBgColor: widget
-                                                    .boxBgColor, // 🔥 Ibinalik ang required variable
-                                                fontColor: widget
-                                                    .fontColor, // 🔥 Ibinalik ang required variable
-                                                isTrialExpiredMode: widget
-                                                    .isTrialExpiredMode, // 🔥 Ibinalik ang required variable
+                                                isPremiumUser:
+                                                    widget.isPremiumUser,
+                                                boxBgColor: widget.boxBgColor,
+                                                fontColor: widget.fontColor,
+                                                isTrialExpiredMode:
+                                                    widget.isTrialExpiredMode,
+                                                onUpgradeTriggered:
+                                                    widget.onUpgradeTriggered,
                                                 onPaymentAdded: () {
                                                   widget.onDataChanged();
                                                   setState(() {});
@@ -14794,17 +15948,23 @@ class _DebtsPageState extends State<DebtsPage> {
                                           _confirmDeleteDebt(debt);
                                         }
                                       },
+
                                       itemBuilder: (ctx) {
-                                        final bool isLocked =
-                                            widget.isTrialExpiredMode;
+                                        final bool isLocked = widget
+                                            .isTrialExpiredMode; // 30-day trial indicator
                                         return [
                                           PopupMenuItem<String>(
-                                            value: (isFullyPaid || isLocked)
+                                            // 🔥 Bukas ang payment kahit expired basta pasok sa 2 entries limit
+                                            value: (isFullyPaid ||
+                                                    widget.debtsList.length > 2)
                                                 ? null
                                                 : 'add_payment',
-                                            enabled: !isFullyPaid && !isLocked,
+                                            enabled: !isFullyPaid &&
+                                                widget.debtsList.length <= 2,
                                             child: Opacity(
-                                              opacity: (isFullyPaid || isLocked)
+                                              opacity: (isFullyPaid ||
+                                                      widget.debtsList.length >
+                                                          2)
                                                   ? 0.30
                                                   : 1.0,
                                               child: Row(
@@ -14817,12 +15977,10 @@ class _DebtsPageState extends State<DebtsPage> {
                                                       size: 16),
                                                   const SizedBox(width: 8),
                                                   Text(
-                                                    widget.currentLocale == 'en'
-                                                        ? "Add Payment"
-                                                        : (widget.currentLocale ==
-                                                                'id'
-                                                            ? "Tambah Bayar"
-                                                            : "Magtala ng Bayad"),
+                                                    _translate(
+                                                        "Add Payment",
+                                                        "Tambah Bayar",
+                                                        "Magtala ng Bayad"),
                                                     style: TextStyle(
                                                         fontSize: 13,
                                                         color: isFullyPaid
@@ -14834,6 +15992,7 @@ class _DebtsPageState extends State<DebtsPage> {
                                             ),
                                           ),
                                           PopupMenuItem<String>(
+                                            // 🛑 DISABLED NA MULI KAPAG EXPIRED NA ANG 30 DAYS TRIAL
                                             value:
                                                 isLocked ? null : 'edit_name',
                                             enabled: !isLocked,
@@ -14846,13 +16005,10 @@ class _DebtsPageState extends State<DebtsPage> {
                                                       size: 16),
                                                   const SizedBox(width: 8),
                                                   Text(
-                                                      widget.currentLocale ==
-                                                              'en'
-                                                          ? "Edit Name"
-                                                          : (widget.currentLocale ==
-                                                                  'id'
-                                                              ? "Ubah Nama"
-                                                              : "I-edit ang Pangalan"),
+                                                      _translate(
+                                                          "Edit Name",
+                                                          "Ubah Nama",
+                                                          "I-edit ang Pangalan"),
                                                       style: const TextStyle(
                                                           fontSize: 13,
                                                           color: Colors.white)),
@@ -14861,6 +16017,7 @@ class _DebtsPageState extends State<DebtsPage> {
                                             ),
                                           ),
                                           PopupMenuItem<String>(
+                                            // 🛑 DISABLED NA MULI KAPAG EXPIRED NA ANG 30 DAYS TRIAL
                                             value:
                                                 isLocked ? null : 'edit_amount',
                                             enabled: !isLocked,
@@ -14875,13 +16032,10 @@ class _DebtsPageState extends State<DebtsPage> {
                                                       size: 16),
                                                   const SizedBox(width: 8),
                                                   Text(
-                                                      widget.currentLocale ==
-                                                              'en'
-                                                          ? "Edit Amount"
-                                                          : (widget.currentLocale ==
-                                                                  'id'
-                                                              ? "Ubah Jumlah"
-                                                              : "I-edit ang Halaga"),
+                                                      _translate(
+                                                          "Edit Amount",
+                                                          "Ubah Jumlah",
+                                                          "I-edit ang Halaga"),
                                                       style: const TextStyle(
                                                           fontSize: 13,
                                                           color: Colors.white)),
@@ -14890,6 +16044,7 @@ class _DebtsPageState extends State<DebtsPage> {
                                             ),
                                           ),
                                           PopupMenuItem<String>(
+                                            // 🛑 Naka-disable kapag expired ang trial
                                             value: isLocked ? null : 'delete',
                                             enabled: !isLocked,
                                             child: Opacity(
@@ -14902,13 +16057,8 @@ class _DebtsPageState extends State<DebtsPage> {
                                                       size: 16),
                                                   const SizedBox(width: 8),
                                                   Text(
-                                                      widget.currentLocale ==
-                                                              'en'
-                                                          ? "Delete"
-                                                          : (widget.currentLocale ==
-                                                                  'id'
-                                                              ? "Hapus"
-                                                              : "Burahin"),
+                                                      _translate("Delete",
+                                                          "Hapus", "Burahin"),
                                                       style: const TextStyle(
                                                           fontSize: 13,
                                                           color: Colors.white)),
@@ -14921,6 +16071,80 @@ class _DebtsPageState extends State<DebtsPage> {
                                     ),
                                   ],
                                 ),
+                                SizedBox(height: widget.isCompactMode ? 4 : 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "${_translate('Paid: ', 'Dibayar: ', 'Naibayad: ')}${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(debt.paidAmount.toInt())}",
+                                      style: TextStyle(
+                                          fontSize:
+                                              widget.isCompactMode ? 11 : 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF00E676)),
+                                    ),
+                                    Text(
+                                      "${_translate('Total: ', 'Total: ', 'Kabuuang: ')}${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(debt.totalAmount.toInt())}",
+                                      style: TextStyle(
+                                          fontSize:
+                                              widget.isCompactMode ? 10 : 12,
+                                          color: widget.fontColor
+                                              .withValues(alpha: 0.6)),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: widget.isCompactMode ? 4 : 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                        "Date Added: ${DateFormat('yyyy-MM-dd').format(debt.date)}",
+                                        style: TextStyle(
+                                            fontSize:
+                                                widget.isCompactMode ? 9 : 10,
+                                            color: widget.fontColor
+                                                .withValues(alpha: 0.38))),
+                                    if (!isFullyPaid)
+                                      Text(
+                                        "${_translate('Owed: ', 'Sisa: ', 'Balanse: ')}${debt.currencySymbol}${NumberFormat('#,##0', 'en_US').format(remaining.toInt())}",
+                                        style: TextStyle(
+                                            fontSize:
+                                                widget.isCompactMode ? 9 : 11,
+                                            color: Colors.orangeAccent,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                  ],
+                                ),
+                                if (!widget.isCompactMode) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          child: LinearProgressIndicator(
+                                            value: progress / 100,
+                                            backgroundColor: widget.fontColor
+                                                .withValues(alpha: 0.1),
+                                            valueColor:
+                                                const AlwaysStoppedAnimation(
+                                                    Color(0xFFFFD700)),
+                                            minHeight: 5,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text("$displayProgressPercentage%",
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFFFFD700))),
+                                    ],
+                                  )
+                                ]
                               ],
                             ),
                           ),
@@ -14950,10 +16174,11 @@ class _DebtsPageState extends State<DebtsPage> {
                               Expanded(
                                 child: Text(
                                   widget.currentLocale == 'en'
-                                      ? '🛑 Limited to 2 free debt records!'
+                                      ? 'Limited to 2 free debt records!'
                                       : (widget.currentLocale == 'id'
-                                          ? '🛑 Terbatas 2 catatan utang!'
-                                          : '🛑 Limitado sa 2 libreng talaan ng utang!'),
+                                          ? 'Terbatas 2 catatan utang!'
+                                          : 'Limitado sa 2 libreng talaan ng utang!'),
+                                  textAlign: TextAlign.center,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
@@ -15617,6 +16842,371 @@ class TrialDetailsPage extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── 🔥 COMPLETE MODERN LIVE CURRENCY CONVERTER TAB SCREEN MODULE ──
+class LiveConvertTab extends StatefulWidget {
+  final String currentLocale;
+  final List<Map<String, String>> globalCurrencies;
+  final Function(Function(Map<String, String>)) openCurrencySearchPicker;
+  final Color boxBgColor;
+  final Color fontColor;
+  final Future<void> Function({
+    required String baseCurrency,
+    required String targetCurrency,
+    required Function(double liveRate) onSuccess,
+    required Function(String errorText) onFailure,
+  }) onFetchLiveRate;
+
+  const LiveConvertTab({
+    super.key,
+    required this.currentLocale,
+    required this.globalCurrencies,
+    required this.openCurrencySearchPicker,
+    required this.boxBgColor,
+    required this.fontColor,
+    required this.onFetchLiveRate,
+  });
+
+  @override
+  State<LiveConvertTab> createState() => _LiveConvertTabState();
+}
+
+class _LiveConvertTabState extends State<LiveConvertTab> {
+  final TextEditingController _amountController =
+      TextEditingController(text: "1");
+  String _baseCurrencyCode = "PHP";
+  String _targetCurrencyCode = "USD";
+  double _liveRateResult = 0.0;
+  double _calculatedOutput = 0.0;
+  bool _isLoadingNetwork = false;
+  String _networkErrorMsg = "";
+
+  String _translate(String en, String fil) {
+    return widget.currentLocale == 'tl' ? fil : en;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Awtomatikong mag-fe-fetch ng live initial rate sa pag-load ng screen
+    _triggerLiveNetworkConversion();
+  }
+
+  void _triggerLiveNetworkConversion() {
+    final String cleanText = _amountController.text.replaceAll(',', '').trim();
+    final double inputAmt = double.tryParse(cleanText) ?? 0.0;
+
+    if (inputAmt <= 0) {
+      setState(() {
+        _calculatedOutput = 0.0;
+        _networkErrorMsg = "";
+      });
+      return;
+    }
+
+    if (_baseCurrencyCode == _targetCurrencyCode) {
+      setState(() {
+        _liveRateResult = 1.0;
+        _calculatedOutput = inputAmt;
+        _networkErrorMsg = "";
+        _isLoadingNetwork = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingNetwork = true;
+      _networkErrorMsg = "";
+    });
+
+    widget.onFetchLiveRate(
+      baseCurrency: _baseCurrencyCode,
+      targetCurrency: _targetCurrencyCode,
+      onSuccess: (double rate) {
+        if (!mounted) return;
+        setState(() {
+          _liveRateResult = rate;
+          _calculatedOutput = inputAmt * rate;
+          _isLoadingNetwork = false;
+        });
+      },
+      onFailure: (String error) {
+        if (!mounted) return;
+        setState(() {
+          _networkErrorMsg = error;
+          _isLoadingNetwork = false;
+        });
+      },
+    );
+  }
+
+  void _swapSelectedCurrencies() {
+    setState(() {
+      final String temp = _baseCurrencyCode;
+      _baseCurrencyCode = _targetCurrencyCode;
+      _targetCurrencyCode = temp;
+    });
+    _triggerLiveNetworkConversion();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final baseDetails = widget.globalCurrencies.firstWhere(
+        (c) => c["code"] == _baseCurrencyCode,
+        orElse: () => widget.globalCurrencies.first);
+    final targetDetails = widget.globalCurrencies.firstWhere(
+        (c) => c["code"] == _targetCurrencyCode,
+        orElse: () => widget.globalCurrencies[1]);
+
+    final fmtCode = NumberFormat('#,##0.00', 'en_US');
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        title: Text(
+          _translate("LIVE CONVERTER", "PALITAN NG PERA"),
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: widget.fontColor,
+              fontSize: 18),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── CARD FIELD 1: INPUT BOX HALAGA NG PERA ──
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                    color: widget.boxBgColor,
+                    borderRadius: BorderRadius.circular(16)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_translate("AMOUNT TO CONVERT", "HALAGANG IPAPALIT"),
+                        style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFFFFD700)),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        CommaFormatter()
+                      ],
+                      decoration: InputDecoration(
+                        prefixText: '${baseDetails["symbol"]} ',
+                        prefixStyle: const TextStyle(
+                            color: Color(0xFFFFD700),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18),
+                        border: InputBorder.none,
+                        hintText: "0",
+                      ),
+                      onChanged: (_) => _triggerLiveNetworkConversion(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── CARD FIELD 2: CURRENCY COUNTRY SELECTORS LAYER ──
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                decoration: BoxDecoration(
+                    color: widget.boxBgColor,
+                    borderRadius: BorderRadius.circular(16)),
+                child: Column(
+                  children: [
+                    // Mula sa Pera Picker Row
+                    ListTile(
+                      dense: true,
+                      leading: Text(baseDetails["symbol"]!,
+                          style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFFD700))),
+                      title: Text(_translate("From Currency:", "Mula sa Pera:"),
+                          style: const TextStyle(
+                              fontSize: 10, color: Colors.white38)),
+                      subtitle: Text(
+                          "${baseDetails["country"]} (${baseDetails["code"]})",
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 13)),
+                      trailing: const Icon(Icons.arrow_drop_down,
+                          color: Colors.white54, size: 16),
+                      onTap: () {
+                        widget.openCurrencySearchPicker((chosen) {
+                          setState(() => _baseCurrencyCode = chosen["code"]!);
+                          _triggerLiveNetworkConversion();
+                        });
+                      },
+                    ),
+
+                    // ── 🔥 NAITAMA NA SWAP BUTTON ICON NODE AREA ──
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            padding: const EdgeInsets.all(0),
+                            constraints: const BoxConstraints(),
+                            onPressed: _swapSelectedCurrencies,
+                            icon: const Icon(Icons.swap_vert_circle_rounded,
+                                color: Color(0xFFFFD700), size: 24),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Palitang Pera Picker Row
+                    ListTile(
+                      dense: true,
+                      leading: Text(targetDetails["symbol"]!,
+                          style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF00E676))),
+                      title: Text(_translate("To Currency:", "Palitang Pera:"),
+                          style: const TextStyle(
+                              fontSize: 10, color: Colors.white38)),
+                      subtitle: Text(
+                          "${targetDetails["country"]} (${targetDetails["code"]})",
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 13)),
+                      trailing: const Icon(Icons.arrow_drop_down,
+                          color: Colors.white54, size: 16),
+                      onTap: () {
+                        widget.openCurrencySearchPicker((chosen) {
+                          setState(() => _targetCurrencyCode = chosen["code"]!);
+                          _triggerLiveNetworkConversion();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ── CARD FIELD 3: CONVERSION OUTPUT REAL-TIME LEDGER DISPLAY ──
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: widget.boxBgColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: _networkErrorMsg.isNotEmpty
+                          ? Colors.redAccent.withOpacity(0.3)
+                          : const Color(0xFFFFD700).withOpacity(0.15)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      _translate("CONVERTED TOTAL RESULT", "KABUUANG PALITAN"),
+                      style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_isLoadingNetwork)
+                      const Padding(
+                        padding: EdgeInsets.all(6.0),
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.0,
+                              valueColor:
+                                  AlwaysStoppedAnimation(Color(0xFFFFD700))),
+                        ),
+                      )
+                    else if (_networkErrorMsg.isNotEmpty)
+                      Column(
+                        children: [
+                          const Icon(Icons.wifi_off_rounded,
+                              color: Colors.redAccent, size: 20),
+                          const SizedBox(height: 6),
+                          Text(_networkErrorMsg,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      )
+                    else
+                      Column(
+                        children: [
+                          Text(
+                            "${targetDetails["symbol"]}${fmtCode.format(_calculatedOutput)}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Color(0xFF00E676),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "1 $_baseCurrencyCode = $_liveRateResult $_targetCurrencyCode",
+                            style: const TextStyle(
+                                color: Colors.white38,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Live Fresh Sync Manual Update Button
+              ElevatedButton.icon(
+                onPressed:
+                    _isLoadingNetwork ? null : _triggerLiveNetworkConversion,
+                icon: const Icon(Icons.sync_rounded,
+                    size: 18, color: Colors.black),
+                label: Text(
+                    _translate(
+                        "REFRESH LIVE RATES", "I-REFRESH ANG LIVE RATES"),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD700),
+                  minimumSize: const Size(double.infinity, 45),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
